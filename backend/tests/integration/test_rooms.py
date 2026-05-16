@@ -113,6 +113,42 @@ async def test_delete_room_forbidden_for_non_owner():
 
 
 @pytest.mark.asyncio
+async def test_duplicate_room_number_in_same_property_returns_409():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop = await create_property(client, USER_A)
+        await client.post(
+            f"/api/v1/properties/{prop['id']}/rooms",
+            json={"room_number": "101", "rent_price": "2000000"},
+            headers=auth_headers(USER_A),
+        )
+        r = await client.post(
+            f"/api/v1/properties/{prop['id']}/rooms",
+            json={"room_number": "101", "rent_price": "3000000"},
+            headers=auth_headers(USER_A),
+        )
+    assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_same_room_number_allowed_in_different_properties():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop_a = await create_property(client, USER_A, "House A")
+        prop_b = await create_property(client, USER_A, "House B")
+        r_a = await client.post(
+            f"/api/v1/properties/{prop_a['id']}/rooms",
+            json={"room_number": "101", "rent_price": "2000000"},
+            headers=auth_headers(USER_A),
+        )
+        r_b = await client.post(
+            f"/api/v1/properties/{prop_b['id']}/rooms",
+            json={"room_number": "101", "rent_price": "2000000"},
+            headers=auth_headers(USER_A),
+        )
+    assert r_a.status_code == 201
+    assert r_b.status_code == 201
+
+
+@pytest.mark.asyncio
 async def test_list_rooms_only_returns_own_property_rooms():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         prop_a = await create_property(client, USER_A, "House A")

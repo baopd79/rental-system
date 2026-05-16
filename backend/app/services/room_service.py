@@ -1,11 +1,12 @@
 from decimal import Decimal
 from fastapi import Depends
+from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.room import Room
 from app.schemas.room import RoomCreate, RoomRead, RoomUpdate
 from app.repositories import room_repo, property_repo
-from app.core.exceptions import NotFoundException, ForbiddenException
+from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 
 def _build_read(room: Room, elec_fallback: Decimal, water_fallback: Decimal) -> RoomRead:
@@ -50,7 +51,11 @@ class RoomService:
         prop = await self._get_property_owned(property_id, clerk_user_id)
         room = Room(**data.model_dump(), property_id=property_id)
         created = await room_repo.create(self.session, room)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            raise ConflictException(f"Room number '{data.room_number}' already exists in this property")
         await self.session.refresh(created)
         return _build_read(created, prop.default_elec_rate, prop.default_water_rate)
 
@@ -59,7 +64,11 @@ class RoomService:
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(room, field, value)
         updated = await room_repo.update(self.session, room)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            raise ConflictException(f"Room number '{data.room_number}' already exists in this property")
         await self.session.refresh(updated)
         return _build_read(updated, prop.default_elec_rate, prop.default_water_rate)
 
