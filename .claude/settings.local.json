@@ -1,0 +1,10 @@
+{
+  "enabledPlugins": {
+    "agent-skills@addy-agent-skills": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build *)"
+    ]
+  }
+}
