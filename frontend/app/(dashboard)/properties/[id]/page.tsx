@@ -26,6 +26,7 @@ export default function PropertyDetailPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
   const [deleting, setDeleting] = useState<Room | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -50,9 +51,15 @@ export default function PropertyDetailPage() {
 
   async function handleDelete() {
     if (!deleting) return;
-    await apiFetch(`/rooms/${deleting.id}`, getToken, { method: "DELETE" });
+    const res = await apiFetch(`/rooms/${deleting.id}`, getToken, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      setDeleteError(err.detail ?? "Xóa thất bại");
+      return;
+    }
     setRooms((prev) => prev.filter((r) => r.id !== deleting.id));
     setDeleting(null);
+    setDeleteError(null);
   }
 
   const stats = {
@@ -157,12 +164,13 @@ export default function PropertyDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa phòng {deleting?.room_number}?</AlertDialogTitle>
             <AlertDialogDescription>Hành động này không thể hoàn tác.</AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && <p className="text-sm text-red-600 px-1">{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>

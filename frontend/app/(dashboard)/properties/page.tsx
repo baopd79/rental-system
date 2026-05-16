@@ -20,6 +20,7 @@ export default function PropertiesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Property | null>(null);
   const [deleting, setDeleting] = useState<Property | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -42,9 +43,15 @@ export default function PropertiesPage() {
 
   async function handleDelete() {
     if (!deleting) return;
-    await apiFetch(`/properties/${deleting.id}`, getToken, { method: "DELETE" });
+    const res = await apiFetch(`/properties/${deleting.id}`, getToken, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      setDeleteError(err.detail ?? "Xóa thất bại");
+      return;
+    }
     setProperties((prev) => prev.filter((p) => p.id !== deleting.id));
     setDeleting(null);
+    setDeleteError(null);
   }
 
   if (loading) return <div className="p-8 text-gray-500">Đang tải...</div>;
@@ -108,7 +115,7 @@ export default function PropertiesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa nhà trọ?</AlertDialogTitle>
@@ -116,6 +123,7 @@ export default function PropertiesPage() {
               Xóa &ldquo;{deleting?.name}&rdquo;. Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && <p className="text-sm text-red-600 px-1">{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>
