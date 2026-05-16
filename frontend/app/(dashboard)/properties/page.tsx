@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { Plus, Building2, MapPin, Zap, Droplets } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import type { Property } from "@/types/property";
 
 export default function PropertiesPage() {
   const { getToken } = useAuth();
+  const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -81,6 +83,9 @@ export default function PropertiesPage() {
                   </span>
                 </div>
                 <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => router.push(`/properties/${p.id}`)}>
+                    Xem phòng
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { setEditing(p); setShowForm(true); }}>
                     Sửa
                   </Button>

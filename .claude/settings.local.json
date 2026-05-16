@@ -1,10 +1,11 @@
 {
-  "enabledPlugins": {
-    "agent-skills@addy-agent-skills": true
-  },
   "permissions": {
     "allow": [
-      "Bash(pnpm build *)"
+      "Bash(pnpm build *)",
+      "Bash(uv run *)"
     ]
+  },
+  "enabledPlugins": {
+    "agent-skills@addy-agent-skills": true
   }
 }

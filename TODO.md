@@ -1,6 +1,6 @@
 # TODO — Rental System
 
-> Cập nhật lần cuối: Phase 1 hoàn tất.
+> Cập nhật lần cuối: Phase 2 hoàn tất.
 > Chi tiết từng task xem ở [PLAN.md](./PLAN.md).
 
 ---
@@ -11,8 +11,8 @@
 |-------|-------|--------|
 | 0 | Project scaffold | ✅ Done |
 | 1 | Properties CRUD | ✅ Done |
-| 2 | Rooms CRUD | 🔲 Next |
-| 3 | Tenants & Contracts | 🔲 Todo |
+| 2 | Rooms CRUD | ✅ Done |
+| 3 | Tenants & Contracts | 🔲 Next |
 | 4 | Utility Readings | 🔲 Todo |
 | 5 | Surcharge Templates | 🔲 Todo |
 | 6 | Invoice Generation | 🔲 Todo |
@@ -49,20 +49,19 @@
 
 ---
 
-## 🔲 Phase 2 — Rooms ← NEXT
+## ✅ Phase 2 — Rooms
 
-- [ ] **T2.1** `Room` model + schemas + migration `002` (FK → Property, `elec_rate`/`water_rate` nullable)
-- [ ] **T2.2** `room_repo` + `RoomService` (rate inheritance từ Property) + router `/api/v1/rooms`
-- [ ] **T2.3** Frontend: rooms list trong property detail, form tạo/sửa, status badge
+- [x] **T2.1** `Room` model + schemas + migration `002` (FK → Property, `elec_rate`/`water_rate` nullable)
+- [x] **T2.2** `room_repo` + `RoomService` (rate inheritance từ Property) + router `/api/v1/rooms`
+- [x] **T2.3** Frontend: rooms list trong property detail, form tạo/sửa, status badge
 
-**Acceptance criteria chính:**
-- [ ] `POST /rooms` chỉ được nếu user sở hữu property
-- [ ] Room `elec_rate=null` → API trả `effective_elec_rate` lấy từ property
-- [ ] Status badge: `vacant` / `occupied` / `maintenance`
+**Ghi chú:**
+- `effective_elec_rate` / `effective_water_rate` tính trong service, trả về trong `RoomRead`
+- Tests override `CLERK_JWKS_URL = ""` trong conftest để force dev mode khi có real key trong `.env`
 
 ---
 
-## 🔲 Phase 3 — Tenants & Contracts
+## 🔲 Phase 3 — Tenants & Contracts ← NEXT
 
 - [ ] **T3.1** `Tenant` + `Contract` models + schemas + migration `003`
 - [ ] **T3.2** `tenant_repo` + `contract_repo` + services (1 active contract per room) + routers
