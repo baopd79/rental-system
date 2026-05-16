@@ -1,10 +1,11 @@
 from decimal import Decimal
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.room import Room
 from app.schemas.room import RoomCreate, RoomRead, RoomUpdate
 from app.repositories import room_repo, property_repo
+from app.core.exceptions import NotFoundException, ForbiddenException
 
 
 def _build_read(room: Room, elec_fallback: Decimal, water_fallback: Decimal) -> RoomRead:
@@ -22,18 +23,18 @@ class RoomService:
     async def _get_property_owned(self, property_id: int, clerk_user_id: str):
         prop = await property_repo.get_by_id(self.session, property_id)
         if not prop:
-            raise HTTPException(status_code=404, detail="Property not found")
+            raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise ForbiddenException()
         return prop
 
     async def _get_room_owned(self, room_id: int, clerk_user_id: str):
         room = await room_repo.get_by_id(self.session, room_id)
         if not room:
-            raise HTTPException(status_code=404, detail="Room not found")
+            raise NotFoundException("Room not found")
         prop = await property_repo.get_by_id(self.session, room.property_id)
         if not prop or prop.clerk_user_id != clerk_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise ForbiddenException()
         return room, prop
 
     async def list_rooms(self, property_id: int, clerk_user_id: str) -> list[RoomRead]:

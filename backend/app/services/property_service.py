@@ -1,9 +1,10 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.property import Property
 from app.schemas.property import PropertyCreate, PropertyUpdate
 from app.repositories import property_repo
+from app.core.exceptions import NotFoundException, ForbiddenException
 
 
 class PropertyService:
@@ -16,9 +17,9 @@ class PropertyService:
     async def get_property(self, property_id: int, clerk_user_id: str) -> Property:
         prop = await property_repo.get_by_id(self.session, property_id)
         if not prop:
-            raise HTTPException(status_code=404, detail="Property not found")
+            raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise ForbiddenException()
         return prop
 
     async def create_property(self, data: PropertyCreate, clerk_user_id: str) -> Property:
@@ -31,9 +32,9 @@ class PropertyService:
     async def update_property(self, property_id: int, data: PropertyUpdate, clerk_user_id: str) -> Property:
         prop = await property_repo.get_by_id(self.session, property_id)
         if not prop:
-            raise HTTPException(status_code=404, detail="Property not found")
+            raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise ForbiddenException()
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(prop, field, value)
         updated = await property_repo.update(self.session, prop)
@@ -44,8 +45,8 @@ class PropertyService:
     async def delete_property(self, property_id: int, clerk_user_id: str) -> None:
         prop = await property_repo.get_by_id(self.session, property_id)
         if not prop:
-            raise HTTPException(status_code=404, detail="Property not found")
+            raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise ForbiddenException()
         await property_repo.delete(self.session, prop)
         await self.session.commit()

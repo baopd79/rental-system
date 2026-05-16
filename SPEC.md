@@ -271,7 +271,7 @@ Router → Service → Repository → Model
 - **Không dùng `async with session.begin()`** — conflict với asyncpg khi autobegin đã active
 - `get_session` tự rollback khi exception — service không cần tự rollback
 - Gọi một hoặc nhiều repository rồi commit một lần ở cuối để atomic
-- Raise `HTTPException` hoặc custom domain exceptions
+- **Raise domain exceptions** từ `app.core.exceptions` — không import `HTTPException` vào service
 
 **Repository** (`repositories/`)
 - Chỉ làm việc với database: query, insert, update, delete
@@ -391,6 +391,7 @@ async def get_session():
 - Thêm role mới (admin, nhân viên quản lý)
 
 ### Never do
+- Import `HTTPException` trong service — dùng `AppException` subclasses thay thế
 - Expose thông tin nhạy cảm (CCCD, SĐT đầy đủ) trên public invoice endpoint
 - Cho phép unauthenticated access ngoài `/invoices/public/*`
 - Gọi repository trực tiếp từ router
