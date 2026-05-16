@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from decimal import Decimal
 from datetime import datetime
+from app.models.property import WaterCalcType
 
 
 class PropertyCreate(BaseModel):
@@ -9,6 +10,7 @@ class PropertyCreate(BaseModel):
     description: str | None = None
     default_elec_rate: Decimal = Decimal("0")
     default_water_rate: Decimal = Decimal("0")
+    water_calc_type: WaterCalcType = WaterCalcType.per_meter
 
 
 class PropertyUpdate(BaseModel):
@@ -17,6 +19,7 @@ class PropertyUpdate(BaseModel):
     description: str | None = None
     default_elec_rate: Decimal | None = None
     default_water_rate: Decimal | None = None
+    water_calc_type: WaterCalcType | None = None
 
 
 class PropertyRead(BaseModel):
@@ -27,6 +30,7 @@ class PropertyRead(BaseModel):
     description: str | None
     default_elec_rate: Decimal
     default_water_rate: Decimal
+    water_calc_type: WaterCalcType
     created_at: datetime
 
     model_config = {"from_attributes": True}

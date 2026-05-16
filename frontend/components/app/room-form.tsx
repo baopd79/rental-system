@@ -12,12 +12,11 @@ interface Props {
   propertyId: number;
   room?: Room;
   defaultElecRate?: string;
-  defaultWaterRate?: string;
   onSuccess: (r: Room) => void;
   onCancel: () => void;
 }
 
-export function RoomForm({ propertyId, room, defaultElecRate, defaultWaterRate, onSuccess, onCancel }: Props) {
+export function RoomForm({ propertyId, room, defaultElecRate, onSuccess, onCancel }: Props) {
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +27,6 @@ export function RoomForm({ propertyId, room, defaultElecRate, defaultWaterRate, 
     rent_price: room?.rent_price ?? "",
     deposit: room?.deposit ?? "0",
     elec_rate: room?.elec_rate ?? "",
-    water_rate: room?.water_rate ?? "",
   });
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -46,7 +44,6 @@ export function RoomForm({ propertyId, room, defaultElecRate, defaultWaterRate, 
         rent_price: form.rent_price,
         deposit: form.deposit,
         ...(form.elec_rate ? { elec_rate: form.elec_rate } : {}),
-        ...(form.water_rate ? { water_rate: form.water_rate } : {}),
       };
       const result = await apiJson<Room>(
         room ? `/rooms/${room.id}` : `/properties/${propertyId}/rooms`,
@@ -87,17 +84,15 @@ export function RoomForm({ propertyId, room, defaultElecRate, defaultWaterRate, 
         <Label htmlFor="rent_price">Giá thuê/tháng (đ) *</Label>
         <Input id="rent_price" type="number" value={form.rent_price} onChange={set("rent_price")} required />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="elec_rate">Giá điện (đ/kWh)</Label>
-          <Input id="elec_rate" type="number" value={form.elec_rate} onChange={set("elec_rate")}
-            placeholder={`mặc định: ${defaultElecRate ?? "theo nhà"}`} />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="water_rate">Giá nước (đ/m³)</Label>
-          <Input id="water_rate" type="number" value={form.water_rate} onChange={set("water_rate")}
-            placeholder={`mặc định: ${defaultWaterRate ?? "theo nhà"}`} />
-        </div>
+      <div className="space-y-1">
+        <Label htmlFor="elec_rate">Giá điện riêng (đ/kWh)</Label>
+        <Input
+          id="elec_rate"
+          type="number"
+          value={form.elec_rate}
+          onChange={set("elec_rate")}
+          placeholder={`mặc định: ${defaultElecRate ?? "theo nhà"}`}
+        />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2 justify-end pt-2">

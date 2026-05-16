@@ -45,11 +45,16 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 
 ### 3.2 Quản lý Nhà (`Property`)
 - CRUD nhà trọ: tên, địa chỉ, mô tả
-- Một chủ nhà có nhiều nhà
+- Cấu hình ngay khi tạo nhà:
+  - Đơn giá điện mặc định (đ/kWh)
+  - Đơn giá nước mặc định + **kiểu tính nước** (`water_calc_type`): `per_meter` | `per_person` | `per_room`
+  - Danh sách phụ phí (`SurchargeTemplate`) áp dụng cho tất cả phòng trong nhà
+  - Danh sách công tơ điện chung (`SharedMeter`) nếu có NVS/hành lang chung
 
 ### 3.3 Quản lý Phòng (`Room`)
 - CRUD phòng: số phòng, tầng, diện tích, giá thuê, tiền cọc
-- Đơn giá điện/nước riêng theo phòng (kế thừa từ nhà nếu không cấu hình riêng)
+- Đơn giá điện riêng theo phòng (kế thừa từ nhà nếu không cấu hình riêng)
+- Nước: không cài riêng theo phòng — dùng `water_calc_type` của nhà
 - Trạng thái: `vacant` | `occupied` | `maintenance`
 
 ### 3.4 Quản lý Khách thuê (`Tenant`) & Hợp đồng (`Contract`)
@@ -58,20 +63,35 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 - Một phòng có tối đa một contract đang `active`
 
 ### 3.5 Chỉ số Điện/Nước (`UtilityReading`)
-- Nhập chỉ số cuối kỳ theo phòng + tháng
-- **Tự động điền số đầu kỳ**: số cuối kỳ trước (`elec_curr` tháng N-1) tự động trở thành số đầu kỳ (`elec_prev` tháng N) khi tạo reading mới
-- Nếu chưa có reading kỳ trước (phòng mới), cho phép nhập thủ công
-- Tính tiền điện/nước tự động khi tạo hóa đơn: `(curr - prev) × rate`
+- Nhập chỉ số cuối kỳ điện theo phòng + tháng (luôn theo công tơ)
+- Nhập chỉ số nước **chỉ khi** `water_calc_type = per_meter`; các mode khác không cần reading
+- **Tự động điền số đầu kỳ**: `elec_curr` tháng N-1 → `elec_prev` tháng N (tương tự nước)
+- Nếu chưa có reading kỳ trước (phòng mới) → cho nhập thủ công, `is_prev_auto=false`
+- Validation: `curr >= prev` — nếu ngược lại raise lỗi (tránh tiêu thụ âm)
+
+**Công tơ điện chung (`SharedMeterReading`)**:
+- Nhập chỉ số cuối kỳ theo từng `SharedMeter` (công tơ NVS/hành lang chung)
+- Auto-fill `prev` ← `curr` kỳ trước, tương tự UtilityReading
+- Rate dùng `property.default_elec_rate`
 
 ### 3.6 Hóa đơn (`Invoice`)
 - Tạo hóa đơn hàng tháng gồm:
-  - Tiền thuê (từ contract)
-  - Tiền điện + nước (từ UtilityReading)
-  - **Phụ phí linh hoạt** (`SurchargeTemplate`): chủ nhà định nghĩa các loại phụ phí với cách tính:
-    - `per_room` — phí cố định mỗi phòng (VD: phí dịch vụ, wifi, rác)
-    - `per_person` — phí tính theo số người trong hợp đồng (VD: phí giữ xe, phí vệ sinh)
-  - Phụ phí được áp dụng tự động khi generate hóa đơn, có thể chỉnh sửa trước khi gửi
+  - **Tiền thuê**: `contract.agreed_rent`
+  - **Tiền điện**: `(elec_curr - elec_prev) × effective_elec_rate`
+  - **Tiền nước** — theo `property.water_calc_type`:
+    - `per_meter` → `(water_curr - water_prev) × default_water_rate`
+    - `per_person` → `default_water_rate × contract.num_people`
+    - `per_room` → `default_water_rate` (cố định)
+  - **Phụ phí** (`SurchargeTemplate` — thuộc property, áp dụng tất cả phòng):
+    - `per_room` — cố định mỗi phòng (VD: wifi, rác)
+    - `per_person` — `amount × contract.num_people` (VD: phí vệ sinh)
+  - **Điện công tơ chung** (`SharedMeterReading`):
+    - Chỉ tính cho phòng tham gia SharedMeter đó
+    - `room_share = (num_people / total_people_active_rooms) × (curr - prev) × elec_rate`
+    - Phòng trống (không có active contract) **không tham gia chia**
+  - Phụ phí và điện chung áp dụng tự động khi generate, chỉnh sửa được trước khi gửi
 - Trạng thái: `draft` | `sent` | `paid` | `overdue`
+- Transitions hợp lệ: `draft→sent`, `sent→paid`, `sent→overdue`, `overdue→paid` (trả trễ)
 - Xuất PDF (Jinja2 template → WeasyPrint)
 - Sinh link public không cần đăng nhập: `/invoice/public/{token}`
 - Copy link gửi qua Zalo/SMS
@@ -87,11 +107,18 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 
 ```
 Property          — id, clerk_user_id, name, address, description,
-                    default_elec_rate, default_water_rate
+                    default_elec_rate,
+                    default_water_rate,
+                    water_calc_type(per_meter|per_person|per_room)  # default: per_meter
+                    # ý nghĩa default_water_rate thay đổi theo water_calc_type:
+                    #   per_meter  → đ/m³
+                    #   per_person → đ/người/tháng
+                    #   per_room   → đ/phòng/tháng
 
 Room              — id, property_id→Property, room_number, floor, area_m2,
-                    rent_price, deposit, status, elec_rate, water_rate
-                    # elec_rate/water_rate NULL = kế thừa từ Property
+                    rent_price, deposit, status, elec_rate
+                    # elec_rate NULL = kế thừa từ Property
+                    # không có water_rate riêng — dùng property.water_calc_type
 
 Tenant            — id, clerk_user_id, full_name, id_number, phone, email, dob
 
@@ -99,19 +126,34 @@ Contract          — id, room_id→Room, tenant_id→Tenant, start_date, end_da
                     agreed_rent, deposit_paid, num_people, status(active|ended)
 
 UtilityReading    — id, room_id→Room, period(YYYY-MM),
-                    elec_prev, elec_curr,     # elec_prev auto-filled từ kỳ trước
-                    water_prev, water_curr,
-                    is_prev_auto(bool)        # flag: số đầu kỳ được tự động điền
+                    elec_prev, elec_curr,         # elec_prev auto-filled từ kỳ trước
+                    water_prev, water_curr,        # NULL nếu water_calc_type ≠ per_meter
+                    is_prev_auto(bool)             # flag: số đầu kỳ tự động điền
 
-SurchargeTemplate — id, clerk_user_id, name, amount, calc_type(per_room|per_person),
+SurchargeTemplate — id, property_id→Property,    # thuộc property, không phải user
+                    name, amount,
+                    calc_type(per_room|per_person),
                     is_active
 
+SharedMeter       — id, property_id→Property, name
+                    # VD: "Điện NVS tầng 2", "Điện hành lang tầng 3"
+                    # rate dùng property.default_elec_rate
+
+SharedMeterRoom   — shared_meter_id→SharedMeter, room_id→Room
+                    # junction: phòng nào tham gia công tơ chung này
+
+SharedMeterReading — id, shared_meter_id→SharedMeter, period(YYYY-MM),
+                     prev_reading, curr_reading, is_prev_auto(bool)
+                     # auto-fill prev ← curr kỳ trước, tương tự UtilityReading
+
 Invoice           — id, contract_id→Contract, period(YYYY-MM),
-                    rent_amount, elec_amount, water_amount, total,
+                    rent_amount, elec_amount, water_amount,
+                    shared_elec_amount, surcharge_amount, total,
                     status, public_token(uuid), due_date, paid_at
 
 InvoiceItem       — id, invoice_id→Invoice, description, amount, unit_price,
-                    quantity, item_type(rent|elec|water|surcharge)
+                    quantity,
+                    item_type(rent|elec|water|surcharge|shared_elec)
 ```
 
 ---
@@ -231,16 +273,27 @@ PUT    /contracts/{id}/end
 POST   /utility-readings               # auto-fill elec_prev/water_prev từ kỳ trước
 GET    /rooms/{id}/utility-readings
 
-GET    /surcharges                     # list SurchargeTemplate của user
-POST   /surcharges
+GET    /properties/{id}/surcharges      # list SurchargeTemplate của property
+POST   /properties/{id}/surcharges
 PUT    /surcharges/{id}
 DELETE /surcharges/{id}
 
+GET    /properties/{id}/shared-meters  # list SharedMeter của property
+POST   /properties/{id}/shared-meters
+PUT    /shared-meters/{id}
+DELETE /shared-meters/{id}
+GET    /shared-meters/{id}/rooms       # rooms tham gia công tơ này
+POST   /shared-meters/{id}/rooms       # thêm room vào công tơ
+DELETE /shared-meters/{id}/rooms/{room_id}
+POST   /shared-meter-readings          # nhập chỉ số công tơ chung (auto-fill prev)
+GET    /shared-meters/{id}/readings    # lịch sử readings
+
 GET    /invoices
-POST   /invoices/generate              # tính toán từ contract + utility + surcharges
+POST   /invoices/generate              # tính từ contract + utility + surcharges + shared meters
 GET    /invoices/{id}
 PUT    /invoices/{id}                  # chỉnh sửa draft
-PUT    /invoices/{id}/status
+PUT    /invoices/{id}/status           # draft→sent, sent→paid, sent→overdue, overdue→paid
+DELETE /invoices/{id}                  # chỉ xóa được draft
 GET    /invoices/{id}/pdf
 GET    /invoices/public/{token}        # no auth
 

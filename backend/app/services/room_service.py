@@ -12,7 +12,7 @@ def _build_read(room: Room, elec_fallback: Decimal, water_fallback: Decimal) -> 
     return RoomRead(
         **room.model_dump(),
         effective_elec_rate=room.elec_rate if room.elec_rate is not None else elec_fallback,
-        effective_water_rate=room.water_rate if room.water_rate is not None else water_fallback,
+        effective_water_rate=water_fallback,
     )
 
 

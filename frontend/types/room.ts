@@ -10,7 +10,6 @@ export interface Room {
   deposit: string;
   status: RoomStatus;
   elec_rate: string | null;
-  water_rate: string | null;
   effective_elec_rate: string;
   effective_water_rate: string;
 }
@@ -22,7 +21,6 @@ export interface RoomCreate {
   rent_price: string;
   deposit?: string;
   elec_rate?: string;
-  water_rate?: string;
 }
 
 export interface RoomUpdate {
@@ -33,5 +31,4 @@ export interface RoomUpdate {
   deposit?: string;
   status?: RoomStatus;
   elec_rate?: string;
-  water_rate?: string;
 }

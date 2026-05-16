@@ -12,6 +12,7 @@ import { RoomStatusBadge } from "@/components/app/room-status-badge";
 import { RoomForm } from "@/components/app/room-form";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
+import { WATER_CALC_LABELS } from "@/types/property";
 import type { Room } from "@/types/room";
 
 export default function PropertyDetailPage() {
@@ -128,8 +129,7 @@ export default function PropertyDetailPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Droplets className="w-3 h-3" />
-                    {Number(r.effective_water_rate).toLocaleString()}đ/m³
-                    {!r.water_rate && <span className="text-gray-400">(mặc định)</span>}
+                    {Number(r.effective_water_rate).toLocaleString()}đ · {property && WATER_CALC_LABELS[property.water_calc_type]}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -151,7 +151,6 @@ export default function PropertyDetailPage() {
             propertyId={property.id}
             room={editing ?? undefined}
             defaultElecRate={property.default_elec_rate}
-            defaultWaterRate={property.default_water_rate}
             onSuccess={handleSaved}
             onCancel={() => { setShowForm(false); setEditing(null); }}
           />

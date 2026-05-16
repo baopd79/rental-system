@@ -472,21 +472,22 @@ PostgreSQL
 
 ---
 
-## Phase 5: Surcharge Templates
+## Phase 5: Surcharges & Shared Meters
 
 ### Task 5.1: SurchargeTemplate model + schema + migration + CRUD
 
-**Description:** `SurchargeTemplate` (per_room | per_person), full CRUD backend + frontend settings page.
+**Description:** `SurchargeTemplate` thuộc `property_id` (không phải user), `calc_type: per_room | per_person`. Full CRUD backend. Frontend quản lý surcharge trong trang property detail.
 
 **Acceptance criteria:**
-- [ ] CRUD `GET/POST/PUT/DELETE /api/v1/surcharges` hoạt động
-- [ ] User chỉ thấy surcharges của mình
-- [ ] Frontend `/dashboard/settings/surcharges` quản lý danh sách phụ phí
+- [ ] `GET /properties/{id}/surcharges` chỉ trả surcharges của property đó
+- [ ] User không sở hữu property → 403
+- [ ] `calc_type` chỉ nhận `per_room` hoặc `per_person`
+- [ ] Frontend: tab/section "Phụ phí" trong property detail
 
 **Verification:**
-- [ ] Tạo surcharge `per_person` 50k → xác nhận `calc_type=per_person` trong DB
+- [ ] Tạo surcharge `per_person` 50k cho property → xác nhận `property_id` đúng trong DB
 
-**Dependencies:** T0.4
+**Dependencies:** T1.2
 
 **Files:**
 - `backend/app/models/surcharge.py`
@@ -495,8 +496,38 @@ PostgreSQL
 - `backend/app/services/surcharge_service.py`
 - `backend/app/routers/surcharges.py`
 - `backend/alembic/versions/005_create_surcharge.py`
-- `frontend/app/(dashboard)/settings/surcharges/page.tsx`
+- `frontend/components/app/surcharge-list.tsx`
 - `frontend/types/surcharge.ts`
+
+**Scope:** M
+
+---
+
+### Task 5.2: SharedMeter model + schema + migration + CRUD
+
+**Description:** `SharedMeter` (công tơ điện chung), `SharedMeterRoom` (junction), `SharedMeterReading` (chỉ số theo tháng với auto-fill). Frontend quản lý công tơ chung trong property detail.
+
+**Acceptance criteria:**
+- [ ] Tạo SharedMeter, thêm/xóa rooms khỏi công tơ
+- [ ] `POST /shared-meter-readings` auto-fill `prev_reading` từ kỳ trước
+- [ ] Validation: `curr_reading >= prev_reading` → 400 nếu sai
+- [ ] Phòng có thể tham gia nhiều SharedMeter khác nhau
+
+**Verification:**
+- [ ] Tạo SharedMeter "NVS tầng 2", gán 2 phòng → xác nhận junction table đúng
+- [ ] Nhập reading tháng 2 → tháng 3 auto-fill prev
+
+**Dependencies:** T5.1, T2.2
+
+**Files:**
+- `backend/app/models/shared_meter.py`
+- `backend/app/schemas/shared_meter.py`
+- `backend/app/repositories/shared_meter_repo.py`
+- `backend/app/services/shared_meter_service.py`
+- `backend/app/routers/shared_meters.py`
+- `backend/alembic/versions/006_create_shared_meter.py`
+- `frontend/components/app/shared-meter-list.tsx`
+- `frontend/types/shared_meter.ts`
 
 **Scope:** M
 
@@ -504,7 +535,8 @@ PostgreSQL
 
 ### Checkpoint: Phase 5
 
-- [ ] Surcharge templates quản lý được từ UI
+- [ ] Surcharges quản lý được theo từng property
+- [ ] Công tơ chung tạo được, gán phòng, nhập chỉ số
 
 ---
 
@@ -526,7 +558,7 @@ PostgreSQL
 **Files:**
 - `backend/app/models/invoice.py`
 - `backend/app/schemas/invoice.py`
-- `backend/alembic/versions/006_create_invoice.py`
+- `backend/alembic/versions/007_create_invoice.py`
 
 **Scope:** S
 
@@ -534,19 +566,26 @@ PostgreSQL
 
 ### Task 6.2: InvoiceService — calculation logic
 
-**Description:** Pure function `_calculate(contract, reading, surcharges) -> InvoiceData` tính: tiền thuê + tiền điện `(curr-prev)*rate` + tiền nước + phụ phí (per_room × 1, per_person × `num_people`). Tạo đầy đủ `InvoiceItem` cho từng dòng.
+**Description:** Pure function `_calculate(contract, reading, surcharges, shared_meter_items, property) -> InvoiceData` tính đầy đủ tất cả khoản. Tạo `InvoiceItem` cho từng dòng.
 
 **Acceptance criteria:**
-- [ ] Tiền điện = `(elec_curr - elec_prev) × elec_rate` (dùng effective rate)
-- [ ] Surcharge `per_room`: amount cố định
-- [ ] Surcharge `per_person`: `amount × contract.num_people`
+- [ ] Tiền điện = `(elec_curr - elec_prev) × effective_elec_rate`
+- [ ] Tiền nước theo `water_calc_type`:
+  - `per_meter` → `(water_curr - water_prev) × default_water_rate`
+  - `per_person` → `default_water_rate × num_people`
+  - `per_room` → `default_water_rate`
+- [ ] Surcharge `per_room`: amount cố định; `per_person`: `amount × num_people`
+- [ ] Điện công tơ chung: `(num_people / total_active_people) × (curr-prev) × elec_rate`
+- [ ] Reading `null` → amount = 0, không lỗi (chưa nhập điện/nước)
 - [ ] `total` = sum tất cả items
-- [ ] Reading `null` (chưa nhập điện/nước) → elec/water amount = 0, không lỗi
 
 **Verification:**
-- [ ] `pytest tests/unit/test_invoice_calculation.py` pass với nhiều case edge
+- [ ] `pytest tests/unit/test_invoice_calculation.py` pass với đủ cases:
+  - 3 water_calc_type
+  - shared meter với 2, 3 phòng
+  - phòng trống không tham gia chia
 
-**Dependencies:** T6.1, T5.1, T4.1
+**Dependencies:** T6.1, T5.2, T4.1
 
 **Files:**
 - `backend/app/services/invoice_service.py` (calculation logic)
@@ -558,13 +597,14 @@ PostgreSQL
 
 ### Task 6.3: InvoiceService — generate + CRUD + router
 
-**Description:** `InvoiceService.generate()` orchestrate: validate ownership → lấy contract/reading/surcharges → tính → persist trong transaction. Endpoints: generate, list, get, update draft items, update status.
+**Description:** `InvoiceService.generate()` orchestrate: validate ownership → lấy contract + reading + surcharges + shared meter readings → tính → persist. Bổ sung `DELETE /invoices/{id}` cho draft và transition `overdue→paid`.
 
 **Acceptance criteria:**
 - [ ] `POST /invoices/generate` tạo invoice `draft` với đúng amounts
 - [ ] Duplicate period cho cùng contract → 409
 - [ ] `PUT /invoices/{id}` chỉ cho phép khi status = `draft`
-- [ ] `PUT /invoices/{id}/status` chuyển `draft→sent`, `sent→paid`, `sent→overdue`
+- [ ] `PUT /invoices/{id}/status`: `draft→sent`, `sent→paid`, `sent→overdue`, `overdue→paid`
+- [ ] `DELETE /invoices/{id}` chỉ xóa được khi status = `draft`
 
 **Verification:**
 - [ ] `pytest tests/integration/test_invoices.py` pass

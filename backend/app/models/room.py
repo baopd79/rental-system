@@ -22,4 +22,3 @@ class Room(SQLModel, table=True):
     deposit: Decimal = Field(default=Decimal("0"), decimal_places=0, max_digits=12)
     status: RoomStatus = Field(default=RoomStatus.vacant)
     elec_rate: Optional[Decimal] = Field(default=None, decimal_places=2, max_digits=10)
-    water_rate: Optional[Decimal] = Field(default=None, decimal_places=2, max_digits=10)

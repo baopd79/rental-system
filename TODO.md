@@ -87,28 +87,35 @@
 
 ---
 
-## 🔲 Phase 5 — Surcharge Templates
+## 🔲 Phase 5 — Surcharges & Shared Meters
 
-- [ ] **T5.1** `SurchargeTemplate` model + schemas + migration `005` + CRUD backend + frontend settings page
+- [ ] **T5.1** `SurchargeTemplate` model + schemas + migration `005` — scope: `property_id` (không phải user)
+- [ ] **T5.2** `SharedMeter` + `SharedMeterRoom` + `SharedMeterReading` + migration `006`
 
 **Acceptance criteria chính:**
+- [ ] Surcharge thuộc property, áp dụng tất cả phòng trong nhà
 - [ ] `calc_type`: `per_room` | `per_person`
-- [ ] User chỉ thấy surcharges của mình
+- [ ] SharedMeter gán được danh sách phòng tham gia
+- [ ] SharedMeterReading auto-fill prev ← curr kỳ trước
+- [ ] Validation: `curr_reading >= prev_reading`
 
 ---
 
 ## 🔲 Phase 6 — Invoice Generation
 
-- [ ] **T6.1** `Invoice` + `InvoiceItem` models + schemas + migration `006` (`public_token` uuid)
-- [ ] **T6.2** `InvoiceService._calculate()` pure function: rent + elec + water + surcharges
+- [ ] **T6.1** `Invoice` + `InvoiceItem` models + schemas + migration `007` (`public_token` uuid, `item_type` thêm `shared_elec`)
+- [ ] **T6.2** `InvoiceService._calculate()` pure function: rent + elec + water (3 modes) + surcharges + shared_elec
 - [ ] **T6.3** `InvoiceService.generate()` orchestration + CRUD endpoints
 - [ ] **T6.4** PDF generation: Jinja2 template + WeasyPrint → `GET /invoices/{id}/pdf`
 - [ ] **T6.5** Frontend: invoice list, generate modal, detail view, copy link, download PDF
 
 **Acceptance criteria chính:**
+- [ ] Tiền nước tính đúng theo `water_calc_type` (per_meter / per_person / per_room)
+- [ ] Điện công tơ chung: chia theo đầu người, phòng trống không tham gia
 - [ ] Surcharge `per_person`: `amount × contract.num_people`
 - [ ] Duplicate period cho cùng contract → 409
-- [ ] `PUT /invoices/{id}` chỉ cho phép khi `status=draft`
+- [ ] `DELETE /invoices/{id}` chỉ xóa được draft
+- [ ] Transitions: `draft→sent`, `sent→paid`, `sent→overdue`, `overdue→paid`
 
 ---
 
@@ -131,8 +138,8 @@
 
 ## 🔲 Phase 9 — Tests & Hardening
 
-- [ ] **T9.1** Unit tests `InvoiceService._calculate()` ≥ 8 cases
-- [ ] **T9.2** Unit tests `UtilityService` auto-fill ≥ 5 cases
+- [ ] **T9.1** Unit tests `InvoiceService._calculate()` ≥ 10 cases (3 water modes + shared meter split + phòng trống)
+- [ ] **T9.2** Unit tests `UtilityService` auto-fill ≥ 5 cases + validation `curr >= prev`
 - [ ] **T9.3** Integration tests owner isolation (cross-user 403/404 cho tất cả resources)
 
 ---
@@ -148,8 +155,16 @@ Backend:
   Schema  → Pydantic tách riêng (XxxCreate / XxxRead / XxxUpdate)
 
   Dep aliases: SessionDep, CurrentUserDep, XxxServiceDep (trong dependencies.py)
+  Exceptions: raise NotFoundException/ForbiddenException/ConflictException (không dùng HTTPException trong service)
   datetime: datetime.now(timezone.utc).replace(tzinfo=None)
   Migration: alembic revision --autogenerate → upgrade head
+
+Billing logic:
+  Điện:       luôn per_meter — (curr-prev) × effective_elec_rate
+  Nước:       per_meter | per_person | per_room — config ở property.water_calc_type
+  Phụ phí:   per_room (cố định) | per_person (× num_people) — config ở property
+  Điện chung: (num_people_room / total_active_people) × (curr-prev) × elec_rate
+              phòng trống (không có active contract) không tham gia chia
 
 Frontend:
   apiJson<T>() trong lib/api.ts — tự attach Clerk token

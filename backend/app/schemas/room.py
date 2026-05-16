@@ -11,7 +11,6 @@ class RoomCreate(BaseModel):
     rent_price: Decimal
     deposit: Decimal = Decimal("0")
     elec_rate: Optional[Decimal] = None
-    water_rate: Optional[Decimal] = None
 
 
 class RoomUpdate(BaseModel):
@@ -22,7 +21,6 @@ class RoomUpdate(BaseModel):
     deposit: Optional[Decimal] = None
     status: Optional[RoomStatus] = None
     elec_rate: Optional[Decimal] = None
-    water_rate: Optional[Decimal] = None
 
 
 class RoomRead(BaseModel):
@@ -35,7 +33,6 @@ class RoomRead(BaseModel):
     deposit: Decimal
     status: RoomStatus
     elec_rate: Optional[Decimal]
-    water_rate: Optional[Decimal]
     effective_elec_rate: Decimal
     effective_water_rate: Decimal
 
