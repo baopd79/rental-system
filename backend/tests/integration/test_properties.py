@@ -112,3 +112,20 @@ async def test_get_property_not_found():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         r = await client.get("/api/v1/properties/99999", headers=auth_headers(USER_A))
     assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_property_with_rooms_returns_409():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop = (await client.post(
+            "/api/v1/properties",
+            json={"name": "Nhà có phòng", "address": "Địa chỉ"},
+            headers=auth_headers(USER_A),
+        )).json()
+        await client.post(
+            f"/api/v1/properties/{prop['id']}/rooms",
+            json={"room_number": "101", "rent_price": "2000000"},
+            headers=auth_headers(USER_A),
+        )
+        r = await client.delete(f"/api/v1/properties/{prop['id']}", headers=auth_headers(USER_A))
+    assert r.status_code == 409

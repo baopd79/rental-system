@@ -1,6 +1,11 @@
-from sqlmodel import select
+from sqlmodel import select, func
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.room import Room
+
+
+async def count_by_property(session: AsyncSession, property_id: int) -> int:
+    result = await session.exec(select(func.count()).where(Room.property_id == property_id))
+    return result.one()
 
 
 async def get_all_by_property(session: AsyncSession, property_id: int) -> list[Room]:

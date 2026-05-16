@@ -3,8 +3,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.property import Property
 from app.schemas.property import PropertyCreate, PropertyUpdate
-from app.repositories import property_repo
-from app.core.exceptions import NotFoundException, ForbiddenException
+from app.repositories import property_repo, room_repo
+from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 
 class PropertyService:
@@ -48,5 +48,7 @@ class PropertyService:
             raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
             raise ForbiddenException()
+        if await room_repo.count_by_property(self.session, property_id):
+            raise ConflictException("Cannot delete property with existing rooms")
         await property_repo.delete(self.session, prop)
         await self.session.commit()
