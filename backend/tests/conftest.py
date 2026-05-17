@@ -22,4 +22,7 @@ async def clean_db():
     """Truncate all tables before each test to ensure isolation."""
     yield
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE TABLE property, room RESTART IDENTITY CASCADE"))
+        await conn.execute(text(
+            "TRUNCATE TABLE surcharge_template, utility_reading, contract, tenant, room, property "
+            "RESTART IDENTITY CASCADE"
+        ))
