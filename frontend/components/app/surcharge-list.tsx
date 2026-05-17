@@ -146,58 +146,92 @@ export function SurchargeList({ propertyId, compact = false }: Props) {
 
   if (loading) return <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Đang tải…</div>;
 
+  const dialogs = (
+    <>
+      <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setShowForm(false); setEditing(null); } }}>
+        <DialogContent style={{ maxWidth: 420 }}>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Chỉnh sửa phụ phí" : "Thêm phụ phí"}</DialogTitle>
+          </DialogHeader>
+          <SurchargeForm
+            propertyId={propertyId}
+            editing={editing ?? undefined}
+            onSuccess={handleSaved}
+            onCancel={() => { setShowForm(false); setEditing(null); }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa phụ phí &ldquo;{deleting?.name}&rdquo;?</AlertDialogTitle>
+            <AlertDialogDescription>Hành động này không thể hoàn tác.</AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && <p style={{ fontSize: 13, color: "var(--red-600)", padding: "0 4px" }}>{deleteError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+
   if (compact) {
     return (
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-        {surcharges.map((s) => (
-          <div key={s.id} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            height: 28, padding: "0 10px", borderRadius: 7,
-            background: "var(--slate-100)", border: "1px solid var(--vn-border)",
-            fontSize: 12.5, color: "var(--vn-text-2)",
-          }}>
-            <span style={{ fontWeight: 500, color: "var(--vn-text)" }}>{s.name}</span>
-            <span style={{ color: "var(--vn-text-3)" }}>·</span>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>
-              {Number(s.amount).toLocaleString("vi-VN")}₫
-            </span>
-            <span style={{ fontSize: 11, color: "var(--vn-text-3)" }}>
-              /{s.calc_type === "per_person" ? "người" : "phòng"}
-            </span>
-            <div style={{ display: "flex", gap: 2, marginLeft: 2 }}>
-              <button onClick={() => { setEditing(s); setShowForm(true); }} style={{
-                width: 18, height: 18, borderRadius: 4, border: "none", padding: 0,
-                background: "transparent", display: "grid", placeItems: "center",
-                cursor: "pointer", color: "var(--vn-text-3)",
-              }}>
-                <Pencil size={11} />
-              </button>
-              <button onClick={() => { setDeleting(s); setDeleteError(null); }} style={{
-                width: 18, height: 18, borderRadius: 4, border: "none", padding: 0,
-                background: "transparent", display: "grid", placeItems: "center",
-                cursor: "pointer", color: "var(--red-400)",
-              }}>
-                <Trash2 size={11} />
-              </button>
+      <>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+          {surcharges.map((s) => (
+            <div key={s.id} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 28, padding: "0 10px", borderRadius: 7,
+              background: "var(--slate-100)", border: "1px solid var(--vn-border)",
+              fontSize: 12.5, color: "var(--vn-text-2)",
+            }}>
+              <span style={{ fontWeight: 500, color: "var(--vn-text)" }}>{s.name}</span>
+              <span style={{ color: "var(--vn-text-3)" }}>·</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                {Number(s.amount).toLocaleString("vi-VN")}₫
+              </span>
+              <span style={{ fontSize: 11, color: "var(--vn-text-3)" }}>
+                /{s.calc_type === "per_person" ? "người" : "phòng"}
+              </span>
+              <div style={{ display: "flex", gap: 2, marginLeft: 2 }}>
+                <button onClick={() => { setEditing(s); setShowForm(true); }} style={{
+                  width: 18, height: 18, borderRadius: 4, border: "none", padding: 0,
+                  background: "transparent", display: "grid", placeItems: "center",
+                  cursor: "pointer", color: "var(--vn-text-3)",
+                }}>
+                  <Pencil size={11} />
+                </button>
+                <button onClick={() => { setDeleting(s); setDeleteError(null); }} style={{
+                  width: 18, height: 18, borderRadius: 4, border: "none", padding: 0,
+                  background: "transparent", display: "grid", placeItems: "center",
+                  cursor: "pointer", color: "var(--red-400)",
+                }}>
+                  <Trash2 size={11} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-        <button
-          onClick={() => { setEditing(null); setShowForm(true); }}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            height: 28, padding: "0 10px", borderRadius: 7,
-            background: "transparent",
-            border: "1px dashed var(--vn-border)",
-            fontSize: 12.5, color: "var(--vn-text-3)", cursor: "pointer",
-          }}
-        >
-          <Plus size={12} /> Thêm
-        </button>
-        {surcharges.length === 0 && (
-          <span style={{ fontSize: 12.5, color: "var(--vn-text-3)" }}>Chưa có phụ phí</span>
-        )}
-      </div>
+          ))}
+          <button
+            onClick={() => { setEditing(null); setShowForm(true); }}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              height: 28, padding: "0 10px", borderRadius: 7,
+              background: "transparent", border: "1px dashed var(--vn-border)",
+              fontSize: 12.5, color: "var(--vn-text-3)", cursor: "pointer",
+            }}
+          >
+            <Plus size={12} /> Thêm
+          </button>
+          {surcharges.length === 0 && (
+            <span style={{ fontSize: 12.5, color: "var(--vn-text-3)" }}>Chưa có phụ phí</span>
+          )}
+        </div>
+        {dialogs}
+      </>
     );
   }
 
@@ -271,33 +305,7 @@ export function SurchargeList({ propertyId, compact = false }: Props) {
         </div>
       )}
 
-      <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setShowForm(false); setEditing(null); } }}>
-        <DialogContent style={{ maxWidth: 420 }}>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Chỉnh sửa phụ phí" : "Thêm phụ phí"}</DialogTitle>
-          </DialogHeader>
-          <SurchargeForm
-            propertyId={propertyId}
-            editing={editing ?? undefined}
-            onSuccess={handleSaved}
-            onCancel={() => { setShowForm(false); setEditing(null); }}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xóa phụ phí &ldquo;{deleting?.name}&rdquo;?</AlertDialogTitle>
-            <AlertDialogDescription>Hành động này không thể hoàn tác.</AlertDialogDescription>
-          </AlertDialogHeader>
-          {deleteError && <p style={{ fontSize: 13, color: "var(--red-600)", padding: "0 4px" }}>{deleteError}</p>}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {dialogs}
     </div>
   );
 }
