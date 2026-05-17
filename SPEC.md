@@ -98,25 +98,24 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 - Delete/edit tự do, không guard
 
 ### 3.6 Hóa đơn (`Invoice`)
-- Tạo hóa đơn hàng tháng gồm:
-  - **Tiền thuê**: `contract.agreed_rent`
-  - **Tiền điện**: `(elec_curr - elec_prev) × effective_elec_rate`
-  - **Tiền nước** — theo `property.water_calc_type`:
-    - `per_meter` → `(water_curr - water_prev) × default_water_rate`
+- Tạo hóa đơn hàng tháng; mỗi khoản lưu thành 1 `InvoiceItem` (name, amount, item_type)
+- **Các khoản:**
+  - `rent` — `contract.agreed_rent` (snapshot tại thời điểm generate)
+  - `electricity` — `(elec_curr - elec_prev) × effective_elec_rate`; = 0 nếu không có reading hoặc `elec_prev IS NULL`
+  - `water` — theo `property.water_calc_type`:
+    - `per_meter` → `(water_curr - water_prev) × default_water_rate`; = 0 nếu không có reading
     - `per_person` → `default_water_rate × contract.num_people`
-    - `per_room` → `default_water_rate` (cố định)
-  - **Phụ phí** (`SurchargeTemplate` — thuộc property, áp dụng tất cả phòng):
-    - `per_room` — cố định mỗi phòng (VD: wifi, rác)
-    - `per_person` — `amount × contract.num_people` (VD: phí vệ sinh)
-  - **Điện công tơ chung** (`SharedMeterReading`):
-    - Chỉ tính cho phòng tham gia SharedMeter đó
-    - `room_share = (num_people / total_people_active_rooms) × (curr - prev) × elec_rate`
-    - Phòng trống (không có active contract) **không tham gia chia**
-  - Phụ phí và điện chung áp dụng tự động khi generate, chỉnh sửa được trước khi gửi
-- Trạng thái: `draft` | `sent` | `paid` | `overdue`
-- Transitions hợp lệ: `draft→sent`, `sent→paid`, `sent→overdue`, `overdue→paid` (trả trễ)
-- Xuất PDF (Jinja2 template → WeasyPrint)
-- Sinh link public không cần đăng nhập: `/invoice/public/{token}`
+    - `per_room` → `default_water_rate`
+  - `surcharge` — mỗi `SurchargeTemplate` thành 1 item riêng (snapshot name + amount)
+- Điện chung: **defer sang Phase 7** (SharedMeter)
+- **Snapshot**: agreed_rent, rates, surcharge amounts đều copy vào InvoiceItem lúc generate; sửa surcharge sau không ảnh hưởng
+- **Trạng thái**: `draft | sent | paid` (3 trạng thái, bỏ `overdue` — defer)
+- **Transitions**: `draft→sent`, `draft→paid`, `sent→paid`
+- **Edit**: chỉ khi `draft`; sau `sent` lock toàn bộ
+- **Delete**: chỉ khi `draft`
+- **Unique constraint**: `(contract_id, period)` — không generate 2 invoice cùng kỳ
+- `public_token` UUID sinh tự động — dùng cho link public không cần auth
+- PDF: **defer sang Phase 7** — Phase 6 chỉ làm data + public link
 - Copy link gửi qua Zalo/SMS
 
 ### 3.7 Dashboard & Báo cáo

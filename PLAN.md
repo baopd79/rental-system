@@ -534,11 +534,13 @@ Defer sang sau Phase 6 Invoice. Invoice MVP không tính điện chung. Sẽ imp
 
 ### Task 6.1: Invoice + InvoiceItem models + schemas + migration
 
-**Description:** `Invoice` (FK contract, period, totals, status, `public_token` uuid), `InvoiceItem` (với `item_type`), Alembic migration.
+**Description:** `Invoice` (FK contract, period, total, status, `public_token` uuid), `InvoiceItem` (item_type, name, amount, quantity), Alembic migration.
 
 **Acceptance criteria:**
-- [ ] `public_token` tự sinh UUID khi tạo invoice
+- [ ] `public_token` UUID sinh tự động khi tạo invoice
 - [ ] Unique constraint `(contract_id, period)`
+- [ ] `InvoiceStatus` enum: `draft | sent | paid`
+- [ ] `InvoiceItemType` enum: `rent | electricity | water | surcharge`
 
 **Verification:**
 - [ ] `alembic upgrade head` không lỗi
@@ -548,153 +550,130 @@ Defer sang sau Phase 6 Invoice. Invoice MVP không tính điện chung. Sẽ imp
 **Files:**
 - `backend/app/models/invoice.py`
 - `backend/app/schemas/invoice.py`
-- `backend/alembic/versions/007_create_invoice.py`
+- `backend/alembic/versions/d4e5f6a7b8c9_create_invoice.py`
 
 **Scope:** S
 
 ---
 
-### Task 6.2: InvoiceService — calculation logic
+### Task 6.2: InvoiceService — calculation + generate + CRUD + router
 
-**Description:** Pure function `_calculate(contract, reading, surcharges, shared_meter_items, property) -> InvoiceData` tính đầy đủ tất cả khoản. Tạo `InvoiceItem` cho từng dòng.
+**Description:** Pure function `_build_items(contract, reading, surcharges, property)` tính từng khoản → list `InvoiceItem`. `generate()` orchestrate: validate → tính → persist. CRUD endpoints + status transitions.
 
-**Acceptance criteria:**
-- [ ] Tiền điện = `(elec_curr - elec_prev) × effective_elec_rate`; `elec_prev IS NULL` → elec = 0
-- [ ] Tiền nước theo `water_calc_type`:
-  - `per_meter` → `(water_curr - water_prev) × default_water_rate`
-  - `per_person` → `default_water_rate × num_people`
-  - `per_room` → `default_water_rate`
-- [ ] Surcharge `per_room`: amount cố định; `per_person`: `amount × num_people`
-- [ ] Điện chung: không tính trong MVP (SharedMeter deferred)
-- [ ] Reading `null` → amount = 0, không lỗi
-- [ ] `total` = sum tất cả items
-- [ ] Invoice snapshot: agreed_rent, rate, surcharge amounts tại thời điểm generate
-
-**Verification:**
-- [ ] `pytest tests/unit/test_invoice_calculation.py` pass với đủ cases:
-  - 3 water_calc_type
-  - elec_prev IS NULL (first reading)
-  - surcharge per_room và per_person
-
-**Dependencies:** T6.1, T5.1, T4.1
-
-**Files:**
-- `backend/app/services/invoice_service.py` (calculation logic)
-- `backend/tests/unit/test_invoice_calculation.py`
-
-**Scope:** M
-
----
-
-### Task 6.3: InvoiceService — generate + CRUD + router
-
-**Description:** `InvoiceService.generate()` orchestrate: validate ownership → lấy contract + reading + surcharges + shared meter readings → tính → persist. Bổ sung `DELETE /invoices/{id}` cho draft và transition `overdue→paid`.
+**Accepted rules:**
+- Không bắt buộc có UtilityReading — điện/nước = 0 nếu thiếu
+- `elec_prev IS NULL` → electricity = 0
+- Surcharge snapshot name + amount vào InvoiceItem
+- Edit/delete chỉ khi `draft`
+- Transitions: `draft→sent`, `draft→paid`, `sent→paid`
+- PDF defer sang Phase 7
 
 **Acceptance criteria:**
-- [ ] `POST /invoices/generate` tạo invoice `draft` với đúng amounts
-- [ ] Duplicate period cho cùng contract → 409
-- [ ] `PUT /invoices/{id}` chỉ cho phép khi status = `draft`
-- [ ] `PUT /invoices/{id}/status`: `draft→sent`, `sent→paid`, `sent→overdue`, `overdue→paid`
-- [ ] `DELETE /invoices/{id}` chỉ xóa được khi status = `draft`
+- [ ] `POST /invoices/generate` tạo invoice `draft` với đúng InvoiceItems
+- [ ] Duplicate `(contract_id, period)` → 409
+- [ ] `PUT /invoices/{id}/status`: chỉ các transition hợp lệ → 400 nếu sai
+- [ ] `PUT /invoices/{id}` (edit items): chỉ khi `draft` → 400 nếu đã sent/paid
+- [ ] `DELETE /invoices/{id}`: chỉ khi `draft`
+- [ ] `GET /invoices/{id}` trả đầy đủ invoice + items
+- [ ] Tiền điện: `(curr - prev) × rate`; 0 nếu no reading hoặc prev=NULL
+- [ ] Tiền nước: per_meter/per_person/per_room đúng công thức
+- [ ] Surcharge: mỗi template → 1 item, per_person × num_people
 
 **Verification:**
+- [ ] `pytest tests/unit/test_invoice_calculation.py` pass
 - [ ] `pytest tests/integration/test_invoices.py` pass
 
-**Dependencies:** T6.2, T3.2
+**Dependencies:** T6.1, T5.1, T4.1, T3.2
 
 **Files:**
 - `backend/app/repositories/invoice_repo.py`
-- `backend/app/services/invoice_service.py` (generate + orchestration)
+- `backend/app/services/invoice_service.py`
 - `backend/app/routers/invoices.py`
+- `backend/tests/unit/test_invoice_calculation.py`
 - `backend/tests/integration/test_invoices.py`
-
-**Scope:** M
-
----
-
-### Task 6.4: PDF generation
-
-**Description:** Jinja2 HTML template cho invoice, WeasyPrint render thành PDF. Endpoint `GET /invoices/{id}/pdf` trả file PDF.
-
-**Acceptance criteria:**
-- [ ] PDF có đầy đủ: thông tin nhà/phòng/khách, bảng chi tiết các khoản, tổng tiền, kỳ thanh toán
-- [ ] PDF download được từ browser
-
-**Verification:**
-- [ ] Download PDF từ Postman/browser, mở file xem đúng nội dung
-
-**Dependencies:** T6.3
-
-**Files:**
-- `backend/app/templates/invoice.html`
-- `backend/app/services/pdf_service.py`
-- `backend/app/routers/invoices.py` (thêm `/pdf` endpoint)
-
-**Scope:** M
-
----
-
-### Task 6.5: Frontend — Invoice list + generate flow
-
-**Description:** Trang danh sách hóa đơn, modal/wizard generate hóa đơn (chọn contract + tháng), hiển thị chi tiết invoice với từng dòng item, action đổi status.
-
-**Acceptance criteria:**
-- [ ] `/dashboard/invoices` list với filter theo status, tháng
-- [ ] Generate flow: chọn phòng có active contract → chọn tháng → preview amounts → confirm
-- [ ] Invoice detail hiển thị đủ items (rent, elec, water, surcharges)
-- [ ] Nút "Copy link" copy public URL vào clipboard
-- [ ] Nút "Download PDF" gọi `/invoices/{id}/pdf`
-
-**Verification:**
-- [ ] Generate invoice → thấy đúng số tiền
-- [ ] Copy link → paste vào browser incognito → thấy invoice
-
-**Dependencies:** T6.3, T6.4, T0.2
-
-**Files:**
-- `frontend/app/(dashboard)/invoices/page.tsx`
-- `frontend/app/(dashboard)/invoices/[id]/page.tsx`
-- `frontend/components/app/invoice-generate-modal.tsx`
-- `frontend/components/app/invoice-detail.tsx`
-- `frontend/types/invoice.ts`
 
 **Scope:** L
 
 ---
 
-### Checkpoint: Phase 6
+### Task 6.3: Frontend — Invoice list + generate flow
 
-- [ ] Generate invoice E2E: từ contract → PDF
-- [ ] Calculation unit tests pass
-- [ ] Copy link hoạt động
+**Description:** Trang danh sách hóa đơn, form generate (chọn contract + tháng), invoice detail với breakdown items, action đổi status, copy public link.
+
+**Acceptance criteria:**
+- [ ] `/dashboard/invoices` list với filter theo status
+- [ ] Generate từ room detail hoặc invoice list: chọn contract + tháng
+- [ ] Invoice detail hiển thị từng InvoiceItem (tên, số tiền)
+- [ ] Status badge + nút transition (Gửi / Đánh dấu đã thanh toán)
+- [ ] Nút "Copy link" copy public URL vào clipboard
+
+**Verification:**
+- [ ] Generate invoice → hiển thị đúng từng khoản
+- [ ] Copy link → URL có dạng `/invoice/public/{token}`
+
+**Dependencies:** T6.2, T0.2
+
+**Files:**
+- `frontend/app/(dashboard)/invoices/page.tsx`
+- `frontend/app/(dashboard)/invoices/[id]/page.tsx`
+
+**Files:**
+- `frontend/app/(dashboard)/invoices/page.tsx`
+- `frontend/app/(dashboard)/invoices/[id]/page.tsx`
+- `frontend/components/app/invoice-generate-form.tsx`
+- `frontend/types/invoice.ts`
+
+**Scope:** M
 
 ---
 
-## Phase 7: Public Invoice Page
+### Checkpoint: Phase 6
+
+- [ ] Generate invoice E2E: từ contract → hiển thị breakdown items
+- [ ] Calculation unit tests pass
+- [ ] Copy public link hoạt động (PDF defer Phase 7)
+
+---
+
+## Phase 7: Public Invoice + PDF + SharedMeter
 
 ### Task 7.1: Public invoice endpoint + frontend page
 
-**Description:** Backend `GET /invoices/public/{token}` trả invoice data (không có thông tin nhạy cảm: che CCCD, SĐT). Frontend `/invoice/public/[token]` là trang static không cần auth, hiển thị hóa đơn đẹp + nút download PDF.
+**Description:** Backend `GET /invoices/public/{token}` trả invoice data (không có thông tin nhạy cảm: che CCCD, SĐT). Frontend `/invoice/public/[token]` là trang static không cần auth.
 
 **Acceptance criteria:**
 - [ ] Token hợp lệ → trả invoice data (CCCD và SĐT bị che bớt)
 - [ ] Token không tồn tại → 404
 - [ ] Trang public không có Clerk middleware
-- [ ] Có nút "Tải PDF" gọi endpoint PDF
 
-**Verification:**
-- [ ] Mở link trong browser incognito → xem được invoice, không cần đăng nhập
-- [ ] Link giả → trang 404
-
-**Dependencies:** T6.3, T6.4
+**Dependencies:** T6.2
 
 **Files:**
-- `backend/app/routers/invoices.py` (thêm public endpoint)
-- `backend/app/schemas/invoice.py` (thêm `InvoicePublicRead` che field nhạy cảm)
+- `backend/app/routers/invoices.py` (public endpoint)
+- `backend/app/schemas/invoice.py` (`InvoicePublicRead`)
 - `frontend/app/invoice/public/[token]/page.tsx`
-- `frontend/components/app/public-invoice-view.tsx`
 
 **Scope:** M
+
+---
+
+### Task 7.2: PDF generation *(deferred từ Phase 6)*
+
+**Description:** Jinja2 template → WeasyPrint PDF. Endpoint `GET /invoices/{id}/pdf`.
+
+**Dependencies:** T7.1
+
+**Scope:** M
+
+---
+
+### Task 7.3: SharedMeter *(deferred từ Phase 5)*
+
+**Description:** `SharedMeter`, `SharedMeterRoom` (junction), `SharedMeterReading`. Tích hợp vào invoice calculation.
+
+**Dependencies:** T6.2
+
+**Scope:** L
 
 ---
 
