@@ -74,10 +74,13 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 
 ### 3.5 Chỉ số Điện/Nước (`UtilityReading`)
 - Nhập chỉ số cuối kỳ điện theo phòng + tháng (luôn theo công tơ)
-- Nhập chỉ số nước **chỉ khi** `water_calc_type = per_meter`; các mode khác không cần reading
+- Nhập chỉ số nước **chỉ khi** `water_calc_type = per_meter`; service tự set `water_prev/curr = NULL` với các mode khác
 - **Tự động điền số đầu kỳ**: `elec_curr` tháng N-1 → `elec_prev` tháng N (tương tự nước)
-- Nếu chưa có reading kỳ trước (phòng mới) → cho nhập thủ công, `is_prev_auto=false`
-- Validation: `curr >= prev` — nếu ngược lại raise lỗi (tránh tiêu thụ âm)
+- **Phòng mới (first reading)**: chỉ cần nhập `curr`; `prev = NULL`, `is_prev_auto = false`
+  - Invoice tháng đó: `elec_prev IS NULL` → bỏ qua dòng điện (tính = 0)
+- **Validation** `curr >= prev`: áp dụng mọi trường hợp, trừ khi `prev IS NULL`
+- Cho phép nhập reading dù phòng không có active contract
+- **Update/Delete**: chỉ cho phép với reading **mới nhất** của phòng VÀ chưa có invoice cho period đó → 409 nếu vi phạm
 
 **Công tơ điện chung (`SharedMeterReading`)**:
 - Nhập chỉ số cuối kỳ theo từng `SharedMeter` (công tơ NVS/hành lang chung)

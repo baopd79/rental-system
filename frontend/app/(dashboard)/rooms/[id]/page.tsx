@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { ArrowLeft, Plus, FileText, User, Calendar, DollarSign, Users } from "lucide-react";
+import { ArrowLeft, Plus, FileText, User, Calendar, DollarSign, Users, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RoomStatusBadge } from "@/components/app/room-status-badge";
@@ -92,27 +92,41 @@ export default function RoomDetailPage() {
         >
           <ArrowLeft size={14} /> Quay lại
         </button>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.018em", color: "var(--vn-text)", margin: 0 }}>
               Phòng {room.room_number}
             </h1>
             <RoomStatusBadge status={room.status} />
           </div>
-          {room.status === "vacant" && (
+          <div style={{ display: "flex", gap: 8 }}>
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => router.push(`/rooms/${id}/utility`)}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 height: 36, padding: "0 14px", borderRadius: 8,
-                background: "var(--blue-600)", color: "#fff",
-                fontSize: 13.5, fontWeight: 500, border: "none", cursor: "pointer",
-                boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
+                background: "var(--vn-surface)", color: "var(--vn-text-2)",
+                fontSize: 13.5, fontWeight: 500,
+                border: "1px solid var(--vn-border)", cursor: "pointer",
               }}
             >
-              <Plus size={15} color="#fff" /> Tạo hợp đồng
+              <Zap size={15} /> Chỉ số điện/nước
             </button>
-          )}
+          {room.status === "vacant" && (
+              <button
+                onClick={() => setShowForm(true)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  height: 36, padding: "0 14px", borderRadius: 8,
+                  background: "var(--blue-600)", color: "#fff",
+                  fontSize: 13.5, fontWeight: 500, border: "none", cursor: "pointer",
+                  boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
+                }}
+              >
+                <Plus size={15} color="#fff" /> Tạo hợp đồng
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
