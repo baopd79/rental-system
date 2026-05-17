@@ -26,6 +26,14 @@ class InvoiceRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class InvoiceListRead(InvoiceRead):
+    """InvoiceRead enriched with context for list views."""
+    room_id: int
+    room_number: str
+    property_name: str
+    tenant_name: str
+
+
 class InvoiceGenerateRequest(BaseModel):
     contract_id: int
     period: str      # "YYYY-MM"

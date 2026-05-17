@@ -7,7 +7,7 @@ from app.models.contract import Contract
 from app.models.property import Property, WaterCalcType
 from app.models.surcharge import SurchargeTemplate, SurchargeCalcType
 from app.models.utility import UtilityReading
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate
+from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead
 from app.repositories.invoice_repo import InvoiceRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.room_repo import RoomRepo
@@ -148,6 +148,18 @@ class InvoiceService:
     async def _load_invoice_read(self, invoice: Invoice) -> InvoiceRead:
         items = await self.invoice_repo.get_items(invoice.id)
         return _to_read(invoice, items)
+
+    async def list_all(self, clerk_user_id: str) -> list[InvoiceListRead]:
+        rows = await self.invoice_repo.get_all_by_user(clerk_user_id)
+        result = []
+        for row in rows:
+            items = await self.invoice_repo.get_items(row["id"])
+            result.append(InvoiceListRead(
+                **{k: row[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
+                                       "room_id", "room_number", "property_name", "tenant_name")},
+                items=[InvoiceItemRead.model_validate(i) for i in items],
+            ))
+        return result
 
     async def list_by_contract(self, contract_id: int, clerk_user_id: str) -> list[InvoiceRead]:
         contract = await self.contract_repo.get_by_id(contract_id)

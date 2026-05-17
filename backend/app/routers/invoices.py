@@ -1,8 +1,13 @@
 from fastapi import APIRouter
 from app.dependencies import CurrentUserDep, InvoiceServiceDep
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate
+from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate, InvoiceListRead
 
 router = APIRouter(tags=["invoices"])
+
+
+@router.get("/invoices", response_model=list[InvoiceListRead])
+async def list_all_invoices(clerk_user_id: CurrentUserDep, service: InvoiceServiceDep):
+    return await service.list_all(clerk_user_id)
 
 
 @router.get("/contracts/{contract_id}/invoices", response_model=list[InvoiceRead])

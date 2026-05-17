@@ -1,4 +1,5 @@
 from sqlmodel import select
+from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.invoice import Invoice, InvoiceItem
 
@@ -19,6 +20,23 @@ class InvoiceRepo:
     async def get_by_public_token(self, token: str) -> Invoice | None:
         result = await self.session.exec(select(Invoice).where(Invoice.public_token == token))
         return result.first()
+
+    async def get_all_by_user(self, clerk_user_id: str) -> list[dict]:
+        """Return invoices with room/tenant context for list views."""
+        result = await self.session.execute(text("""
+            SELECT i.id, i.contract_id, i.period, i.total, i.status, i.public_token,
+                   r.id AS room_id, r.room_number,
+                   p.name AS property_name,
+                   t.full_name AS tenant_name
+            FROM invoice i
+            JOIN contract c ON c.id = i.contract_id
+            JOIN room r ON r.id = c.room_id
+            JOIN property p ON p.id = r.property_id
+            JOIN tenant t ON t.id = c.tenant_id
+            WHERE p.clerk_user_id = :uid
+            ORDER BY i.period DESC, i.id DESC
+        """), {"uid": clerk_user_id})
+        return [dict(row._mapping) for row in result]
 
     async def get_all_by_contract(self, contract_id: int) -> list[Invoice]:
         result = await self.session.exec(
