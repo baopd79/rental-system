@@ -23,6 +23,6 @@ async def clean_db():
     yield
     async with engine.begin() as conn:
         await conn.execute(text(
-            "TRUNCATE TABLE surcharge_template, utility_reading, contract, tenant, room, property "
-            "RESTART IDENTITY CASCADE"
+            "TRUNCATE TABLE invoice_item, invoice, surcharge_template, utility_reading, "
+            "contract, tenant, room, property RESTART IDENTITY CASCADE"
         ))

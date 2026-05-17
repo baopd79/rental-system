@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 
-from app.routers import auth, properties, rooms, tenants, contracts, utilities, surcharges
+from app.routers import auth, properties, rooms, tenants, contracts, utilities, surcharges, invoices
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(properties.router, prefix="/api/v1")
@@ -36,6 +36,7 @@ app.include_router(tenants.router, prefix="/api/v1")
 app.include_router(contracts.router, prefix="/api/v1")
 app.include_router(utilities.router, prefix="/api/v1")
 app.include_router(surcharges.router, prefix="/api/v1")
+app.include_router(invoices.router, prefix="/api/v1")
 
 
 @app.get("/health")
