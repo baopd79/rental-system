@@ -5,7 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.room import Room
 from app.schemas.room import RoomCreate, RoomRead, RoomUpdate
-from app.repositories import room_repo, property_repo
+from app.repositories import room_repo, property_repo, contract_repo
 from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 
@@ -74,5 +74,8 @@ class RoomService:
 
     async def delete_room(self, room_id: int, clerk_user_id: str) -> None:
         room, _ = await self._get_room_owned(room_id, clerk_user_id)
+        count = await contract_repo.count_by_room(self.session, room_id)
+        if count > 0:
+            raise ConflictException("Cannot delete room with existing contracts")
         await room_repo.delete(self.session, room)
         await self.session.commit()
