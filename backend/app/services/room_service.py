@@ -1,22 +1,17 @@
-from decimal import Decimal
 from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.room import Room
-from app.schemas.room import RoomCreate, RoomRead, RoomUpdate
+from app.schemas.room import ActiveContractInfo, RoomCreate, RoomRead, RoomUpdate
 from app.repositories.room_repo import RoomRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.contract_repo import ContractRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 
-def _build_read(room: Room, elec_fallback: Decimal, water_fallback: Decimal) -> RoomRead:
-    return RoomRead(
-        **room.model_dump(),
-        effective_elec_rate=room.elec_rate if room.elec_rate is not None else elec_fallback,
-        effective_water_rate=water_fallback,
-    )
+def _build_read(room: Room) -> RoomRead:
+    return RoomRead.model_validate(room)
 
 
 class RoomService:
@@ -44,13 +39,28 @@ class RoomService:
         return room, prop
 
     async def list_rooms(self, property_id: int, clerk_user_id: str) -> list[RoomRead]:
-        prop = await self._get_property_owned(property_id, clerk_user_id)
+        await self._get_property_owned(property_id, clerk_user_id)
         rooms = await self.room_repo.get_all_by_property(property_id)
-        return [_build_read(r, prop.default_elec_rate, prop.default_water_rate) for r in rooms]
+        active = await self.contract_repo.get_active_by_property(property_id)
+        result = []
+        for r in rooms:
+            read = _build_read(r)
+            if r.id in active:
+                c = active[r.id]
+                read.active_contract = ActiveContractInfo(
+                    id=c["id"],
+                    tenant_name=c["tenant_name"],
+                    agreed_rent=c["agreed_rent"],
+                    start_date=c["start_date"],
+                    end_date=c["end_date"],
+                    num_people=c["num_people"],
+                )
+            result.append(read)
+        return result
 
     async def get_room(self, room_id: int, clerk_user_id: str) -> RoomRead:
         room, prop = await self._get_room_owned(room_id, clerk_user_id)
-        return _build_read(room, prop.default_elec_rate, prop.default_water_rate)
+        return _build_read(room)
 
     async def create_room(self, property_id: int, data: RoomCreate, clerk_user_id: str) -> RoomRead:
         prop = await self._get_property_owned(property_id, clerk_user_id)
@@ -62,7 +72,7 @@ class RoomService:
             await self.session.rollback()
             raise ConflictException(f"Room number '{data.room_number}' already exists in this property")
         await self.session.refresh(created)
-        return _build_read(created, prop.default_elec_rate, prop.default_water_rate)
+        return _build_read(created)
 
     async def update_room(self, room_id: int, data: RoomUpdate, clerk_user_id: str) -> RoomRead:
         room, prop = await self._get_room_owned(room_id, clerk_user_id)
@@ -75,7 +85,7 @@ class RoomService:
             await self.session.rollback()
             raise ConflictException(f"Room number '{data.room_number}' already exists in this property")
         await self.session.refresh(updated)
-        return _build_read(updated, prop.default_elec_rate, prop.default_water_rate)
+        return _build_read(updated)
 
     async def delete_room(self, room_id: int, clerk_user_id: str) -> None:
         room, _ = await self._get_room_owned(room_id, clerk_user_id)

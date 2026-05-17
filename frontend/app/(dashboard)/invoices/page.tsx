@@ -6,9 +6,10 @@ import { useAuth } from "@clerk/nextjs";
 import { Plus, Receipt, Building2, User, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiJson } from "@/lib/api";
-import type { InvoiceListItem, InvoiceStatus } from "@/types/invoice";
+import type { InvoiceListItem, InvoiceStatus, Invoice } from "@/types/invoice";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "@/types/invoice";
 import { InvoiceGenerateForm } from "@/components/app/invoice-generate-form";
+import { InvoiceDrawer } from "@/components/app/invoice-drawer";
 
 const STATUS_FILTERS: { label: string; value: InvoiceStatus | "all" }[] = [
   { label: "Tất cả", value: "all" },
@@ -43,6 +44,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
   const [showForm, setShowForm] = useState(false);
+  const [drawerInvoiceId, setDrawerInvoiceId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -59,7 +61,7 @@ export default function InvoicesPage() {
 
   function handleCreated(inv: { id: number }) {
     setShowForm(false);
-    router.push(`/invoices/${inv.id}`);
+    setDrawerInvoiceId(inv.id);
   }
 
   const filtered = filter === "all" ? invoices : invoices.filter(i => i.status === filter);
@@ -158,7 +160,7 @@ export default function InvoicesPage() {
             <tbody>
               {filtered.map((inv, i) => (
                 <tr key={inv.id} style={{ cursor: "pointer" }}
-                  onClick={() => router.push(`/invoices/${inv.id}`)}>
+                  onClick={() => setDrawerInvoiceId(inv.id)}>
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <Calendar size={13} color="var(--vn-text-3)" />
@@ -192,7 +194,7 @@ export default function InvoicesPage() {
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", width: 60, textAlign: "right" }}
                     onClick={e => e.stopPropagation()}>
                     <span style={{ fontSize: 12.5, color: "var(--blue-600)", cursor: "pointer" }}
-                      onClick={() => router.push(`/invoices/${inv.id}`)}>
+                      onClick={() => setDrawerInvoiceId(inv.id)}>
                       Xem →
                     </span>
                   </td>
@@ -202,6 +204,13 @@ export default function InvoicesPage() {
           </table>
         </div>
       )}
+
+      <InvoiceDrawer
+        invoiceId={drawerInvoiceId}
+        onClose={() => setDrawerInvoiceId(null)}
+        onDelete={id => setInvoices(prev => prev.filter(i => i.id !== id))}
+        onUpdate={(updated: Invoice) => setInvoices(prev => prev.map(i => i.id === updated.id ? { ...i, status: updated.status } : i))}
+      />
 
       <Dialog open={showForm} onOpenChange={o => { if (!o) setShowForm(false); }}>
         <DialogContent style={{ maxWidth: 460 }}>

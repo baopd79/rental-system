@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from decimal import Decimal
+from datetime import date
 from app.models.room import RoomStatus
 
 
@@ -9,7 +10,6 @@ class RoomCreate(BaseModel):
     area_m2: Decimal | None = None
     rent_price: Decimal
     deposit: Decimal = Decimal("0")
-    elec_rate: Decimal | None = None
 
 
 class RoomUpdate(BaseModel):
@@ -19,7 +19,15 @@ class RoomUpdate(BaseModel):
     rent_price: Decimal | None = None
     deposit: Decimal | None = None
     status: RoomStatus | None = None
-    elec_rate: Decimal | None = None
+
+
+class ActiveContractInfo(BaseModel):
+    id: int
+    tenant_name: str
+    agreed_rent: Decimal
+    start_date: date
+    end_date: date
+    num_people: int
 
 
 class RoomRead(BaseModel):
@@ -31,8 +39,6 @@ class RoomRead(BaseModel):
     rent_price: Decimal
     deposit: Decimal
     status: RoomStatus
-    elec_rate: Decimal | None
-    effective_elec_rate: Decimal
-    effective_water_rate: Decimal
+    active_contract: ActiveContractInfo | None = None
 
     model_config = {"from_attributes": True}

@@ -1,5 +1,14 @@
 export type RoomStatus = "vacant" | "occupied" | "maintenance";
 
+export interface ActiveContractInfo {
+  id: number;
+  tenant_name: string;
+  agreed_rent: string;
+  start_date: string;
+  end_date: string;
+  num_people: number;
+}
+
 export interface Room {
   id: number;
   property_id: number;
@@ -9,9 +18,7 @@ export interface Room {
   rent_price: string;
   deposit: string;
   status: RoomStatus;
-  elec_rate: string | null;
-  effective_elec_rate: string;
-  effective_water_rate: string;
+  active_contract: ActiveContractInfo | null;
 }
 
 export interface RoomCreate {
@@ -20,7 +27,6 @@ export interface RoomCreate {
   area_m2?: string;
   rent_price: string;
   deposit?: string;
-  elec_rate?: string;
 }
 
 export interface RoomUpdate {
@@ -30,5 +36,4 @@ export interface RoomUpdate {
   rent_price?: string;
   deposit?: string;
   status?: RoomStatus;
-  elec_rate?: string;
 }

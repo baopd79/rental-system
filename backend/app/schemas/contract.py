@@ -13,6 +13,8 @@ class ContractCreate(BaseModel):
     agreed_rent: Decimal
     deposit: Decimal = Decimal("0")
     num_people: int = 1
+    initial_elec_curr: Decimal | None = None
+    initial_water_curr: Decimal | None = None
 
 
 class ContractUpdate(BaseModel):

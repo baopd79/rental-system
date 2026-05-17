@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from decimal import Decimal
+from datetime import date
 from app.models.invoice import InvoiceStatus
 
 
@@ -12,16 +13,20 @@ class RoomBillingStatus(BaseModel):
     num_people: int
     contract_id: int
     agreed_rent: Decimal
-    # Reading for this period
+    contract_start: date
+    contract_end: date
+    # Current period reading
     reading_id: int | None
     elec_prev: Decimal | None
     elec_curr: Decimal | None
     water_prev: Decimal | None
     water_curr: Decimal | None
-    # Previous month reading — shown as reference before user saves current period
+    # Previous month reading — reference for UI + billing calculation
+    prev_elec_prev: Decimal | None
     prev_elec_curr: Decimal | None
+    prev_water_prev: Decimal | None
     prev_water_curr: Decimal | None
-    # Invoice for this period
+    # Invoice for current period
     invoice_id: int | None
     invoice_status: InvoiceStatus | None
     invoice_total: Decimal | None
@@ -39,8 +44,39 @@ class BatchReadingRequest(BaseModel):
     readings: list[BatchReadingItem]
 
 
+class InvoicePreviewSurcharge(BaseModel):
+    name: str
+    amount: Decimal
+
+
+class InvoicePreviewRow(BaseModel):
+    room_id: int
+    room_number: str
+    contract_id: int
+    tenant_name: str
+    contract_start: date
+    contract_end: date
+    # Proration
+    is_prorated: bool
+    prorate_label: str | None          # e.g. "17/31 ngày"
+    # Whether current period reading exists (electricity uses current period reading)
+    has_reading: bool
+    # Calculated amounts
+    rent_amount: Decimal
+    elec_amount: Decimal
+    water_amount: Decimal
+    surcharges: list[InvoicePreviewSurcharge]
+    surcharge_total: Decimal
+    total: Decimal
+    # Invoice status if already exists
+    invoice_id: int | None
+    invoice_status: InvoiceStatus | None
+    invoice_public_token: str | None
+
+
 class BatchInvoiceRequest(BaseModel):
-    period: str   # "YYYY-MM"
+    period: str                        # "YYYY-MM"
+    contract_ids: list[int]            # which contracts to generate for
 
 
 class BatchInvoiceResult(BaseModel):

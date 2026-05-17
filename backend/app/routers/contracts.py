@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.dependencies import CurrentUserDep, ContractServiceDep
-from app.schemas.contract import ContractCreate, ContractRead
+from app.schemas.contract import ContractCreate, ContractRead, ContractUpdate
 
 router = APIRouter(tags=["contracts"])
 
@@ -13,6 +13,11 @@ async def list_room_contracts(room_id: int, clerk_user_id: CurrentUserDep, servi
 @router.post("/contracts", response_model=ContractRead, status_code=201)
 async def create_contract(body: ContractCreate, clerk_user_id: CurrentUserDep, service: ContractServiceDep):
     return await service.create_contract(body, clerk_user_id)
+
+
+@router.put("/contracts/{contract_id}", response_model=ContractRead)
+async def update_contract(contract_id: int, body: ContractUpdate, clerk_user_id: CurrentUserDep, service: ContractServiceDep):
+    return await service.update_contract(contract_id, body, clerk_user_id)
 
 
 @router.put("/contracts/{contract_id}/end", response_model=ContractRead)

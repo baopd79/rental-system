@@ -4,6 +4,14 @@ from datetime import datetime
 from app.models.property import WaterCalcType
 
 
+class RoomInPropertyCreate(BaseModel):
+    room_number: str
+    floor: int | None = None
+    area_m2: Decimal | None = None
+    rent_price: Decimal
+    deposit: Decimal = Decimal("0")
+
+
 class PropertyCreate(BaseModel):
     name: str
     address: str
@@ -11,6 +19,7 @@ class PropertyCreate(BaseModel):
     default_elec_rate: Decimal = Decimal("0")
     default_water_rate: Decimal = Decimal("0")
     water_calc_type: WaterCalcType = WaterCalcType.per_meter
+    rooms: list[RoomInPropertyCreate] = []
 
 
 class PropertyUpdate(BaseModel):

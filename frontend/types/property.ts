@@ -18,6 +18,14 @@ export interface Property {
   created_at: string;
 }
 
+export interface RoomInPropertyCreate {
+  room_number: string;
+  floor?: number;
+  area_m2?: string;
+  rent_price: string;
+  deposit?: string;
+}
+
 export interface PropertyCreate {
   name: string;
   address: string;
@@ -25,6 +33,7 @@ export interface PropertyCreate {
   default_elec_rate?: string;
   default_water_rate?: string;
   water_calc_type?: WaterCalcType;
+  rooms?: RoomInPropertyCreate[];
 }
 
 export interface PropertyUpdate {

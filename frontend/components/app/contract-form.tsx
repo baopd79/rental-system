@@ -12,6 +12,7 @@ type Props = {
   propertyId: number;
   defaultRent: number;
   defaultDeposit: number;
+  waterCalcType?: "per_meter" | "per_person" | "per_room";
   onSuccess: (c: Contract) => void;
   onCancel: () => void;
 };
@@ -30,7 +31,7 @@ const LABEL: React.CSSProperties = {
 type TenantMode = "existing" | "new";
 type TenantFilter = "property" | "all";
 
-export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, onSuccess, onCancel }: Props) {
+export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, waterCalcType, onSuccess, onCancel }: Props) {
   const { getToken } = useAuth();
   const [tenantMode, setTenantMode] = useState<TenantMode>("existing");
   const [tenantFilter, setTenantFilter] = useState<TenantFilter>("property");
@@ -51,6 +52,8 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
   const [newTenant, setNewTenant] = useState({
     full_name: "", phone: "", cccd: "", email: "", date_of_birth: "",
   });
+  const [initialElec, setInitialElec] = useState("");
+  const [initialWater, setInitialWater] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -84,6 +87,14 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
       setError("Vui lòng nhập họ tên khách thuê");
       return;
     }
+    if (initialElec === "") {
+      setError("Vui lòng nhập chỉ số điện lúc vào");
+      return;
+    }
+    if (waterCalcType === "per_meter" && initialWater === "") {
+      setError("Vui lòng nhập chỉ số nước lúc vào");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -115,6 +126,8 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
           agreed_rent: Number(contract.agreed_rent),
           deposit: Number(contract.deposit),
           num_people: Number(contract.num_people),
+          initial_elec_curr: initialElec !== "" ? Number(initialElec) : null,
+          initial_water_curr: (waterCalcType === "per_meter" && initialWater !== "") ? Number(initialWater) : null,
         },
       });
       onSuccess(result);
@@ -302,6 +315,36 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
           <input type="number" required min={1} value={contract.num_people}
             onChange={e => setC("num_people", e.target.value)} style={FIELD} />
         </div>
+      </div>
+
+      {/* Initial meter readings */}
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--vn-text-2)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          Chỉ số công tơ lúc vào <span style={{ color: "var(--red-500)" }}>*</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: waterCalcType === "per_meter" ? "1fr 1fr" : "1fr", gap: 12 }}>
+          <div>
+            <label style={LABEL}>Điện (kWh) *</label>
+            <input
+              type="number" min={0} required value={initialElec}
+              onChange={e => setInitialElec(e.target.value)}
+              style={FIELD} placeholder="VD: 1250"
+            />
+          </div>
+          {waterCalcType === "per_meter" && (
+            <div>
+              <label style={LABEL}>Nước (m³) *</label>
+              <input
+                type="number" min={0} required value={initialWater}
+                onChange={e => setInitialWater(e.target.value)}
+                style={FIELD} placeholder="VD: 45"
+              />
+            </div>
+          )}
+        </div>
+        <p style={{ fontSize: 12, color: "var(--vn-text-3)", margin: "5px 0 0" }}>
+          Hoá đơn tháng đầu: điện/nước = 0đ (chưa tiêu thụ). Tháng sau mới tính từ chỉ số này.
+        </p>
       </div>
 
       {error && <p style={{ fontSize: 13, color: "var(--red-600)", margin: 0 }}>{error}</p>}

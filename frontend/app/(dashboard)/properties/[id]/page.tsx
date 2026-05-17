@@ -9,10 +9,31 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RoomStatusBadge } from "@/components/app/room-status-badge";
 import { RoomForm } from "@/components/app/room-form";
 import { SurchargeList } from "@/components/app/surcharge-list";
+import { BillingModal } from "@/components/app/billing-modal";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
 import { WATER_CALC_LABELS } from "@/types/property";
 import type { Room } from "@/types/room";
+
+function TimeLeft({ endDate }: { endDate: string }) {
+  const end = new Date(endDate);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffMs = end.getTime() - now.getTime();
+  if (diffMs <= 0) {
+    return <span style={{ fontSize: 12.5, color: "var(--red-500)", fontWeight: 500 }}>Hết hạn</span>;
+  }
+  const totalDays = Math.floor(diffMs / 86400000);
+  const years = Math.floor(totalDays / 365);
+  const months = Math.floor((totalDays % 365) / 30);
+  const days = totalDays % 30;
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years} năm`);
+  if (months > 0) parts.push(`${months} tháng`);
+  if (years === 0 && days > 0) parts.push(`${days} ngày`);
+  const color = totalDays <= 30 ? "var(--red-500)" : totalDays <= 90 ? "var(--amber-600)" : "var(--vn-text-2)";
+  return <span style={{ fontSize: 13, color }}>{parts.join(" ")}</span>;
+}
 
 const STATUS_LABEL: Record<string, string> = {
   vacant: "Đang trống",
@@ -29,6 +50,7 @@ export default function PropertyDetailPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showBilling, setShowBilling] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
   const [deleting, setDeleting] = useState<Room | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -105,7 +127,7 @@ export default function PropertyDetailPage() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
-              onClick={() => router.push(`/properties/${id}/billing`)}
+              onClick={() => setShowBilling(true)}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 height: 36, padding: "0 14px", borderRadius: 8,
@@ -225,7 +247,7 @@ export default function PropertyDetailPage() {
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>
-                {["Phòng", "Tầng", "Diện tích", "Giá thuê", "Điện (riêng)", "Trạng thái", ""].map((h) => (
+                {["Phòng", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Trạng thái", ""].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "11px 16px",
                     font: "500 11.5px var(--font-geist-sans)",
@@ -237,27 +259,48 @@ export default function PropertyDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {rooms.map((r, i) => (
+              {rooms.map((r, i) => {
+                const c = r.active_contract;
+                const bd = i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none";
+                const TD = (extra?: React.CSSProperties) => ({
+                  padding: "13px 16px", borderBottom: bd, verticalAlign: "middle" as const, ...extra,
+                });
+                return (
                 <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/rooms/${r.id}`)}>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
-                    <span style={{ fontWeight: 500, fontFamily: "var(--font-geist-mono)", fontSize: 13 }}>{r.room_number}</span>
+                  <td style={TD()}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      <span style={{ fontWeight: 600, fontFamily: "var(--font-geist-mono)", fontSize: 13 }}>{r.room_number}</span>
+                      <span style={{ fontSize: 11.5, color: "var(--vn-text-3)" }}>
+                        {[r.floor ? `Tầng ${r.floor}` : null, r.area_m2 ? `${r.area_m2}m²` : null].filter(Boolean).join(" · ") || "—"}
+                      </span>
+                    </div>
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)" }}>
-                    {r.floor ? `Tầng ${r.floor}` : "—"}
+                  <td style={TD({ fontVariantNumeric: "tabular-nums" })}>
+                    {c ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                        <span style={{ fontWeight: 600, color: "var(--vn-text)" }}>{Number(c.agreed_rent).toLocaleString("vi-VN")}₫</span>
+                        {c.agreed_rent !== r.rent_price && (
+                          <span style={{ fontSize: 11.5, color: "var(--vn-text-3)", textDecoration: "line-through" }}>{Number(r.rent_price).toLocaleString("vi-VN")}₫</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ fontWeight: 500 }}>{Number(r.rent_price).toLocaleString("vi-VN")}₫</span>
+                    )}
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)", fontVariantNumeric: "tabular-nums" }}>
-                    {r.area_m2 ? `${r.area_m2} m²` : "—"}
+                  <td style={TD()}>
+                    {c ? (
+                      <span style={{ fontSize: 13.5, color: "var(--vn-text)" }}>{c.tenant_name}</span>
+                    ) : (
+                      <span style={{ color: "var(--vn-text-3)", fontSize: 13 }}>—</span>
+                    )}
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-                    {Number(r.rent_price).toLocaleString("vi-VN")}₫
+                  <td style={TD()}>
+                    {c ? <TimeLeft endDate={c.end_date} /> : <span style={{ color: "var(--vn-text-3)", fontSize: 13 }}>—</span>}
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)", fontVariantNumeric: "tabular-nums" }}>
-                    {r.elec_rate
-                      ? <span style={{ fontWeight: 500, color: "var(--vn-text)" }}>{Number(r.elec_rate).toLocaleString("vi-VN")}₫</span>
-                      : <span style={{ color: "var(--vn-text-3)", fontSize: 12.5 }}>Theo nhà</span>
-                    }
+                  <td style={TD({ color: "var(--vn-text-2)", textAlign: "center" })}>
+                    {c ? c.num_people : <span style={{ color: "var(--vn-text-3)" }}>—</span>}
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
+                  <td style={TD()}>
                     <RoomStatusBadge status={r.status} />
                   </td>
                   <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", width: 40 }}
@@ -299,7 +342,8 @@ export default function PropertyDetailPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -314,7 +358,6 @@ export default function PropertyDetailPage() {
           <RoomForm
             propertyId={property.id}
             room={editing ?? undefined}
-            defaultElecRate={property.default_elec_rate}
             onSuccess={handleSaved}
             onCancel={() => { setShowForm(false); setEditing(null); }}
           />
@@ -334,6 +377,13 @@ export default function PropertyDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BillingModal
+        propertyId={id}
+        property={property}
+        open={showBilling}
+        onClose={() => setShowBilling(false)}
+      />
     </div>
   );
 }

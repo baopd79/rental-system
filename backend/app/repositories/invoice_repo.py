@@ -38,6 +38,32 @@ class InvoiceRepo:
         """), {"uid": clerk_user_id})
         return [dict(row._mapping) for row in result]
 
+    async def get_all_by_room(self, room_id: int) -> list[dict]:
+        result = await self.session.execute(text("""
+            SELECT i.id, i.contract_id, i.period, i.total, i.status, i.public_token,
+                   r.id AS room_id, r.room_number,
+                   p.name AS property_name,
+                   t.full_name AS tenant_name
+            FROM invoice i
+            JOIN contract c ON c.id = i.contract_id
+            JOIN room r ON r.id = c.room_id
+            JOIN property p ON p.id = r.property_id
+            JOIN tenant t ON t.id = c.tenant_id
+            WHERE r.id = :room_id
+            ORDER BY i.period DESC, i.id DESC
+        """), {"room_id": room_id})
+        return [dict(row) for row in result.mappings().all()]
+
+    async def get_unpaid_by_contract(self, contract_id: int) -> list[Invoice]:
+        """Returns invoices that are not yet paid (draft or sent)."""
+        result = await self.session.exec(
+            select(Invoice).where(
+                Invoice.contract_id == contract_id,
+                Invoice.status.in_(["draft", "sent"]),  # type: ignore[attr-defined]
+            )
+        )
+        return list(result.all())
+
     async def get_all_by_contract(self, contract_id: int) -> list[Invoice]:
         result = await self.session.exec(
             select(Invoice).where(Invoice.contract_id == contract_id)

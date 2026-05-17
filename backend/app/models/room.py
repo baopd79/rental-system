@@ -22,4 +22,3 @@ class Room(SQLModel, table=True):
     rent_price: Decimal = Field(decimal_places=0, max_digits=12)
     deposit: Decimal = Field(default=Decimal("0"), decimal_places=0, max_digits=12)
     status: RoomStatus = Field(default=RoomStatus.vacant)
-    elec_rate: Decimal | None = Field(default=None, decimal_places=2, max_digits=10)

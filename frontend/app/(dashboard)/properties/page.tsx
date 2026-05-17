@@ -30,6 +30,7 @@ export default function PropertiesPage() {
   const [deleting, setDeleting] = useState<Property | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -44,12 +45,19 @@ export default function PropertiesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function handleSaved(p: Property) {
+  function handleSaved(p: Property, roomCount?: number) {
     setProperties((prev) =>
       editing ? prev.map((x) => (x.id === p.id ? p : x)) : [p, ...prev]
     );
     setShowForm(false);
     setEditing(null);
+    if (!editing) {
+      const msg = roomCount
+        ? `Đã tạo nhà "${p.name}" với ${roomCount} phòng thành công`
+        : `Đã tạo nhà "${p.name}" thành công`;
+      setToast(msg);
+      setTimeout(() => setToast(null), 4000);
+    }
   }
 
   async function handleDelete() {
@@ -71,6 +79,21 @@ export default function PropertiesPage() {
 
   return (
     <div style={{ padding: 24 }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, display: "flex", alignItems: "center", gap: 10,
+          background: "#1a1a1a", color: "#fff", borderRadius: 10,
+          padding: "11px 18px", fontSize: 13.5, fontWeight: 500,
+          boxShadow: "0 4px 20px rgba(0,0,0,.25)",
+          animation: "slideUp 0.2s ease",
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
+          {toast}
+        </div>
+      )}
+
       {/* Page header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
@@ -282,7 +305,7 @@ export default function PropertiesPage() {
 
       {/* Dialogs */}
       <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setShowForm(false); setEditing(null); } }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl" style={{ maxHeight: "90vh", overflowY: "auto" }}>
           <DialogHeader>
             <DialogTitle>{editing ? "Chỉnh sửa nhà trọ" : "Thêm nhà trọ mới"}</DialogTitle>
           </DialogHeader>

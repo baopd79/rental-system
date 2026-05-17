@@ -1,4 +1,6 @@
+import calendar
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import date
 from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
@@ -15,6 +17,32 @@ from app.repositories.property_repo import PropertyRepo
 from app.repositories.surcharge_repo import SurchargeRepo
 from app.repositories.utility_repo import UtilityRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
+
+
+def _prorate_factor(start_date: date, end_date: date, period: str) -> Decimal:
+    """Days occupied in period / days in period. Returns 1 for full month."""
+    year, month = int(period[:4]), int(period[5:7])
+    days_in_month = calendar.monthrange(year, month)[1]
+    period_start = date(year, month, 1)
+    period_end = date(year, month, days_in_month)
+
+    effective_start = max(start_date, period_start)
+    effective_end = min(end_date, period_end)
+
+    if effective_end < effective_start:
+        return Decimal("0")
+    days = (effective_end - effective_start).days + 1
+    if days >= days_in_month:
+        return Decimal("1")
+    return Decimal(str(days)) / Decimal(str(days_in_month))
+
+
+def _period_overlaps_contract(start_date: date, end_date: date, period: str) -> bool:
+    year, month = int(period[:4]), int(period[5:7])
+    days_in_month = calendar.monthrange(year, month)[1]
+    period_start = date(year, month, 1)
+    period_end = date(year, month, days_in_month)
+    return start_date <= period_end and end_date >= period_start
 
 
 VALID_TRANSITIONS = {
@@ -34,17 +62,30 @@ def _build_items(
     surcharges: list[SurchargeTemplate],
     prop: Property,
     effective_elec_rate: Decimal,
+    period: str,
 ) -> list[InvoiceItem]:
     items: list[InvoiceItem] = []
+    factor = _prorate_factor(contract.start_date, contract.end_date, period)
 
-    # Rent
+    # Prorate label suffix
+    year, month = int(period[:4]), int(period[5:7])
+    days_in_month = calendar.monthrange(year, month)[1]
+    if factor < Decimal("1"):
+        eff_start = max(contract.start_date, date(year, month, 1))
+        eff_end = min(contract.end_date, date(year, month, days_in_month))
+        days_label = (eff_end - eff_start).days + 1
+        suffix = f" ({days_label}/{days_in_month} ngày)"
+    else:
+        suffix = ""
+
+    # Rent (prorated)
     items.append(InvoiceItem(
         invoice_id=0,
         item_type=InvoiceItemType.rent,
-        name="Tiền thuê",
+        name=f"Tiền thuê{suffix}",
         unit_price=contract.agreed_rent,
         quantity=Decimal("1"),
-        amount=_round(contract.agreed_rent),
+        amount=_round(contract.agreed_rent * factor),
     ))
 
     # Electricity
@@ -84,34 +125,31 @@ def _build_items(
         items.append(InvoiceItem(
             invoice_id=0,
             item_type=InvoiceItemType.water,
-            name="Tiền nước",
+            name=f"Tiền nước{suffix}",
             unit_price=prop.default_water_rate,
             quantity=qty,
-            amount=_round(prop.default_water_rate * qty),
+            amount=_round(prop.default_water_rate * qty * factor),
         ))
     else:  # per_room
         items.append(InvoiceItem(
             invoice_id=0,
             item_type=InvoiceItemType.water,
-            name="Tiền nước",
+            name=f"Tiền nước{suffix}",
             unit_price=prop.default_water_rate,
             quantity=Decimal("1"),
-            amount=_round(prop.default_water_rate),
+            amount=_round(prop.default_water_rate * factor),
         ))
 
-    # Surcharges
+    # Surcharges (prorated for partial months)
     for s in surcharges:
-        if s.calc_type == SurchargeCalcType.per_person:
-            qty = Decimal(str(contract.num_people))
-        else:
-            qty = Decimal("1")
+        qty = Decimal(str(contract.num_people)) if s.calc_type == SurchargeCalcType.per_person else Decimal("1")
         items.append(InvoiceItem(
             invoice_id=0,
             item_type=InvoiceItemType.surcharge,
-            name=s.name,
+            name=f"{s.name}{suffix}",
             unit_price=s.amount,
             quantity=qty,
-            amount=_round(s.amount * qty),
+            amount=_round(s.amount * qty * factor),
         ))
 
     return items
@@ -161,6 +199,24 @@ class InvoiceService:
             ))
         return result
 
+    async def list_by_room(self, room_id: int, clerk_user_id: str) -> list[InvoiceListRead]:
+        room = await self.room_repo.get_by_id(room_id)
+        if not room:
+            raise NotFoundException("Room not found")
+        prop = await self.property_repo.get_by_id(room.property_id)
+        if not prop or prop.clerk_user_id != clerk_user_id:
+            raise ForbiddenException()
+        rows = await self.invoice_repo.get_all_by_room(room_id)
+        result = []
+        for row in rows:
+            items = await self.invoice_repo.get_items(row["id"])
+            result.append(InvoiceListRead(
+                **{k: row[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
+                                       "room_id", "room_number", "property_name", "tenant_name")},
+                items=[InvoiceItemRead.model_validate(i) for i in items],
+            ))
+        return result
+
     async def list_by_contract(self, contract_id: int, clerk_user_id: str) -> list[InvoiceRead]:
         contract = await self.contract_repo.get_by_id(contract_id)
         if not contract:
@@ -184,6 +240,12 @@ class InvoiceService:
         if not contract:
             raise NotFoundException("Contract not found")
 
+        if not _period_overlaps_contract(contract.start_date, contract.end_date, data.period):
+            raise BadRequestException(
+                f"Period {data.period} is outside contract dates "
+                f"({contract.start_date} → {contract.end_date})"
+            )
+
         room = await self.room_repo.get_by_id(contract.room_id)
         prop = await self.property_repo.get_by_id(room.property_id)
         if not prop or prop.clerk_user_id != clerk_user_id:
@@ -192,11 +254,11 @@ class InvoiceService:
         if await self.invoice_repo.get_by_contract_period(data.contract_id, data.period):
             raise ConflictException(f"Invoice for period {data.period} already exists")
 
-        effective_elec_rate = room.elec_rate if room.elec_rate is not None else prop.default_elec_rate
+        effective_elec_rate = prop.default_elec_rate
         reading = await self.utility_repo.get_by_room_period(room.id, data.period)
         surcharges = await self.surcharge_repo.get_all_by_property(prop.id)
 
-        items = _build_items(contract, reading, surcharges, prop, effective_elec_rate)
+        items = _build_items(contract, reading, surcharges, prop, effective_elec_rate, data.period)
         total = sum(i.amount for i in items)
 
         invoice = Invoice(contract_id=data.contract_id, period=data.period, total=_round(total))

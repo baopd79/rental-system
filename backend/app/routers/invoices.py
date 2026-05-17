@@ -10,6 +10,11 @@ async def list_all_invoices(clerk_user_id: CurrentUserDep, service: InvoiceServi
     return await service.list_all(clerk_user_id)
 
 
+@router.get("/rooms/{room_id}/invoices", response_model=list[InvoiceListRead])
+async def list_room_invoices(room_id: int, clerk_user_id: CurrentUserDep, service: InvoiceServiceDep):
+    return await service.list_by_room(room_id, clerk_user_id)
+
+
 @router.get("/contracts/{contract_id}/invoices", response_model=list[InvoiceRead])
 async def list_invoices(contract_id: int, clerk_user_id: CurrentUserDep, service: InvoiceServiceDep):
     return await service.list_by_contract(contract_id, clerk_user_id)

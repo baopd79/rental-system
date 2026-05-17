@@ -2,6 +2,7 @@ from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.database import get_session
 from app.models.property import Property
+from app.models.room import Room
 from app.schemas.property import PropertyCreate, PropertyUpdate
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.room_repo import RoomRepo
@@ -26,8 +27,12 @@ class PropertyService:
         return prop
 
     async def create_property(self, data: PropertyCreate, clerk_user_id: str) -> Property:
-        prop = Property(**data.model_dump(), clerk_user_id=clerk_user_id)
+        rooms_data = data.rooms
+        prop = Property(**data.model_dump(exclude={"rooms"}), clerk_user_id=clerk_user_id)
         created = await self.property_repo.create(prop)
+        for r in rooms_data:
+            room = Room(**r.model_dump(), property_id=created.id)
+            await self.room_repo.create(room)
         await self.session.commit()
         await self.session.refresh(created)
         return created
