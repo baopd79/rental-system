@@ -11,6 +11,7 @@ import { ContractForm } from "@/components/app/contract-form";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Room } from "@/types/room";
 import type { Contract } from "@/types/contract";
+import type { Property } from "@/types/property";
 
 function fmtDate(d: string) {
   const [y, m, day] = d.split("-");
@@ -27,6 +28,7 @@ export default function RoomDetailPage() {
   const { getToken } = useAuth();
 
   const [room, setRoom] = useState<Room | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -35,11 +37,13 @@ export default function RoomDetailPage() {
 
   const load = useCallback(async () => {
     try {
-      const [r, cs] = await Promise.all([
-        apiJson<Room>(`/rooms/${id}`, getToken),
+      const r = await apiJson<Room>(`/rooms/${id}`, getToken);
+      const [prop, cs] = await Promise.all([
+        apiJson<Property>(`/properties/${r.property_id}`, getToken),
         apiJson<Contract[]>(`/rooms/${id}/contracts`, getToken),
       ]);
       setRoom(r);
+      setProperty(prop);
       setContracts(cs);
     } finally {
       setLoading(false);
@@ -83,14 +87,14 @@ export default function RoomDetailPage() {
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push(`/properties/${room.property_id}`)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             fontSize: 13, color: "var(--vn-text-3)", background: "none",
             border: "none", cursor: "pointer", padding: 0, marginBottom: 10,
           }}
         >
-          <ArrowLeft size={14} /> Quay lại
+          <ArrowLeft size={14} /> {property?.name ?? "Nhà trọ"}
         </button>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
