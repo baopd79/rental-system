@@ -204,7 +204,7 @@ export default function PropertyDetailPage() {
             </thead>
             <tbody>
               {rooms.map((r, i) => (
-                <tr key={r.id}>
+                <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/rooms/${r.id}`)}>
                   <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
                     <span style={{ fontWeight: 500, fontFamily: "var(--font-geist-mono)", fontSize: 13 }}>{r.room_number}</span>
                   </td>
@@ -226,7 +226,8 @@ export default function PropertyDetailPage() {
                   <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
                     <RoomStatusBadge status={r.status} />
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", width: 40 }}>
+                  <td style={{ padding: "13px 16px", borderBottom: i < rooms.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", width: 40 }}
+                    onClick={(e) => e.stopPropagation()}>
                     <div style={{ position: "relative" }}>
                       <button
                         onClick={() => setOpenMenu(openMenu === r.id ? null : r.id)}
