@@ -59,8 +59,18 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 
 ### 3.4 Quản lý Khách thuê (`Tenant`) & Hợp đồng (`Contract`)
 - Thông tin khách: họ tên, CCCD, SĐT, email, ngày sinh
-- Hợp đồng: ngày bắt đầu/kết thúc, giá thuê thỏa thuận, tiền cọc, số người ở
+- Hợp đồng: ngày bắt đầu, ngày kết thúc (**bắt buộc** — không cho hợp đồng mở), giá thuê thỏa thuận, tiền cọc, số người ở
 - Một phòng có tối đa một contract đang `active`
+- **`num_people` >= 1** — bắt buộc, không cho phép hợp đồng 0 người
+- **Tạo contract**: chỉ cho phép khi `room.status = vacant` → sau khi tạo, room chuyển sang `occupied`
+- **Validation**: `end_date > start_date`; backdating cho phép (nhập lại hợp đồng cũ)
+- `start_date` = ngày bắt đầu tính tiền thuê (không có `billing_start_date` riêng, không tính pro-rata)
+- **Kết thúc contract** (`PUT /contracts/{id}/end`): `contract.status = ended`, `room.status = vacant`
+- **Xóa phòng**: block nếu tồn tại **bất kỳ contract nào** (kể cả ended) — bảo toàn lịch sử thuê
+- `agreed_rent`: UI gợi ý `room.rent_price` làm default, chủ nhà override được; `room.rent_price` không thay đổi
+- Invoice dùng `contract.agreed_rent`, không dùng `room.rent_price`
+- Không có `DELETE /tenants` — chỉ edit thông tin tenant
+- `ContractRead` embed `TenantRead` inline (tên, SĐT, CCCD)
 
 ### 3.5 Chỉ số Điện/Nước (`UtilityReading`)
 - Nhập chỉ số cuối kỳ điện theo phòng + tháng (luôn theo công tơ)
@@ -260,14 +270,16 @@ POST   /rooms
 GET    /rooms/{id}
 PUT    /rooms/{id}
 DELETE /rooms/{id}
+GET    /rooms/{id}/contracts              # lịch sử hợp đồng của phòng (active + ended)
 
 GET    /tenants
 POST   /tenants
 GET    /tenants/{id}
 PUT    /tenants/{id}
+                                          # không có DELETE /tenants
 
 POST   /contracts
-GET    /contracts/{id}
+GET    /contracts/{id}                    # ContractRead embed TenantRead
 PUT    /contracts/{id}/end
 
 POST   /utility-readings               # auto-fill elec_prev/water_prev từ kỳ trước
