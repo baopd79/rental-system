@@ -11,6 +11,8 @@ Full-stack SaaS quản lý nhà trọ. Backend FastAPI + SQLModel (layered: Rout
 - **Alembic migration** sau mỗi model mới — không dồn migration
 - **Clerk JWT** verify ở backend qua JWKS, không lưu user trong DB riêng
 - **Async everywhere**: `AsyncSession`, `async def` cho toàn bộ backend
+- **Class-based Repositories** *(refactored 2026-05-17)*: repo nhận `session` qua `__init__`, không pass per-call; `flush()` sau mỗi write để ID available trước commit; service giữ `self.session` cho commit/refresh
+- **PostgreSQL ENUM trong migration**: dùng `PgEnum(..., create_type=False)` trong `create_table` khi đã explicit `.create()` trước đó để tránh duplicate CREATE TYPE
 
 ---
 
@@ -305,16 +307,16 @@ PostgreSQL
 
 ## Phase 3: Tenants & Contracts
 
-### Task 3.1: Tenant + Contract models + schemas + migration
+### Task 3.1: Tenant + Contract models + schemas + migration ✅
 
 **Description:** `Tenant` (gắn với `clerk_user_id`), `Contract` (FK room + tenant, `num_people`, `status`), Alembic migration.
 
 **Acceptance criteria:**
-- [ ] Table `tenant` và `contract` được tạo với đúng constraints
-- [ ] `ContractRead` include thông tin tenant (joined)
+- [x] Table `tenant` và `contract` được tạo với đúng constraints
+- [x] `ContractRead` include thông tin tenant (joined)
 
 **Verification:**
-- [ ] `alembic upgrade head` không lỗi
+- [x] `alembic upgrade head` không lỗi
 
 **Dependencies:** T2.1
 
@@ -329,18 +331,26 @@ PostgreSQL
 
 ---
 
-### Task 3.2: Tenant + Contract repositories + services + routers
+### Task 3.2: Tenant + Contract repositories + services + routers ✅
 
-**Description:** `TenantService` (CRUD), `ContractService` (tạo contract: validate chỉ 1 active per room, kết thúc contract: set status=ended + room status=vacant).
+**Description:** `TenantService` (CRUD), `ContractService` (tạo contract: validate chỉ 1 active per room, kết thúc contract: set status=ended + room status=vacant). Bổ sung room deletion guard và endpoint lịch sử hợp đồng theo phòng.
 
 **Acceptance criteria:**
-- [ ] Tạo contract cho phòng đang có active contract → 400
-- [ ] Kết thúc contract (`PUT /contracts/{id}/end`) → room status = `vacant`
-- [ ] Tạo contract → room status = `occupied`
-- [ ] User không sở hữu room → 403
+- [x] Tạo contract: `room.status` phải là `vacant` → 400 nếu không phải
+- [x] Tạo contract cho phòng đang có active contract → 400
+- [x] `end_date > start_date` validation → 400 nếu sai; backdating cho phép
+- [x] `num_people >= 1` validation → 400 nếu sai
+- [x] Tạo contract → `room.status = occupied`
+- [x] Kết thúc contract (`PUT /contracts/{id}/end`) → `room.status = vacant`
+- [x] `ContractRead` embed `TenantRead` inline
+- [x] `GET /rooms/{id}/contracts` trả lịch sử hợp đồng (active + ended)
+- [x] `DELETE /rooms/{id}`: block nếu tồn tại bất kỳ contract nào (kể cả ended) → 409
+- [x] User không sở hữu room → 403
+- [x] `start_date` = ngày bắt đầu tính tiền; không có `billing_start_date`, không pro-rata
+- [x] Không có `DELETE /tenants`; deposit settlement defer post-MVP
 
 **Verification:**
-- [ ] `pytest tests/integration/test_contracts.py` pass
+- [ ] `pytest tests/integration/test_contracts.py` pass (chưa viết test)
 
 **Dependencies:** T3.1, T2.2
 
@@ -351,25 +361,25 @@ PostgreSQL
 - `backend/app/services/contract_service.py`
 - `backend/app/routers/tenants.py`
 - `backend/app/routers/contracts.py`
-- `backend/tests/integration/test_contracts.py`
 
-**Scope:** L → chia thành 2 nếu cần, nhưng Tenant + Contract liên quan chặt nên giữ chung
+**Scope:** L
 
 ---
 
-### Task 3.3: Frontend — Tenants + Contracts pages
+### Task 3.3: Frontend — Tenants + Contracts pages ✅
 
 **Description:** Danh sách khách thuê, form tạo khách, form tạo hợp đồng (gắn khách vào phòng), action kết thúc hợp đồng.
 
 **Acceptance criteria:**
-- [ ] `/dashboard/tenants` list khách thuê, filter theo trạng thái
-- [ ] Tạo contract từ room detail (chọn khách hoặc tạo mới)
-- [ ] Kết thúc contract có confirmation
-- [ ] Room status cập nhật ngay sau khi tạo/kết thúc contract
+- [x] `/dashboard/tenants` list khách thuê, search theo tên/SĐT/CCCD
+- [x] Tạo contract từ `/rooms/[id]` (chọn khách từ danh sách)
+- [x] Kết thúc contract có confirmation dialog
+- [x] Room status cập nhật ngay sau khi tạo/kết thúc contract
+- [x] Active contract hiển thị banner trên room detail
 
 **Verification:**
-- [ ] Tạo contract → room badge chuyển sang `occupied`
-- [ ] Kết thúc contract → room badge chuyển sang `vacant`
+- [x] Tạo contract → room badge chuyển sang `occupied`
+- [x] Kết thúc contract → room badge chuyển sang `vacant`
 
 **Dependencies:** T3.2, T2.3
 
@@ -384,26 +394,26 @@ PostgreSQL
 
 ---
 
-### Checkpoint: Phase 3
+### Checkpoint: Phase 3 ✅
 
-- [ ] Toàn bộ flow: tạo nhà → phòng → khách → hợp đồng hoạt động
-- [ ] Room status tự động cập nhật
-- [ ] Một phòng không thể có 2 active contracts
+- [x] Toàn bộ flow: tạo nhà → phòng → khách → hợp đồng hoạt động
+- [x] Room status tự động cập nhật
+- [x] Một phòng không thể có 2 active contracts
 
 ---
 
 ## Phase 4: Utility Readings
 
-### Task 4.1: UtilityReading model + schema + migration
+### Task 4.1: UtilityReading model + schema + migration ✅
 
 **Description:** Model `UtilityReading` với `period` (YYYY-MM), `elec_prev/curr`, `water_prev/curr`, `is_prev_auto`.
 
 **Acceptance criteria:**
-- [ ] Unique constraint `(room_id, period)` — mỗi phòng chỉ có 1 reading per kỳ
-- [ ] `is_prev_auto` default `true`
+- [x] Unique constraint `(room_id, period)` — mỗi phòng chỉ có 1 reading per kỳ
+- [x] `is_prev_auto` default `true`; `elec_prev` nullable (first reading)
 
 **Verification:**
-- [ ] `alembic upgrade head` không lỗi
+- [x] `alembic upgrade head` không lỗi
 
 **Dependencies:** T2.1
 
@@ -416,18 +426,21 @@ PostgreSQL
 
 ---
 
-### Task 4.2: UtilityService — auto-fill logic + router
+### Task 4.2: UtilityService — auto-fill logic + router ✅
 
-**Description:** `UtilityService.create_reading()`: trước khi insert, query reading của kỳ trước (`period - 1 month`), lấy `elec_curr/water_curr` làm `elec_prev/water_prev` của kỳ mới. Nếu không có kỳ trước → dùng giá trị từ request (nhập tay), set `is_prev_auto=false`.
+**Description:** `UtilityService.create_reading()`: trước khi insert, query reading của kỳ trước (`period - 1 month`), lấy `elec_curr/water_curr` làm `elec_prev/water_prev` của kỳ mới. Nếu không có kỳ trước → `prev = NULL`, `is_prev_auto=false`.
 
 **Acceptance criteria:**
-- [ ] Tạo reading tháng 2026-06 → `elec_prev` tự điền từ `elec_curr` của 2026-05
-- [ ] Phòng mới (chưa có reading) → nhận `elec_prev` từ request, `is_prev_auto=false`
-- [ ] Duplicate period cho cùng phòng → 409
+- [x] Tạo reading tháng 2026-06 → `elec_prev` tự điền từ `elec_curr` của 2026-05
+- [x] Phòng mới (first reading): chỉ cần `curr`; `prev = NULL`, `is_prev_auto=false`
+- [x] Duplicate period cho cùng phòng → 409
+- [x] `curr >= prev` validate mọi trường hợp, trừ khi `prev IS NULL`
+- [x] `water_prev/curr = NULL` nếu `water_calc_type != per_meter` (service tự set)
+- [x] Update/Delete: chỉ reading mới nhất, chưa có invoice → 409 nếu vi phạm
+- [x] Cho phép nhập reading dù phòng không có active contract
 
 **Verification:**
-- [ ] `pytest tests/unit/test_utility_service.py` pass (test auto-fill logic)
-- [ ] `pytest tests/integration/test_utilities.py` pass
+- [ ] `pytest tests/unit/test_utility_service.py` pass (chưa viết test)
 
 **Dependencies:** T4.1, T0.4
 
@@ -435,24 +448,24 @@ PostgreSQL
 - `backend/app/repositories/utility_repo.py`
 - `backend/app/services/utility_service.py`
 - `backend/app/routers/utilities.py`
-- `backend/tests/unit/test_utility_service.py`
-- `backend/tests/integration/test_utilities.py`
 
 **Scope:** M
 
 ---
 
-### Task 4.3: Frontend — Utility Reading input
+### Task 4.3: Frontend — Utility Reading input ✅
 
-**Description:** Form nhập chỉ số điện/nước theo phòng + tháng. Số đầu kỳ được pre-fill từ API (hiển thị readonly nếu `is_prev_auto=true`). Chỉ cần nhập số cuối kỳ.
+**Description:** Form nhập chỉ số điện/nước theo phòng + tháng. Số đầu kỳ tự điền từ API. Chỉ cần nhập số cuối kỳ.
 
 **Acceptance criteria:**
-- [ ] Chọn phòng + tháng → `elec_prev` và `water_prev` được fetch và hiển thị
-- [ ] Nếu phòng mới: field `prev` enabled để nhập thủ công
-- [ ] Submit → gọi `POST /utility-readings`
+- [x] `/rooms/[id]/utility` hiển thị lịch sử readings + cột tiêu thụ
+- [x] Badge "Thủ công" cho first reading (`is_prev_auto=false`)
+- [x] Edit/Delete chỉ hiển thị trên dòng mới nhất
+- [x] Water fields ẩn nếu `water_calc_type != per_meter`
+- [x] Button "Chỉ số điện/nước" trên room detail page
 
 **Verification:**
-- [ ] Nhập reading tháng 2 → reading tháng 3 tự fill số đầu kỳ
+- [x] Nhập reading tháng 2 → reading tháng 3 tự fill số đầu kỳ
 
 **Dependencies:** T4.2, T2.3
 
@@ -465,27 +478,28 @@ PostgreSQL
 
 ---
 
-### Checkpoint: Phase 4
+### Checkpoint: Phase 4 ✅
 
-- [ ] Auto-fill `elec_prev` ← `elec_curr` kỳ trước hoạt động đúng
-- [ ] Unit test `test_utility_service.py` pass
+- [x] Auto-fill `elec_prev` ← `elec_curr` kỳ trước hoạt động đúng
+- [ ] Unit test `test_utility_service.py` pass (Phase 9)
 
 ---
 
-## Phase 5: Surcharges & Shared Meters
+## Phase 5: Surcharges *(SharedMeter deferred → Phase 7)*
 
-### Task 5.1: SurchargeTemplate model + schema + migration + CRUD
+### Task 5.1: SurchargeTemplate model + schema + migration + CRUD ✅
 
-**Description:** `SurchargeTemplate` thuộc `property_id` (không phải user), `calc_type: per_room | per_person`. Full CRUD backend. Frontend quản lý surcharge trong trang property detail.
+**Description:** `SurchargeTemplate` thuộc `property_id`, `calc_type: per_room | per_person`, `name`, `amount`. Full CRUD backend + frontend trong property detail.
 
 **Acceptance criteria:**
-- [ ] `GET /properties/{id}/surcharges` chỉ trả surcharges của property đó
-- [ ] User không sở hữu property → 403
-- [ ] `calc_type` chỉ nhận `per_room` hoặc `per_person`
-- [ ] Frontend: tab/section "Phụ phí" trong property detail
+- [x] `GET /properties/{id}/surcharges` chỉ trả surcharges của property đó
+- [x] User không sở hữu property → 403
+- [x] `calc_type` chỉ nhận `per_room` hoặc `per_person`
+- [x] Delete/edit tự do — invoice snapshot giá trị lúc generate, không ảnh hưởng invoice cũ
+- [x] Frontend: section "Phụ phí" trong property detail với inline edit/delete
 
 **Verification:**
-- [ ] Tạo surcharge `per_person` 50k cho property → xác nhận `property_id` đúng trong DB
+- [x] Tạo surcharge `per_person` 50k cho property → xác nhận `property_id` đúng trong DB
 
 **Dependencies:** T1.2
 
@@ -495,7 +509,7 @@ PostgreSQL
 - `backend/app/repositories/surcharge_repo.py`
 - `backend/app/services/surcharge_service.py`
 - `backend/app/routers/surcharges.py`
-- `backend/alembic/versions/005_create_surcharge.py`
+- `backend/alembic/versions/c3d4e5f6a7b8_create_surcharge_template.py`
 - `frontend/components/app/surcharge-list.tsx`
 - `frontend/types/surcharge.ts`
 
@@ -503,40 +517,16 @@ PostgreSQL
 
 ---
 
-### Task 5.2: SharedMeter model + schema + migration + CRUD
+### Task 5.2: SharedMeter *(DEFERRED → Phase 7)*
 
-**Description:** `SharedMeter` (công tơ điện chung), `SharedMeterRoom` (junction), `SharedMeterReading` (chỉ số theo tháng với auto-fill). Frontend quản lý công tơ chung trong property detail.
-
-**Acceptance criteria:**
-- [ ] Tạo SharedMeter, thêm/xóa rooms khỏi công tơ
-- [ ] `POST /shared-meter-readings` auto-fill `prev_reading` từ kỳ trước
-- [ ] Validation: `curr_reading >= prev_reading` → 400 nếu sai
-- [ ] Phòng có thể tham gia nhiều SharedMeter khác nhau
-
-**Verification:**
-- [ ] Tạo SharedMeter "NVS tầng 2", gán 2 phòng → xác nhận junction table đúng
-- [ ] Nhập reading tháng 2 → tháng 3 auto-fill prev
-
-**Dependencies:** T5.1, T2.2
-
-**Files:**
-- `backend/app/models/shared_meter.py`
-- `backend/app/schemas/shared_meter.py`
-- `backend/app/repositories/shared_meter_repo.py`
-- `backend/app/services/shared_meter_service.py`
-- `backend/app/routers/shared_meters.py`
-- `backend/alembic/versions/006_create_shared_meter.py`
-- `frontend/components/app/shared-meter-list.tsx`
-- `frontend/types/shared_meter.ts`
-
-**Scope:** M
+Defer sang sau Phase 6 Invoice. Invoice MVP không tính điện chung. Sẽ implement sau khi Invoice hoạt động ổn.
 
 ---
 
-### Checkpoint: Phase 5
+### Checkpoint: Phase 5 ✅
 
-- [ ] Surcharges quản lý được theo từng property
-- [ ] Công tơ chung tạo được, gán phòng, nhập chỉ số
+- [x] Surcharges quản lý được theo từng property
+- [ ] SharedMeter — deferred
 
 ---
 
@@ -569,23 +559,24 @@ PostgreSQL
 **Description:** Pure function `_calculate(contract, reading, surcharges, shared_meter_items, property) -> InvoiceData` tính đầy đủ tất cả khoản. Tạo `InvoiceItem` cho từng dòng.
 
 **Acceptance criteria:**
-- [ ] Tiền điện = `(elec_curr - elec_prev) × effective_elec_rate`
+- [ ] Tiền điện = `(elec_curr - elec_prev) × effective_elec_rate`; `elec_prev IS NULL` → elec = 0
 - [ ] Tiền nước theo `water_calc_type`:
   - `per_meter` → `(water_curr - water_prev) × default_water_rate`
   - `per_person` → `default_water_rate × num_people`
   - `per_room` → `default_water_rate`
 - [ ] Surcharge `per_room`: amount cố định; `per_person`: `amount × num_people`
-- [ ] Điện công tơ chung: `(num_people / total_active_people) × (curr-prev) × elec_rate`
-- [ ] Reading `null` → amount = 0, không lỗi (chưa nhập điện/nước)
+- [ ] Điện chung: không tính trong MVP (SharedMeter deferred)
+- [ ] Reading `null` → amount = 0, không lỗi
 - [ ] `total` = sum tất cả items
+- [ ] Invoice snapshot: agreed_rent, rate, surcharge amounts tại thời điểm generate
 
 **Verification:**
 - [ ] `pytest tests/unit/test_invoice_calculation.py` pass với đủ cases:
   - 3 water_calc_type
-  - shared meter với 2, 3 phòng
-  - phòng trống không tham gia chia
+  - elec_prev IS NULL (first reading)
+  - surcharge per_room và per_person
 
-**Dependencies:** T6.1, T5.2, T4.1
+**Dependencies:** T6.1, T5.1, T4.1
 
 **Files:**
 - `backend/app/services/invoice_service.py` (calculation logic)
@@ -843,20 +834,20 @@ PostgreSQL
 
 ## Task Summary
 
-| Phase | Tasks | Scope |
-|-------|-------|-------|
-| 0. Scaffold | T0.1–T0.4 | Setup |
-| 1. Properties | T1.1–T1.3 | M×3 |
-| 2. Rooms | T2.1–T2.3 | S+M+M |
-| 3. Tenants & Contracts | T3.1–T3.3 | S+L+L |
-| 4. Utility Readings | T4.1–T4.3 | S+M+M |
-| 5. Surcharges | T5.1 | M |
-| 6. Invoices | T6.1–T6.5 | S+M+M+M+L |
-| 7. Public Invoice | T7.1 | M |
-| 8. Dashboard | T8.1–T8.2 | M+M |
-| 9. Tests | T9.1–T9.3 | S+S+M |
+| Phase | Tasks | Scope | Status |
+|-------|-------|-------|--------|
+| 0. Scaffold | T0.1–T0.4 | Setup | ✅ Done |
+| 1. Properties | T1.1–T1.3 | M×3 | ✅ Done |
+| 2. Rooms | T2.1–T2.3 | S+M+M | ✅ Done |
+| 3. Tenants & Contracts | T3.1–T3.3 | S+L+L | ✅ Done |
+| 4. Utility Readings | T4.1–T4.3 | S+M+M | ✅ Done |
+| 5. Surcharges | T5.1 | M | ✅ Done |
+| 6. Invoices | T6.1–T6.5 | S+M+M+M+L | 🔜 Next |
+| 7. Public Invoice + SharedMeter | T7.1–T7.2 | M+M | — |
+| 8. Dashboard | T8.1–T8.2 | M+M | — |
+| 9. Tests | T9.1–T9.3 | S+S+M | — |
 
-**Tổng: ~25 tasks** — mỗi task từ 1-2 sessions
+**Tiến độ: Phase 0–5 hoàn thành. Phase 6 (Invoice) là next.**
 
 ---
 
