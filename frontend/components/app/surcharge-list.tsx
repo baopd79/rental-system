@@ -9,7 +9,7 @@ import { apiJson, apiFetch } from "@/lib/api";
 import type { Surcharge, SurchargeCalcType } from "@/types/surcharge";
 import { SURCHARGE_CALC_LABELS } from "@/types/surcharge";
 
-type Props = { propertyId: number };
+type Props = { propertyId: number; compact?: boolean };
 
 const FIELD_STYLE: React.CSSProperties = {
   width: "100%", height: 36, padding: "0 10px",
@@ -103,7 +103,7 @@ function SurchargeForm({
   );
 }
 
-export function SurchargeList({ propertyId }: Props) {
+export function SurchargeList({ propertyId, compact = false }: Props) {
   const { getToken } = useAuth();
   const [surcharges, setSurcharges] = useState<Surcharge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +145,61 @@ export function SurchargeList({ propertyId }: Props) {
   }
 
   if (loading) return <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Đang tải…</div>;
+
+  if (compact) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+        {surcharges.map((s) => (
+          <div key={s.id} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            height: 28, padding: "0 10px", borderRadius: 7,
+            background: "var(--slate-100)", border: "1px solid var(--vn-border)",
+            fontSize: 12.5, color: "var(--vn-text-2)",
+          }}>
+            <span style={{ fontWeight: 500, color: "var(--vn-text)" }}>{s.name}</span>
+            <span style={{ color: "var(--vn-text-3)" }}>·</span>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              {Number(s.amount).toLocaleString("vi-VN")}₫
+            </span>
+            <span style={{ fontSize: 11, color: "var(--vn-text-3)" }}>
+              /{s.calc_type === "per_person" ? "người" : "phòng"}
+            </span>
+            <div style={{ display: "flex", gap: 2, marginLeft: 2 }}>
+              <button onClick={() => { setEditing(s); setShowForm(true); }} style={{
+                width: 18, height: 18, borderRadius: 4, border: "none", padding: 0,
+                background: "transparent", display: "grid", placeItems: "center",
+                cursor: "pointer", color: "var(--vn-text-3)",
+              }}>
+                <Pencil size={11} />
+              </button>
+              <button onClick={() => { setDeleting(s); setDeleteError(null); }} style={{
+                width: 18, height: 18, borderRadius: 4, border: "none", padding: 0,
+                background: "transparent", display: "grid", placeItems: "center",
+                cursor: "pointer", color: "var(--red-400)",
+              }}>
+                <Trash2 size={11} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => { setEditing(null); setShowForm(true); }}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            height: 28, padding: "0 10px", borderRadius: 7,
+            background: "transparent",
+            border: "1px dashed var(--vn-border)",
+            fontSize: 12.5, color: "var(--vn-text-3)", cursor: "pointer",
+          }}
+        >
+          <Plus size={12} /> Thêm
+        </button>
+        {surcharges.length === 0 && (
+          <span style={{ fontSize: 12.5, color: "var(--vn-text-3)" }}>Chưa có phụ phí</span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>

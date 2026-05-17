@@ -150,24 +150,43 @@ export default function PropertyDetailPage() {
         ))}
       </div>
 
-      {/* Config row */}
+      {/* Config + Surcharges card */}
       <div style={{
         background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
-        borderRadius: 12, padding: "14px 20px", marginBottom: 20,
-        display: "flex", alignItems: "center", gap: 24, boxShadow: "var(--sh-xs)",
-        fontSize: 13.5,
+        borderRadius: 12, marginBottom: 20, boxShadow: "var(--sh-xs)",
+        overflow: "hidden",
       }}>
-        <span style={{ color: "var(--vn-text-3)", fontSize: 12.5, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>Cấu hình</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--vn-text-2)" }}>
-          <Zap size={14} color="var(--blue-600)" />
-          <span style={{ fontWeight: 500 }}>{Number(property.default_elec_rate).toLocaleString("vi-VN")}₫</span>
-          <span style={{ color: "var(--vn-text-3)" }}>/kWh</span>
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--vn-text-2)" }}>
-          <Droplets size={14} color="var(--blue-500)" />
-          <span style={{ fontWeight: 500 }}>{Number(property.default_water_rate).toLocaleString("vi-VN")}₫</span>
-          <span style={{ color: "var(--vn-text-3)" }}>· {WATER_CALC_LABELS[property.water_calc_type]}</span>
-        </span>
+        {/* Rates row */}
+        <div style={{
+          padding: "12px 20px",
+          display: "flex", alignItems: "center", gap: 24,
+          fontSize: 13.5, borderBottom: "1px solid var(--vn-border)",
+        }}>
+          <span style={{ color: "var(--vn-text-3)", fontSize: 11.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>
+            Đơn giá
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--vn-text-2)" }}>
+            <Zap size={13} color="var(--amber-500)" />
+            <span style={{ fontWeight: 500 }}>{Number(property.default_elec_rate).toLocaleString("vi-VN")}₫</span>
+            <span style={{ color: "var(--vn-text-3)", fontSize: 12.5 }}>/kWh</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--vn-text-2)" }}>
+            <Droplets size={13} color="var(--blue-400)" />
+            <span style={{ fontWeight: 500 }}>{Number(property.default_water_rate).toLocaleString("vi-VN")}₫</span>
+            <span style={{ color: "var(--vn-text-3)", fontSize: 12.5 }}>· {WATER_CALC_LABELS[property.water_calc_type]}</span>
+          </span>
+        </div>
+        {/* Surcharges row */}
+        <div style={{
+          padding: "10px 20px",
+          display: "flex", alignItems: "center", gap: 12,
+          fontSize: 13.5,
+        }}>
+          <span style={{ color: "var(--vn-text-3)", fontSize: 11.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>
+            Phụ phí
+          </span>
+          <SurchargeList propertyId={property.id} compact />
+        </div>
       </div>
 
       {/* Rooms table */}
@@ -285,11 +304,6 @@ export default function PropertyDetailPage() {
           </table>
         </div>
       )}
-
-      {/* Surcharges */}
-      <div style={{ marginTop: 28 }}>
-        <SurchargeList propertyId={property.id} />
-      </div>
 
       {/* Dialogs */}
       <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setShowForm(false); setEditing(null); } }}>
