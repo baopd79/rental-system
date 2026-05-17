@@ -31,8 +31,6 @@ export function UtilityReadingForm({ roomId, isPerMeter, defaultPeriod, editing,
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isFirstReading = !editing && true; // server decides, but we allow elec_prev input
-
   const [form, setForm] = useState({
     period: editing?.period ?? defaultPeriod,
     elec_curr: editing ? String(editing.elec_curr) : "",

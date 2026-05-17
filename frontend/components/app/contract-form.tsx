@@ -90,7 +90,7 @@ export function ContractForm({ roomId, defaultRent, defaultDeposit, onSuccess, o
         >
           <option value="">— Chọn khách thuê —</option>
           {tenants.map((t) => (
-            <option key={t.id} value={t.id}>
+            <option key={t.id} value={String(t.id)}>
               {t.full_name}{t.phone ? ` · ${t.phone}` : ""}
             </option>
           ))}

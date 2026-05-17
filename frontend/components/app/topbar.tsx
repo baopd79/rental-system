@@ -52,7 +52,7 @@ export function Topbar() {
 
       {/* CTA */}
       <Link
-        href="/invoices/new"
+        href="/invoices"
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           height: 36, padding: "0 14px", borderRadius: 8,

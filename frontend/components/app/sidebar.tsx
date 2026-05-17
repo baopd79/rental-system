@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import {
-  LayoutDashboard, Building2, DoorOpen, Users, FileText,
-  Zap, Receipt, Settings,
+  LayoutDashboard, Building2, Users, Receipt,
 } from "lucide-react";
 
 interface NavItem {
@@ -26,23 +25,18 @@ const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
     heading: "Quản lý",
     items: [
       { href: "/properties", label: "Nhà trọ", icon: Building2 },
-      { href: "/rooms", label: "Phòng", icon: DoorOpen },
       { href: "/tenants", label: "Khách thuê", icon: Users },
-      { href: "/contracts", label: "Hợp đồng", icon: FileText },
     ],
   },
   {
     heading: "Tài chính",
     items: [
-      { href: "/utility", label: "Chỉ số Điện/Nước", icon: Zap },
       { href: "/invoices", label: "Hóa đơn", icon: Receipt },
     ],
   },
 ];
 
-const BOTTOM_ITEMS: NavItem[] = [
-  { href: "/settings", label: "Cài đặt", icon: Settings },
-];
+const BOTTOM_ITEMS: NavItem[] = [];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;

@@ -35,6 +35,8 @@ export default function PropertiesPage() {
     try {
       const data = await apiJson<Property[]>("/properties", getToken);
       setProperties(data);
+    } catch {
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function PropertiesPage() {
             Nhà trọ
           </h1>
           <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>
-            {properties.length} nhà · {properties.reduce((s, _) => s, 0)} phòng
+            {properties.length} nhà
           </p>
         </div>
         <button

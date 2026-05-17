@@ -48,6 +48,8 @@ export default function InvoicesPage() {
     try {
       const data = await apiJson<InvoiceListItem[]>("/invoices", getToken);
       setInvoices(data);
+    } catch {
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -55,8 +57,7 @@ export default function InvoicesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function handleCreated(inv: InvoiceListItem) {
-    setInvoices(prev => [inv, ...prev]);
+  function handleCreated(inv: { id: number }) {
     setShowForm(false);
     router.push(`/invoices/${inv.id}`);
   }
@@ -208,7 +209,7 @@ export default function InvoicesPage() {
             <DialogTitle>Tạo hóa đơn mới</DialogTitle>
           </DialogHeader>
           <InvoiceGenerateForm
-            onSuccess={inv => handleCreated(inv as InvoiceListItem)}
+            onSuccess={handleCreated}
             onCancel={() => setShowForm(false)}
           />
         </DialogContent>

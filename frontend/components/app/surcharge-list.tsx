@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Surcharge, SurchargeCalcType } from "@/types/surcharge";
 import { SURCHARGE_CALC_LABELS } from "@/types/surcharge";
@@ -108,6 +109,8 @@ export function SurchargeList({ propertyId }: Props) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Surcharge | null>(null);
+  const [deleting, setDeleting] = useState<Surcharge | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -128,9 +131,17 @@ export function SurchargeList({ propertyId }: Props) {
     setEditing(null);
   }
 
-  async function handleDelete(s: Surcharge) {
-    const res = await apiFetch(`/surcharges/${s.id}`, getToken, { method: "DELETE" });
-    if (res.ok) setSurcharges((prev) => prev.filter((x) => x.id !== s.id));
+  async function handleDelete() {
+    if (!deleting) return;
+    const res = await apiFetch(`/surcharges/${deleting.id}`, getToken, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      setDeleteError(err.detail ?? "Xóa thất bại");
+      return;
+    }
+    setSurcharges((prev) => prev.filter((x) => x.id !== deleting.id));
+    setDeleting(null);
+    setDeleteError(null);
   }
 
   if (loading) return <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Đang tải…</div>;
@@ -191,7 +202,7 @@ export function SurchargeList({ propertyId }: Props) {
                   }}>
                     <Pencil size={13} />
                   </button>
-                  <button onClick={() => handleDelete(s)} style={{
+                  <button onClick={() => { setDeleting(s); setDeleteError(null); }} style={{
                     width: 28, height: 28, borderRadius: 6, border: "none",
                     background: "var(--slate-100)", display: "grid",
                     placeItems: "center", cursor: "pointer", color: "var(--red-500)",
@@ -218,6 +229,20 @@ export function SurchargeList({ propertyId }: Props) {
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa phụ phí &ldquo;{deleting?.name}&rdquo;?</AlertDialogTitle>
+            <AlertDialogDescription>Hành động này không thể hoàn tác.</AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && <p style={{ fontSize: 13, color: "var(--red-600)", padding: "0 4px" }}>{deleteError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
