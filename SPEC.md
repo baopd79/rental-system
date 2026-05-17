@@ -86,6 +86,16 @@ Xây dựng SaaS web app quản lý nhà trọ cho thuê, phục vụ nhiều ch
 - Nhập chỉ số cuối kỳ theo từng `SharedMeter` (công tơ NVS/hành lang chung)
 - Auto-fill `prev` ← `curr` kỳ trước, tương tự UtilityReading
 - Rate dùng `property.default_elec_rate`
+- Update/Delete: chỉ reading mới nhất, chưa có invoice (same rule as UtilityReading)
+- **SharedMeter bị defer sang Phase 7** — Phase 6 Invoice không tính điện chung
+
+### 3.5b Phụ phí (`SurchargeTemplate`)
+- Thuộc `property_id`, áp dụng tất cả phòng trong nhà
+- Fields: `name`, `calc_type` (`per_room` | `per_person`), `amount`
+- `per_room`: cố định mỗi phòng (VD: Phí wifi 100k)
+- `per_person`: `amount × contract.num_people` (VD: Phí vệ sinh 20k/người)
+- Invoice snapshot giá trị lúc generate → delete/edit surcharge không ảnh hưởng invoice cũ
+- Delete/edit tự do, không guard
 
 ### 3.6 Hóa đơn (`Invoice`)
 - Tạo hóa đơn hàng tháng gồm:

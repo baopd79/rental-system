@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RoomStatusBadge } from "@/components/app/room-status-badge";
 import { RoomForm } from "@/components/app/room-form";
+import { SurchargeList } from "@/components/app/surcharge-list";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
 import { WATER_CALC_LABELS } from "@/types/property";
@@ -270,6 +271,11 @@ export default function PropertyDetailPage() {
           </table>
         </div>
       )}
+
+      {/* Surcharges */}
+      <div style={{ marginTop: 28 }}>
+        <SurchargeList propertyId={property.id} />
+      </div>
 
       {/* Dialogs */}
       <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setShowForm(false); setEditing(null); } }}>
