@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from app.dependencies import CurrentUserDep, TenantServiceDep
 from app.schemas.tenant import TenantCreate, TenantRead, TenantUpdate
 
@@ -6,8 +6,12 @@ router = APIRouter(tags=["tenants"])
 
 
 @router.get("/tenants", response_model=list[TenantRead])
-async def list_tenants(clerk_user_id: CurrentUserDep, service: TenantServiceDep):
-    return await service.list_tenants(clerk_user_id)
+async def list_tenants(
+    clerk_user_id: CurrentUserDep,
+    service: TenantServiceDep,
+    property_id: int | None = Query(default=None),
+):
+    return await service.list_tenants(clerk_user_id, property_id=property_id)
 
 
 @router.post("/tenants", response_model=TenantRead, status_code=201)

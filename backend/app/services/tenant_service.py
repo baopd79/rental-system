@@ -20,8 +20,11 @@ class TenantService:
             raise ForbiddenException()
         return tenant
 
-    async def list_tenants(self, clerk_user_id: str) -> list[TenantRead]:
-        tenants = await self.tenant_repo.get_all_by_user(clerk_user_id)
+    async def list_tenants(self, clerk_user_id: str, property_id: int | None = None) -> list[TenantRead]:
+        if property_id:
+            tenants = await self.tenant_repo.get_by_property(property_id, clerk_user_id)
+        else:
+            tenants = await self.tenant_repo.get_all_by_user(clerk_user_id)
         return [TenantRead.model_validate(t) for t in tenants]
 
     async def get_tenant(self, tenant_id: int, clerk_user_id: str) -> TenantRead:

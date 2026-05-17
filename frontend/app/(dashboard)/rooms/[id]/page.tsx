@@ -322,6 +322,7 @@ export default function RoomDetailPage() {
           </DialogHeader>
           <ContractForm
             roomId={room.id}
+            propertyId={room.property_id}
             defaultRent={Number(room.rent_price)}
             defaultDeposit={Number(room.deposit)}
             onSuccess={handleContractCreated}
