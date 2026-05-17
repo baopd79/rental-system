@@ -10,6 +10,7 @@ from app.services.contract_service import ContractService
 from app.services.utility_service import UtilityService
 from app.services.surcharge_service import SurchargeService
 from app.services.invoice_service import InvoiceService
+from app.services.billing_service import BillingService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 CurrentUserDep = Annotated[str, Depends(verify_clerk_token)]
@@ -20,3 +21,4 @@ ContractServiceDep = Annotated[ContractService, Depends()]
 UtilityServiceDep = Annotated[UtilityService, Depends()]
 SurchargeServiceDep = Annotated[SurchargeService, Depends()]
 InvoiceServiceDep = Annotated[InvoiceService, Depends()]
+BillingServiceDep = Annotated[BillingService, Depends()]

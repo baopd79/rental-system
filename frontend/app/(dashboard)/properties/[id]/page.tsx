@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { ArrowLeft, Plus, BedDouble, Zap, Droplets, MoreVertical, Search } from "lucide-react";
+import { ArrowLeft, Plus, BedDouble, Zap, Droplets, MoreVertical, Search, Calculator } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RoomStatusBadge } from "@/components/app/room-status-badge";
@@ -103,18 +103,32 @@ export default function PropertyDetailPage() {
             </h1>
             <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>{property.address}</p>
           </div>
-          <button
-            onClick={() => { setEditing(null); setShowForm(true); }}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              height: 36, padding: "0 14px", borderRadius: 8,
-              background: "var(--blue-600)", color: "#fff",
-              fontSize: 13.5, fontWeight: 500, border: "none", cursor: "pointer",
-              boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
-            }}
-          >
-            <Plus size={15} color="#fff" /> Thêm phòng
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => router.push(`/properties/${id}/billing`)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                height: 36, padding: "0 14px", borderRadius: 8,
+                background: "var(--vn-surface)", color: "var(--vn-text-2)",
+                fontSize: 13.5, fontWeight: 500,
+                border: "1px solid var(--vn-border)", cursor: "pointer",
+              }}
+            >
+              <Calculator size={15} /> Tính tiền
+            </button>
+            <button
+              onClick={() => { setEditing(null); setShowForm(true); }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                height: 36, padding: "0 14px", borderRadius: 8,
+                background: "var(--blue-600)", color: "#fff",
+                fontSize: 13.5, fontWeight: 500, border: "none", cursor: "pointer",
+                boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
+              }}
+            >
+              <Plus size={15} color="#fff" /> Thêm phòng
+            </button>
+          </div>
         </div>
       </div>
 
