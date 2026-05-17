@@ -6,10 +6,11 @@ class BillingRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_room_billing_status(self, property_id: int, period: str) -> list[dict]:
+    async def get_room_billing_status(self, property_id: int, period: str, prev_period: str) -> list[dict]:
         """
         For each room with an active contract, return combined status:
-        room info, tenant info, reading for this period, invoice for this period.
+        room info, tenant info, reading for this period, prev month reading for reference,
+        and invoice for this period.
         """
         result = await self.session.execute(text("""
             SELECT
@@ -27,6 +28,9 @@ class BillingRepo:
                 ur.elec_curr,
                 ur.water_prev,
                 ur.water_curr,
+                -- prev month reading for reference (shown before user saves)
+                urp.elec_curr AS prev_elec_curr,
+                urp.water_curr AS prev_water_curr,
                 i.id          AS invoice_id,
                 i.status      AS invoice_status,
                 i.total       AS invoice_total,
@@ -34,9 +38,10 @@ class BillingRepo:
             FROM room r
             JOIN contract c  ON c.room_id = r.id AND c.status = 'active'
             JOIN tenant  t   ON t.id = c.tenant_id
-            LEFT JOIN utility_reading ur ON ur.room_id = r.id AND ur.period = :period
-            LEFT JOIN invoice         i  ON i.contract_id = c.id AND i.period = :period
+            LEFT JOIN utility_reading ur  ON ur.room_id  = r.id AND ur.period  = :period
+            LEFT JOIN utility_reading urp ON urp.room_id = r.id AND urp.period = :prev_period
+            LEFT JOIN invoice         i   ON i.contract_id = c.id AND i.period = :period
             WHERE r.property_id = :property_id
             ORDER BY r.room_number
-        """), {"property_id": property_id, "period": period})
+        """), {"property_id": property_id, "period": period, "prev_period": prev_period})
         return [dict(row._mapping) for row in result]

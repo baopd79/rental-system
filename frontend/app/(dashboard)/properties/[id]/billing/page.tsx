@@ -94,8 +94,13 @@ export default function BillingPage() {
 
     const readings = rows
       .filter(row => {
+        if (row.invoice_id) return false;                    // Bug 2: skip invoiced rooms
         const inp = inputs[row.room_id];
-        return inp?.elec_curr !== "" && inp?.elec_curr !== undefined;
+        if (!inp?.elec_curr) return false;
+        // Bug 3: only send changed rows (compare as numbers to avoid "1150" vs "1150.00")
+        const savedVal = row.elec_curr ? Number(row.elec_curr) : null;
+        const inputVal = Number(inp.elec_curr);
+        return savedVal !== inputVal;
       })
       .map(row => {
         const inp = inputs[row.room_id];
@@ -158,8 +163,12 @@ export default function BillingPage() {
 
   const isPerMeter = property?.water_calc_type === "per_meter";
   const hasReadingsToSave = rows.some(r => {
+    if (r.invoice_id) return false;
     const inp = inputs[r.room_id];
-    return inp?.elec_curr && inp.elec_curr !== (r.elec_curr ?? "");
+    if (!inp?.elec_curr) return false;
+    // Compare as numbers to avoid "1150" vs "1150.00" false-positive
+    const savedVal = r.elec_curr ? Number(r.elec_curr) : null;
+    return savedVal !== Number(inp.elec_curr);
   });
   const readyToGenerate = rows.some(r => r.reading_id && !r.invoice_id);
   const allDone = rows.length > 0 && rows.every(r => r.invoice_id);
@@ -339,10 +348,24 @@ export default function BillingPage() {
                     </td>
 
                     {/* Elec prev */}
-                    <td style={{ padding: "12px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-3)", fontVariantNumeric: "tabular-nums" }}>
+                    <td style={{ padding: "12px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", fontVariantNumeric: "tabular-nums" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <Zap size={12} color="var(--amber-400)" />
-                        {isNew ? <span style={{ fontSize: 11.5, color: "var(--amber-600)", background: "var(--amber-50)", padding: "1px 7px", borderRadius: 999 }}>Phòng mới</span> : fmtNum(row.elec_prev)}
+                        {row.reading_id ? (
+                          // Reading exists — show elec_prev from saved reading
+                          <span style={{ color: "var(--vn-text-2)" }}>{fmtNum(row.elec_prev)}</span>
+                        ) : row.prev_elec_curr ? (
+                          // No reading yet — show prev month's curr as reference
+                          <span style={{ color: "var(--vn-text-3)" }} title="Chỉ số tháng trước (sẽ tự điền khi lưu)">
+                            {fmtNum(row.prev_elec_curr)}
+                            <span style={{ fontSize: 10, marginLeft: 4, color: "var(--vn-text-3)" }}>↑ t.trước</span>
+                          </span>
+                        ) : (
+                          // No prev reading at all — first reading ever
+                          <span style={{ fontSize: 11.5, color: "var(--amber-600)", background: "var(--amber-50)", padding: "1px 7px", borderRadius: 999 }}>
+                            Phòng mới
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -359,7 +382,11 @@ export default function BillingPage() {
                           step="0.01"
                           value={inp.elec_curr}
                           onChange={e => setInput(row.room_id, "elec_curr", e.target.value)}
-                          placeholder={row.elec_prev ? `> ${fmtNum(row.elec_prev)}` : "Nhập..."}
+                          placeholder={
+                            row.elec_prev ? `> ${fmtNum(row.elec_prev)}`
+                            : row.prev_elec_curr ? `> ${fmtNum(row.prev_elec_curr)}`
+                            : "Nhập..."
+                          }
                           style={{
                             width: 110, height: 32, padding: "0 8px",
                             border: "1px solid var(--vn-border)", borderRadius: 7,
@@ -373,10 +400,19 @@ export default function BillingPage() {
                     {/* Water fields (per_meter only) */}
                     {isPerMeter && (
                       <>
-                        <td style={{ padding: "12px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-3)", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "12px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", fontVariantNumeric: "tabular-nums" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                             <Droplets size={12} color="var(--blue-400)" />
-                            {isNew ? "—" : fmtNum(row.water_prev)}
+                            {row.reading_id ? (
+                              <span style={{ color: "var(--vn-text-2)" }}>{fmtNum(row.water_prev)}</span>
+                            ) : row.prev_water_curr ? (
+                              <span style={{ color: "var(--vn-text-3)" }} title="Chỉ số nước tháng trước">
+                                {fmtNum(row.prev_water_curr)}
+                                <span style={{ fontSize: 10, marginLeft: 4 }}>↑ t.trước</span>
+                              </span>
+                            ) : (
+                              <span style={{ color: "var(--vn-text-3)" }}>—</span>
+                            )}
                           </div>
                         </td>
                         <td style={{ padding: "8px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>

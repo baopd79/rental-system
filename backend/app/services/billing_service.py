@@ -36,7 +36,7 @@ class BillingService:
 
     async def get_status(self, property_id: int, period: str, clerk_user_id: str) -> list[RoomBillingStatus]:
         await self._get_property_owned(property_id, clerk_user_id)
-        rows = await self.billing_repo.get_room_billing_status(property_id, period)
+        rows = await self.billing_repo.get_room_billing_status(property_id, period, _prev_period(period))
         return [RoomBillingStatus(**row) for row in rows]
 
     async def batch_save_readings(
@@ -95,7 +95,7 @@ class BillingService:
                 await self.utility_repo.create(reading)
 
         await self.session.commit()
-        rows = await self.billing_repo.get_room_billing_status(property_id, data.period)
+        rows = await self.billing_repo.get_room_billing_status(property_id, data.period, _prev_period(data.period))
         return [RoomBillingStatus(**row) for row in rows]
 
     async def batch_generate_invoices(

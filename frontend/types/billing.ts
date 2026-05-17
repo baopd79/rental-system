@@ -14,6 +14,8 @@ export type RoomBillingStatus = {
   elec_curr: string | null;
   water_prev: string | null;
   water_curr: string | null;
+  prev_elec_curr: string | null;
+  prev_water_curr: string | null;
   invoice_id: number | null;
   invoice_status: InvoiceStatus | null;
   invoice_total: string | null;

@@ -18,6 +18,9 @@ class RoomBillingStatus(BaseModel):
     elec_curr: Decimal | None
     water_prev: Decimal | None
     water_curr: Decimal | None
+    # Previous month reading — shown as reference before user saves current period
+    prev_elec_curr: Decimal | None
+    prev_water_curr: Decimal | None
     # Invoice for this period
     invoice_id: int | None
     invoice_status: InvoiceStatus | None
