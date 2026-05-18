@@ -1,5 +1,5 @@
 export type InvoiceStatus = "draft" | "sent" | "paid";
-export type InvoiceItemType = "rent" | "electricity" | "water" | "surcharge";
+export type InvoiceItemType = "rent" | "electricity" | "water" | "surcharge" | "shared_elec";
 
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   draft: "Nháp",
@@ -18,6 +18,7 @@ export const INVOICE_ITEM_LABELS: Record<InvoiceItemType, string> = {
   electricity: "Tiền điện",
   water:       "Tiền nước",
   surcharge:   "Phụ phí",
+  shared_elec: "Điện chung",
 };
 
 export type InvoiceItem = {

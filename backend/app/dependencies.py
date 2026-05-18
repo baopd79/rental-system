@@ -11,6 +11,8 @@ from app.services.utility_service import UtilityService
 from app.services.surcharge_service import SurchargeService
 from app.services.invoice_service import InvoiceService
 from app.services.billing_service import BillingService
+from app.services.dashboard_service import DashboardService
+from app.services.shared_meter_service import SharedMeterService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 CurrentUserDep = Annotated[str, Depends(verify_clerk_token)]
@@ -22,3 +24,5 @@ UtilityServiceDep = Annotated[UtilityService, Depends()]
 SurchargeServiceDep = Annotated[SurchargeService, Depends()]
 InvoiceServiceDep = Annotated[InvoiceService, Depends()]
 BillingServiceDep = Annotated[BillingService, Depends()]
+DashboardServiceDep = Annotated[DashboardService, Depends()]
+SharedMeterServiceDep = Annotated[SharedMeterService, Depends()]

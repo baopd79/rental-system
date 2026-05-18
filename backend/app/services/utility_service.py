@@ -19,6 +19,14 @@ def _prev_period(period: str) -> str:
     return f"{year:04d}-{month:02d}"
 
 
+def _next_period(period: str) -> str:
+    year, month = int(period[:4]), int(period[5:7])
+    month += 1
+    if month == 13:
+        month, year = 1, year + 1
+    return f"{year:04d}-{month:02d}"
+
+
 class UtilityService:
     def __init__(self, session: AsyncSession = Depends(get_session)):
         self.session = session

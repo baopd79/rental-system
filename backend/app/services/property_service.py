@@ -1,5 +1,7 @@
 from fastapi import Depends
+from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
+from datetime import date
 from app.database import get_session
 from app.models.property import Property
 from app.models.room import Room
@@ -17,6 +19,40 @@ class PropertyService:
 
     async def list_properties(self, clerk_user_id: str) -> list[Property]:
         return await self.property_repo.get_all(clerk_user_id)
+
+    async def get_stats(self, clerk_user_id: str) -> list[dict]:
+        today = date.today()
+        period = f"{today.year}-{str(today.month).zfill(2)}"
+        result = await self.session.execute(text("""
+            SELECT
+                p.id,
+                COUNT(r.id)                                          AS total_rooms,
+                COUNT(CASE WHEN r.status = 'occupied' THEN 1 END)   AS occupied_rooms,
+                COALESCE((
+                    SELECT SUM(i.total)
+                    FROM invoice i
+                    JOIN contract c2 ON c2.id = i.contract_id
+                    JOIN room r2 ON r2.id = c2.room_id
+                    WHERE r2.property_id = p.id
+                      AND i.status = 'paid'
+                      AND i.period = :period
+                ), 0) AS monthly_revenue
+            FROM property p
+            LEFT JOIN room r ON r.property_id = p.id
+            WHERE p.clerk_user_id = :uid
+            GROUP BY p.id
+            ORDER BY p.id
+        """), {"uid": clerk_user_id, "period": period})
+        return [
+            {
+                "id": row.id,
+                "total_rooms": row.total_rooms,
+                "occupied_rooms": row.occupied_rooms,
+                "monthly_revenue": float(row.monthly_revenue),
+                "period": period,
+            }
+            for row in result.fetchall()
+        ]
 
     async def get_property(self, property_id: int, clerk_user_id: str) -> Property:
         prop = await self.property_repo.get_by_id(property_id)

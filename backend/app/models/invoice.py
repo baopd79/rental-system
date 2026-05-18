@@ -15,6 +15,7 @@ class InvoiceItemType(str, Enum):
     electricity = "electricity"
     water = "water"
     surcharge = "surcharge"
+    shared_elec = "shared_elec"
 
 
 class Invoice(SQLModel, table=True):

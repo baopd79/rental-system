@@ -26,6 +26,8 @@ class RoomBillingStatus(BaseModel):
     prev_elec_curr: Decimal | None
     prev_water_prev: Decimal | None
     prev_water_curr: Decimal | None
+    # True when next period (N+1) already has a reading — editing this period is blocked
+    next_reading_locked: bool
     # Invoice for current period
     invoice_id: int | None
     invoice_status: InvoiceStatus | None
@@ -61,10 +63,15 @@ class InvoicePreviewRow(BaseModel):
     prorate_label: str | None          # e.g. "17/31 ngày"
     # Whether current period reading exists (electricity uses current period reading)
     has_reading: bool
+    elec_prev: Decimal | None
+    elec_curr: Decimal | None
+    water_prev: Decimal | None
+    water_curr: Decimal | None
     # Calculated amounts
     rent_amount: Decimal
     elec_amount: Decimal
     water_amount: Decimal
+    shared_elec_amount: Decimal
     surcharges: list[InvoicePreviewSurcharge]
     surcharge_total: Decimal
     total: Decimal

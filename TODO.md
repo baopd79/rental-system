@@ -12,13 +12,13 @@
 | 0 | Project scaffold | ✅ Done |
 | 1 | Properties CRUD | ✅ Done |
 | 2 | Rooms CRUD | ✅ Done |
-| 3 | Tenants & Contracts | 🔲 Next |
-| 4 | Utility Readings | 🔲 Todo |
-| 5 | Surcharge Templates | 🔲 Todo |
-| 6 | Invoice Generation | 🔲 Todo |
-| 7 | Public Invoice Page | 🔲 Todo |
-| 8 | Dashboard | 🔲 Todo |
-| 9 | Tests & Hardening | 🔲 Todo |
+| 3 | Tenants & Contracts | ✅ Done |
+| 4 | Utility Readings | ✅ Done |
+| 5 | Surcharge Templates | ✅ Done |
+| 6 | Invoice Generation | ✅ Done |
+| 7 | Public Invoice + PDF + SharedMeter | ✅ SharedMeter done · PDF pending |
+| 8 | Dashboard | ✅ Done |
+| 9 | Tests & Hardening | 🔲 Next |
 
 ---
 

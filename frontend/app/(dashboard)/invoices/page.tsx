@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { Plus, Receipt, Building2, User, Calendar } from "lucide-react";
+import { Plus, Receipt, Building2, User, Calendar, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiJson } from "@/lib/api";
 import type { InvoiceListItem, InvoiceStatus, Invoice } from "@/types/invoice";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "@/types/invoice";
 import { InvoiceGenerateForm } from "@/components/app/invoice-generate-form";
 import { InvoiceDrawer } from "@/components/app/invoice-drawer";
+import { BillingModal } from "@/components/app/billing-modal";
+import type { Property } from "@/types/property";
 
 const STATUS_FILTERS: { label: string; value: InvoiceStatus | "all" }[] = [
   { label: "Tất cả", value: "all" },
@@ -40,16 +42,25 @@ function StatusBadge({ status }: { status: InvoiceStatus }) {
 export default function InvoicesPage() {
   const { getToken } = useAuth();
   const router = useRouter();
-  const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
-  const [showForm, setShowForm] = useState(false);
+  const [invoices,     setInvoices]     = useState<InvoiceListItem[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [filter,       setFilter]       = useState<InvoiceStatus | "all">("all");
+  const [showForm,     setShowForm]     = useState(false);
   const [drawerInvoiceId, setDrawerInvoiceId] = useState<number | null>(null);
+
+  // batch invoice state
+  const [showBatchPicker, setShowBatchPicker] = useState(false);
+  const [batchProperty,   setBatchProperty]   = useState<Property | null>(null);
+  const [properties,      setProperties]      = useState<Property[]>([]);
 
   const load = useCallback(async () => {
     try {
-      const data = await apiJson<InvoiceListItem[]>("/invoices", getToken);
+      const [data, props] = await Promise.all([
+        apiJson<InvoiceListItem[]>("/invoices", getToken),
+        apiJson<Property[]>("/properties", getToken),
+      ]);
       setInvoices(data);
+      setProperties(props);
     } catch {
       setInvoices([]);
     } finally {
@@ -73,25 +84,38 @@ export default function InvoicesPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.018em", color: "var(--vn-text)", margin: 0 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
             Hóa đơn
           </h1>
           <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>
             {invoices.length} hóa đơn
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            height: 36, padding: "0 14px", borderRadius: 8,
-            background: "var(--blue-600)", color: "#fff",
-            fontSize: 13.5, fontWeight: 500, border: "none", cursor: "pointer",
-            boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
-          }}
-        >
-          <Plus size={15} color="#fff" /> Tạo hóa đơn
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setShowBatchPicker(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 36, padding: "0 14px", borderRadius: 8,
+              background: "var(--vn-surface)", color: "var(--vn-text-2)",
+              fontSize: 13, fontWeight: 500, border: "1px solid var(--vn-border)", cursor: "pointer",
+            }}
+          >
+            <Layers size={14} /> Tạo hàng loạt
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 36, padding: "0 14px", borderRadius: 8,
+              background: "var(--blue-600)", color: "#fff",
+              fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
+              boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
+            }}
+          >
+            <Plus size={14} color="#fff" /> Tạo đơn lẻ
+          </button>
+        </div>
       </div>
 
       {/* Status filter tabs */}
@@ -149,7 +173,7 @@ export default function InvoicesPage() {
                 {["Kỳ", "Phòng / Khách thuê", "Tổng tiền", "Trạng thái", ""].map(h => (
                   <th key={h} style={{
                     textAlign: "left", padding: "11px 16px",
-                    font: "500 11.5px var(--font-geist-sans)",
+                    font: "600 11px var(--font-geist-sans)",
                     color: "var(--vn-text-3)", letterSpacing: "0.04em",
                     textTransform: "uppercase", background: "var(--slate-50)",
                     borderBottom: "1px solid var(--vn-border)",
@@ -214,15 +238,49 @@ export default function InvoicesPage() {
 
       <Dialog open={showForm} onOpenChange={o => { if (!o) setShowForm(false); }}>
         <DialogContent style={{ maxWidth: 460 }}>
-          <DialogHeader>
-            <DialogTitle>Tạo hóa đơn mới</DialogTitle>
-          </DialogHeader>
-          <InvoiceGenerateForm
-            onSuccess={handleCreated}
-            onCancel={() => setShowForm(false)}
-          />
+          <DialogHeader><DialogTitle>Tạo hóa đơn đơn lẻ</DialogTitle></DialogHeader>
+          <InvoiceGenerateForm onSuccess={handleCreated} onCancel={() => setShowForm(false)} />
         </DialogContent>
       </Dialog>
+
+      {/* Property picker — batch invoice */}
+      <Dialog open={showBatchPicker && !batchProperty} onOpenChange={o => { if (!o) setShowBatchPicker(false); }}>
+        <DialogContent style={{ maxWidth: 420 }}>
+          <DialogHeader><DialogTitle>Chọn nhà để tạo hoá đơn hàng loạt</DialogTitle></DialogHeader>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+            {properties.length === 0 && (
+              <p style={{ fontSize: 13, color: "var(--vn-text-3)", textAlign: "center", padding: "16px 0" }}>
+                Chưa có nhà trọ nào.
+              </p>
+            )}
+            {properties.map(p => (
+              <button key={p.id} onClick={() => { setBatchProperty(p); setShowBatchPicker(false); }} style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "11px 14px",
+                background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
+                borderRadius: 9, cursor: "pointer", textAlign: "left",
+                transition: "border-color .12s",
+              }} className="hover:border-(--blue-300)">
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: "var(--blue-50)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <Building2 size={16} color="var(--blue-600)" />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--vn-text)" }}>{p.name}</div>
+                  <div style={{ fontSize: 12, color: "var(--vn-text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.address}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch billing modal — invoice mode */}
+      <BillingModal
+        propertyId={batchProperty ? String(batchProperty.id) : ""}
+        property={batchProperty}
+        open={batchProperty !== null}
+        onClose={() => { setBatchProperty(null); load(); }}
+        initialTab="invoices"
+      />
     </div>
   );
 }

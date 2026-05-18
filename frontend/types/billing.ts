@@ -20,6 +20,7 @@ export type RoomBillingStatus = {
   prev_elec_curr: string | null;
   prev_water_prev: string | null;
   prev_water_curr: string | null;
+  next_reading_locked: boolean;
   invoice_id: number | null;
   invoice_status: InvoiceStatus | null;
   invoice_total: string | null;
@@ -41,9 +42,14 @@ export type InvoicePreviewRow = {
   is_prorated: boolean;
   prorate_label: string | null;
   has_reading: boolean;
+  elec_prev: string | null;
+  elec_curr: string | null;
+  water_prev: string | null;
+  water_curr: string | null;
   rent_amount: string;
   elec_amount: string;
   water_amount: string;
+  shared_elec_amount: string;
   surcharges: InvoicePreviewSurcharge[];
   surcharge_total: string;
   total: string;

@@ -125,7 +125,7 @@ export default function InvoiceDetailPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.018em", color: "var(--vn-text)", margin: 0 }}>
+              <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
                 Hóa đơn {invoice.period}
               </h1>
               <StatusBadge status={invoice.status} />
@@ -196,7 +196,7 @@ export default function InvoiceDetailPage() {
         <div style={{
           padding: "12px 20px", background: "var(--slate-50)",
           borderBottom: "1px solid var(--vn-border)",
-          font: "500 11.5px var(--font-geist-sans)",
+          font: "600 11px var(--font-geist-sans)",
           color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase",
           display: "grid", gridTemplateColumns: "1fr auto auto",
         }}>

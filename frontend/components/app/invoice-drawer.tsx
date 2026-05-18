@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { X, Copy, Check, Zap, Droplets, Home, Tag, ExternalLink, AlertTriangle } from "lucide-react";
+import { X, Copy, Check, Zap, Droplets, Home, Tag, ExternalLink, AlertTriangle, Share2 } from "lucide-react";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Invoice, InvoiceItem, InvoiceStatus } from "@/types/invoice";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, INVOICE_ITEM_LABELS } from "@/types/invoice";
@@ -24,7 +24,8 @@ function ItemIcon({ type }: { type: string }) {
   if (type === "electricity") return <Zap size={13} color="var(--amber-500)" />;
   if (type === "water")       return <Droplets size={13} color="var(--blue-400)" />;
   if (type === "rent")        return <Home size={13} color="var(--slate-400)" />;
-  return                             <Tag size={13} color="var(--purple-400)" />;
+  if (type === "shared_elec") return <Share2 size={13} color="var(--amber-600)" />;
+  return                             <Tag size={13} color="var(--violet-600)" />;
 }
 
 function StatusBadge({ status }: { status: InvoiceStatus }) {
@@ -48,9 +49,10 @@ interface Props {
   onClose: () => void;
   onUpdate?: (inv: Invoice) => void;
   onDelete?: (id: number) => void;
+  zIndexBase?: number;
 }
 
-export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete }: Props) {
+export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBase = 400 }: Props) {
   const { getToken } = useAuth();
   const open = invoiceId !== null;
 
@@ -216,11 +218,11 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete }: Props)
       {/* Backdrop */}
       <div
         onClick={() => { if (confirming) setConfirming(null); else onClose(); }}
-        style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.25)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.22s ease" }}
+        style={{ position: "fixed", inset: 0, zIndex: zIndexBase, background: "rgba(0,0,0,0.25)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.22s ease" }}
       />
 
       {/* Drawer panel */}
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 520, zIndex: 401, background: "var(--vn-bg, #fff)", boxShadow: "-8px 0 40px rgba(0,0,0,0.12)", transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 520, zIndex: zIndexBase + 1, background: "var(--vn-bg, #fff)", boxShadow: "-8px 0 40px rgba(0,0,0,0.12)", transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
         <div style={{ padding: "16px 20px", borderBottom: BD, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>

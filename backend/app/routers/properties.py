@@ -5,6 +5,11 @@ from app.schemas.property import PropertyCreate, PropertyRead, PropertyUpdate
 router = APIRouter(prefix="/properties", tags=["properties"])
 
 
+@router.get("/stats")
+async def get_property_stats(clerk_user_id: CurrentUserDep, service: PropertyServiceDep):
+    return await service.get_stats(clerk_user_id)
+
+
 @router.get("", response_model=list[PropertyRead])
 async def list_properties(clerk_user_id: CurrentUserDep, service: PropertyServiceDep):
     return await service.list_properties(clerk_user_id)

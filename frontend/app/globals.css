@@ -49,14 +49,19 @@
 }
 
 :root {
-  /* VnRental design tokens */
+  /* ── Brand blues (DESIGN.md) ──────────────────────────────────── */
   --blue-50:  #EFF6FF;
   --blue-100: #DBEAFE;
   --blue-200: #BFDBFE;
+  --blue-300: #93C5FD;
+  --blue-400: #60A5FA;
   --blue-500: #3B82F6;
-  --blue-600: #2563EB;
+  --blue-600: #2563EB;  /* primary action ★ */
   --blue-700: #1D4ED8;
+  --blue-800: #1E40AF;
   --blue-900: #1E3A8A;
+
+  /* ── Cool slate (DESIGN.md — Tailwind slate) ──────────────────── */
   --slate-50:  #F8FAFC;
   --slate-100: #F1F5F9;
   --slate-150: #E9EEF4;
@@ -68,30 +73,41 @@
   --slate-700: #334155;
   --slate-800: #1E293B;
   --slate-900: #0F172A;
-  --green-50:  #ECFDF5;
-  --green-600: #059669;
-  --green-700: #047857;
-  --amber-50:  #FFFBEB;
-  --amber-600: #D97706;
-  --amber-700: #B45309;
-  --red-50:    #FEF2F2;
-  --red-600:   #DC2626;
-  --red-700:   #B91C1C;
-  --violet-50: #F5F3FF;
-  --violet-600:#7C3AED;
-  --vn-bg:      #F7F8FA;
-  --vn-surface: #FFFFFF;
-  --vn-border:  #E5E9F0;
-  --vn-border-strong: #D5DBE5;
-  --vn-text:    #0F172A;
-  --vn-text-2:  #475569;
-  --vn-text-3:  #94A3B8;
-  --sh-xs: 0 1px 1px rgba(15,23,42,.04);
-  --sh-sm: 0 1px 2px rgba(15,23,42,.06), 0 1px 1px rgba(15,23,42,.04);
-  --sh-md: 0 4px 12px rgba(15,23,42,.06), 0 2px 4px rgba(15,23,42,.04);
-  --sh-pop: 0 24px 60px -12px rgba(15,23,42,.28), 0 8px 24px -8px rgba(15,23,42,.14);
 
-  /* shadcn tokens — mapped to VnRental palette */
+  /* ── Status colors (DESIGN.md) ────────────────────────────────── */
+  --green-50:   #ECFDF5;
+  --green-200:  #A7F3D0;
+  --green-600:  #059669;
+  --green-700:  #047857;
+  --amber-50:   #FFFBEB;
+  --amber-200:  #FDE68A;
+  --amber-500:  #F59E0B;
+  --amber-600:  #D97706;
+  --amber-700:  #B45309;
+  --red-50:     #FEF2F2;
+  --red-200:    #FECACA;
+  --red-600:    #DC2626;
+  --red-700:    #B91C1C;
+  --violet-50:  #F5F3FF;
+  --violet-600: #7C3AED;
+
+  /* ── VnRental surfaces (DESIGN.md) ────────────────────────────── */
+  --vn-bg:           #F7F8FA;
+  --vn-surface:      #FFFFFF;
+  --vn-border:       #E5E9F0;
+  --vn-border-strong: #D5DBE5;
+  --vn-text:         #0F172A;   /* slate-900 */
+  --vn-text-2:       #475569;   /* slate-600 */
+  --vn-text-3:       #94A3B8;   /* slate-400 */
+
+  /* ── Shadows (DESIGN.md) ──────────────────────────────────────── */
+  --sh-xs:  0 1px 2px rgba(15,23,42,.06);
+  --sh-sm:  0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.05);
+  --sh-md:  0 4px 12px rgba(15,23,42,.10), 0 2px 4px rgba(15,23,42,.06);
+  --sh-lg:  0 10px 24px rgba(15,23,42,.12), 0 4px 8px rgba(15,23,42,.07);
+  --sh-pop: 0 24px 48px -12px rgba(15,23,42,.25), 0 8px 16px rgba(15,23,42,.12);
+
+  /* ── shadcn tokens ────────────────────────────────────────────── */
   --background: oklch(0.988 0.003 247);
   --foreground: oklch(0.145 0.02 264);
   --card: oklch(1 0 0);
@@ -116,13 +132,13 @@
   --chart-4: oklch(0.371 0.02 264);
   --chart-5: oklch(0.269 0.02 264);
   --radius: 0.625rem;
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.145 0.02 264);
+  --sidebar: oklch(0.11 0.015 240);
+  --sidebar-foreground: oklch(0.92 0.004 247);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.941 0.03 264);
-  --sidebar-accent-foreground: oklch(0.36 0.15 264);
-  --sidebar-border: oklch(0.918 0.01 247);
+  --sidebar-accent: oklch(0.20 0.018 240);
+  --sidebar-accent-foreground: oklch(0.92 0.004 247);
+  --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
@@ -166,8 +182,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11", "tnum";
   }
   html {
     @apply font-sans;
+    -webkit-font-smoothing: antialiased;
   }
 }

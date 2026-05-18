@@ -94,7 +94,7 @@ export default function UtilityPage() {
         </button>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.018em", color: "var(--vn-text)", margin: 0 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
               Chỉ số Điện/Nước — Phòng {room.room_number}
             </h1>
             <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>
@@ -151,7 +151,7 @@ export default function UtilityPage() {
                 ].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "11px 16px",
-                    font: "500 11.5px var(--font-geist-sans)",
+                    font: "600 11px var(--font-geist-sans)",
                     color: "var(--vn-text-3)", letterSpacing: "0.04em",
                     textTransform: "uppercase", background: "var(--slate-50)",
                     borderBottom: "1px solid var(--vn-border)",

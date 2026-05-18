@@ -16,6 +16,7 @@ from app.repositories.room_repo import RoomRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.surcharge_repo import SurchargeRepo
 from app.repositories.utility_repo import UtilityRepo
+from app.repositories.shared_meter_repo import SharedMeterRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
 
 
@@ -155,6 +156,54 @@ def _build_items(
     return items
 
 
+async def _build_shared_elec_items(
+    room_id: int,
+    num_people: int,
+    prop: Property,
+    period: str,
+    shared_meter_repo: SharedMeterRepo,
+    contract_repo: ContractRepo,
+) -> list[InvoiceItem]:
+    """Calculate proportional shared-meter electricity cost for this room."""
+    meters = await shared_meter_repo.get_meters_for_room(room_id)
+    items: list[InvoiceItem] = []
+
+    for meter in meters:
+        reading = await shared_meter_repo.get_reading(meter.id, period)
+        if reading is None or reading.prev_reading is None:
+            continue
+        total_usage = reading.curr_reading - reading.prev_reading
+        if total_usage <= 0:
+            continue
+
+        # Sum num_people of rooms with active contracts in this period
+        meter_room_ids = await shared_meter_repo.get_room_ids(meter.id)
+        people_map: dict[int, int] = {}
+        for rid in meter_room_ids:
+            active = await contract_repo.get_active_by_room(rid)
+            if active and _period_overlaps_contract(active.start_date, active.end_date, period):
+                people_map[rid] = active.num_people
+
+        total_active_people = sum(people_map.values())
+        this_room_people = people_map.get(room_id, 0)
+        if total_active_people <= 0 or this_room_people <= 0:
+            continue
+
+        proportional_kwh = total_usage * Decimal(str(this_room_people)) / Decimal(str(total_active_people))
+        amount = _round(proportional_kwh * prop.default_elec_rate)
+
+        items.append(InvoiceItem(
+            invoice_id=0,
+            item_type=InvoiceItemType.shared_elec,
+            name=f"Điện chung: {meter.name}",
+            unit_price=prop.default_elec_rate,
+            quantity=proportional_kwh.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            amount=amount,
+        ))
+
+    return items
+
+
 def _to_read(invoice: Invoice, items: list[InvoiceItem]) -> InvoiceRead:
     return InvoiceRead(
         **invoice.model_dump(),
@@ -171,6 +220,7 @@ class InvoiceService:
         self.property_repo = PropertyRepo(session)
         self.surcharge_repo = SurchargeRepo(session)
         self.utility_repo = UtilityRepo(session)
+        self.shared_meter_repo = SharedMeterRepo(session)
 
     async def _get_invoice_owned(self, invoice_id: int, clerk_user_id: str):
         invoice = await self.invoice_repo.get_by_id(invoice_id)
@@ -259,6 +309,11 @@ class InvoiceService:
         surcharges = await self.surcharge_repo.get_all_by_property(prop.id)
 
         items = _build_items(contract, reading, surcharges, prop, effective_elec_rate, data.period)
+        shared_items = await _build_shared_elec_items(
+            room.id, contract.num_people, prop, data.period,
+            self.shared_meter_repo, self.contract_repo,
+        )
+        items.extend(shared_items)
         total = sum(i.amount for i in items)
 
         invoice = Invoice(contract_id=data.contract_id, period=data.period, total=_round(total))
