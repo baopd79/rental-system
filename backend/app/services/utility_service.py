@@ -1,7 +1,5 @@
 from decimal import Decimal
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.utility import UtilityReading
 from app.models.property import WaterCalcType
 from app.schemas.utility import UtilityReadingCreate, UtilityReadingRead, UtilityReadingUpdate
@@ -28,7 +26,7 @@ def _next_period(period: str) -> str:
 
 
 class UtilityService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.utility_repo = UtilityRepo(session)
         self.room_repo = RoomRepo(session)

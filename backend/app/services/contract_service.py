@@ -1,6 +1,4 @@
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.contract import Contract, ContractStatus
 from app.models.room import RoomStatus
 from datetime import date
@@ -22,7 +20,7 @@ def _build_read(contract: Contract, tenant_read: TenantRead) -> ContractRead:
 
 
 class ContractService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.contract_repo = ContractRepo(session)
         self.room_repo = RoomRepo(session)

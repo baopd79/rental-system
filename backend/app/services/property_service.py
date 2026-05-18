@@ -1,8 +1,6 @@
-from fastapi import Depends
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import date
-from app.database import get_session
 from app.models.property import Property
 from app.models.room import Room
 from app.schemas.property import PropertyCreate, PropertyUpdate
@@ -12,7 +10,7 @@ from app.core.exceptions import NotFoundException, ForbiddenException, ConflictE
 
 
 class PropertyService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.property_repo = PropertyRepo(session)
         self.room_repo = RoomRepo(session)

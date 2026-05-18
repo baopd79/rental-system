@@ -1,7 +1,5 @@
-from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.room import Room
 from app.schemas.room import ActiveContractInfo, RoomCreate, RoomRead, RoomUpdate
 from app.repositories.room_repo import RoomRepo
@@ -15,7 +13,7 @@ def _build_read(room: Room) -> RoomRead:
 
 
 class RoomService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.room_repo = RoomRepo(session)
         self.property_repo = PropertyRepo(session)

@@ -1,6 +1,4 @@
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.surcharge import SurchargeTemplate
 from app.schemas.surcharge import SurchargeCreate, SurchargeRead, SurchargeUpdate
 from app.repositories.surcharge_repo import SurchargeRepo
@@ -9,7 +7,7 @@ from app.core.exceptions import NotFoundException, ForbiddenException
 
 
 class SurchargeService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.surcharge_repo = SurchargeRepo(session)
         self.property_repo = PropertyRepo(session)

@@ -1,9 +1,7 @@
 import calendar
 from decimal import Decimal
 from datetime import date
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.utility import UtilityReading
 from app.models.property import WaterCalcType
 from app.schemas.billing import (
@@ -24,7 +22,7 @@ from app.core.exceptions import ForbiddenException, NotFoundException, BadReques
 
 
 class BillingService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.billing_repo = BillingRepo(session)
         self.property_repo = PropertyRepo(session)

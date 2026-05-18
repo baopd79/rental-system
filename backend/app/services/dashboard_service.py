@@ -1,8 +1,6 @@
-from fastapi import Depends
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import date, timedelta
-from app.database import get_session
 from app.schemas.dashboard import (
     DashboardSummary, DashboardRevenue,
     RoomStats, ExpiringContract, UnpaidInvoiceSummary, RevenueMonth,
@@ -10,7 +8,7 @@ from app.schemas.dashboard import (
 
 
 class DashboardService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     async def get_summary(self, clerk_user_id: str) -> DashboardSummary:

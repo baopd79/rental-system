@@ -1,6 +1,4 @@
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.shared_meter import SharedMeter, SharedMeterReading
 from app.schemas.shared_meter import (
     SharedMeterCreate, SharedMeterUpdate, SharedMeterRead,
@@ -18,7 +16,7 @@ def _prev_period(period: str) -> str:
 
 
 class SharedMeterService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.repo = SharedMeterRepo(session)
         self.property_repo = PropertyRepo(session)

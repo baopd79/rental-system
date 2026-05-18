@@ -1,6 +1,4 @@
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.tenant import Tenant
 from app.schemas.tenant import TenantCreate, TenantRead, TenantUpdate
 from app.repositories.tenant_repo import TenantRepo
@@ -8,7 +6,7 @@ from app.core.exceptions import NotFoundException, ForbiddenException
 
 
 class TenantService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.tenant_repo = TenantRepo(session)
 

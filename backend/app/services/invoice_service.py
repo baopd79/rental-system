@@ -1,9 +1,7 @@
 import calendar
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.database import get_session
 from app.models.invoice import Invoice, InvoiceItem, InvoiceStatus, InvoiceItemType
 from app.models.contract import Contract
 from app.models.property import Property, WaterCalcType
@@ -212,7 +210,7 @@ def _to_read(invoice: Invoice, items: list[InvoiceItem]) -> InvoiceRead:
 
 
 class InvoiceService:
-    def __init__(self, session: AsyncSession = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.invoice_repo = InvoiceRepo(session)
         self.contract_repo = ContractRepo(session)
