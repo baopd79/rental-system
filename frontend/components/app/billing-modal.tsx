@@ -519,14 +519,16 @@ function InvoiceTab({ propertyId, period, onViewInvoice }: { propertyId: string;
     try {
       const data = await apiJson<InvoicePreviewRow[]>(`/properties/${propertyId}/billing/invoice-preview?period=${period}`, getToken);
       setRows(data);
-      setSelected(new Set(data.filter(r => !r.invoice_id).map(r => r.contract_id)));
+      // only pre-select rows that have readings — rows without readings cannot be invoiced
+      setSelected(new Set(data.filter(r => !r.invoice_id && r.has_reading).map(r => r.contract_id)));
     } catch { setRows([]); }
     finally { setLoading(false); }
   }, [propertyId, period, getToken]);
 
   useEffect(() => { load(); }, [load]);
 
-  const eligible = useMemo(() => rows.filter(r => !r.invoice_id), [rows]);
+  // eligible = no invoice yet AND has a reading (required to generate)
+  const eligible = useMemo(() => rows.filter(r => !r.invoice_id && r.has_reading), [rows]);
   const allSelected = eligible.length > 0 && eligible.every(r => selected.has(r.contract_id));
 
   function toggleAll() { allSelected ? setSelected(new Set()) : setSelected(new Set(eligible.map(r => r.contract_id))); }
@@ -589,18 +591,22 @@ function InvoiceTab({ propertyId, period, onViewInvoice }: { propertyId: string;
                 <tbody>
                   {rows.map((row, i) => {
                     const bd = i < rows.length - 1 ? BD : "none";
-                    const hasInvoice = !!row.invoice_id;
-                    const isLocked = hasInvoice && (row.invoice_status === "sent" || row.invoice_status === "paid");
-                    const isChecked = selected.has(row.contract_id);
+                    const hasInvoice  = !!row.invoice_id;
+                    const noReading   = !row.has_reading;
+                    const isLocked    = hasInvoice && (row.invoice_status === "sent" || row.invoice_status === "paid");
+                    const isBlocked   = !hasInvoice && noReading; // no reading → cannot invoice
+                    const isChecked   = selected.has(row.contract_id);
+                    const unclickable = isLocked || isBlocked || hasInvoice;
                     let rowBg = "transparent";
-                    if (isLocked) rowBg = "var(--slate-50)";
+                    if (isLocked)   rowBg = "var(--slate-50)";
+                    else if (isBlocked)  rowBg = "var(--amber-50)";
                     else if (hasInvoice) rowBg = "var(--green-50)";
-                    else if (isChecked) rowBg = "var(--blue-50)";
+                    else if (isChecked)  rowBg = "var(--blue-50)";
                     return (
-                      <tr key={row.contract_id} style={{ background: rowBg, opacity: isLocked ? 0.7 : 1, cursor: isLocked ? "default" : "pointer" }}
-                        onClick={() => !isLocked && toggleRow(row.contract_id, hasInvoice)}>
+                      <tr key={row.contract_id} style={{ background: rowBg, opacity: isLocked ? 0.7 : 1, cursor: unclickable ? "default" : "pointer" }}
+                        onClick={() => !unclickable && toggleRow(row.contract_id, hasInvoice)}>
                         <td style={{ padding: "10px 12px", borderBottom: bd, verticalAlign: "middle" }}>
-                          <input type="checkbox" checked={isChecked && !hasInvoice} disabled={hasInvoice} onChange={() => toggleRow(row.contract_id, hasInvoice)} onClick={e => e.stopPropagation()} style={{ cursor: hasInvoice ? "default" : "pointer" }} />
+                          <input type="checkbox" checked={isChecked && !hasInvoice && !noReading} disabled={hasInvoice || noReading} onChange={() => toggleRow(row.contract_id, hasInvoice)} onClick={e => e.stopPropagation()} style={{ cursor: unclickable ? "default" : "pointer" }} />
                         </td>
                         <td style={{ padding: "10px 12px", borderBottom: bd, verticalAlign: "middle" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -655,8 +661,13 @@ function InvoiceTab({ propertyId, period, onViewInvoice }: { propertyId: string;
                         </td>
                         <td style={{ padding: "10px 12px", borderBottom: bd, verticalAlign: "middle", fontWeight: 700, fontVariantNumeric: "tabular-nums", fontSize: 13.5, color: "var(--blue-700)" }}>{fmtM(row.total)}</td>
                         <td style={{ padding: "10px 12px", borderBottom: bd, verticalAlign: "middle" }}>
-                          {row.invoice_status ? <StatusBadge status={row.invoice_status} />
-                            : <span style={{ fontSize: 10.5, color: "var(--vn-text-3)", background: "var(--slate-100)", padding: "2px 7px", borderRadius: 999 }}>Chưa có</span>}
+                          {row.invoice_status
+                            ? <StatusBadge status={row.invoice_status} />
+                            : isBlocked
+                              ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 500, color: "var(--amber-700)", background: "var(--amber-50)", border: "1px solid var(--amber-200)", padding: "2px 8px", borderRadius: 999 }}>
+                                  <AlertTriangle size={10} /> Chưa có chỉ số
+                                </span>
+                              : <span style={{ fontSize: 10.5, color: "var(--vn-text-3)", background: "var(--slate-100)", padding: "2px 7px", borderRadius: 999 }}>Chưa có</span>}
                         </td>
                         <td style={{ padding: "10px 12px", borderBottom: bd, verticalAlign: "middle" }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: "flex", gap: 4 }}>
@@ -710,15 +721,21 @@ interface BillingModalProps {
 type BillingTab = "readings" | "invoices";
 
 export function BillingModal({ propertyId, property, open, onClose, initialTab = "readings" }: BillingModalProps) {
-  const [period,         setPeriod]         = useState(currentPeriod());
-  const [pickerOpen,     setPickerOpen]     = useState(false);
-  const [pickerYear,     setPickerYear]     = useState(() => Number(currentPeriod().split("-")[0]));
+  // userPeriod: null = use computed default; string = user explicitly navigated.
+  // Keeping them separate means `period` is always correct synchronously —
+  // no useState initializer race and no stale-period-on-tab-switch bugs.
+  const [userPeriod,      setUserPeriod]      = useState<string | null>(null);
+  const [pickerOpen,      setPickerOpen]      = useState(false);
+  const [pickerYear,      setPickerYear]      = useState(() => Number(currentPeriod().split("-")[0]));
   const [drawerInvoiceId, setDrawerInvoiceId] = useState<number | null>(null);
 
-  // reset period when modal opens
+  const defaultPeriod = initialTab === "readings" ? prevPeriod(currentPeriod()) : currentPeriod();
+  const period = userPeriod ?? defaultPeriod;
+
+  // Clear user navigation when modal closes so next open starts at the correct default.
   useEffect(() => {
-    if (open) setPeriod(initialTab === "readings" ? prevPeriod(currentPeriod()) : currentPeriod());
-  }, [open, initialTab]);
+    if (!open) setUserPeriod(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -743,7 +760,7 @@ export function BillingModal({ propertyId, property, open, onClose, initialTab =
   const invoicePeriod = initialTab === "readings" ? nextPeriod(period) : period;
   const [ipy, ipm] = invoicePeriod.split("-");
 
-  // sync picker year when period changes externally (prev/next buttons)
+  // sync picker year when period changes
   useEffect(() => { setPickerYear(Number(py)); }, [py]);
 
   function movePeriod(dir: 1 | -1) {
@@ -751,11 +768,11 @@ export function BillingModal({ propertyId, property, open, onClose, initialTab =
     const next = dir === 1
       ? (m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`)
       : (m === 1  ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`);
-    setPeriod(next);
+    setUserPeriod(next);
   }
 
   function selectMonth(month: number) {
-    setPeriod(`${pickerYear}-${String(month).padStart(2, "0")}`);
+    setUserPeriod(`${pickerYear}-${String(month).padStart(2, "0")}`);
     setPickerOpen(false);
   }
 

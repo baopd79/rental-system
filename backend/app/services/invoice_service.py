@@ -7,7 +7,7 @@ from app.models.contract import Contract
 from app.models.property import Property, WaterCalcType
 from app.models.surcharge import SurchargeTemplate, SurchargeCalcType
 from app.models.utility import UtilityReading
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead
+from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead, InvoicePublicRead
 from app.repositories.invoice_repo import InvoiceRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.room_repo import RoomRepo
@@ -242,6 +242,7 @@ class InvoiceService:
             items = await self.invoice_repo.get_items(row["id"])
             result.append(InvoiceListRead(
                 **{k: row[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
+                                       "payment_reported_at",
                                        "room_id", "room_number", "property_name", "tenant_name")},
                 items=[InvoiceItemRead.model_validate(i) for i in items],
             ))
@@ -260,6 +261,7 @@ class InvoiceService:
             items = await self.invoice_repo.get_items(row["id"])
             result.append(InvoiceListRead(
                 **{k: row[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
+                                       "payment_reported_at",
                                        "room_id", "room_number", "property_name", "tenant_name")},
                 items=[InvoiceItemRead.model_validate(i) for i in items],
             ))
@@ -302,8 +304,14 @@ class InvoiceService:
         if await self.invoice_repo.get_by_contract_period(data.contract_id, data.period):
             raise ConflictException(f"Invoice for period {data.period} already exists")
 
-        effective_elec_rate = prop.default_elec_rate
         reading = await self.utility_repo.get_by_room_period(room.id, data.period)
+        if reading is None:
+            raise BadRequestException(
+                f"Phòng {room.room_number}: chưa nhập chỉ số điện cho kỳ {data.period}. "
+                "Vui lòng ghi chỉ số trước khi tạo hoá đơn."
+            )
+
+        effective_elec_rate = prop.default_elec_rate
         surcharges = await self.surcharge_repo.get_all_by_property(prop.id)
 
         items = _build_items(contract, reading, surcharges, prop, effective_elec_rate, data.period)
@@ -343,8 +351,34 @@ class InvoiceService:
         await self.invoice_repo.delete(invoice)
         await self.session.commit()
 
-    async def get_by_public_token(self, token: str) -> InvoiceRead:
+    async def get_by_public_token(self, token: str) -> InvoicePublicRead:
+        ctx = await self.invoice_repo.get_public_context(token)
+        if not ctx:
+            raise NotFoundException("Invoice not found")
+        invoice = await self.invoice_repo.get_by_public_token(token)
+        items = await self.invoice_repo.get_items(invoice.id)
+        return InvoicePublicRead(
+            **{k: ctx[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
+                                   "room_number", "property_name", "tenant_name",
+                                   "bank_account_no", "bank_name", "bank_holder")},
+            payment_reported_at=invoice.payment_reported_at,
+            items=[InvoiceItemRead.model_validate(i) for i in items],
+        )
+
+    async def report_payment_public(self, token: str) -> InvoicePublicRead:
+        """Tenant reports they have transferred — does NOT set status to paid.
+        Landlord must verify bank statement and manually confirm via authenticated endpoint.
+        """
+        from datetime import datetime, timezone
         invoice = await self.invoice_repo.get_by_public_token(token)
         if not invoice:
             raise NotFoundException("Invoice not found")
-        return await self._load_invoice_read(invoice)
+        if invoice.status != InvoiceStatus.sent:
+            raise BadRequestException("Hoá đơn này không ở trạng thái chờ thanh toán.")
+        if invoice.payment_reported_at is not None:
+            return await self.get_by_public_token(token)
+        invoice.payment_reported_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        await self.invoice_repo.update(invoice)
+        await self.session.commit()
+        await self.session.refresh(invoice)
+        return await self.get_by_public_token(token)

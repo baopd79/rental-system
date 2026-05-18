@@ -63,6 +63,7 @@ export default function PropertyDetailPage() {
   const [surcharges,   setSurcharges]   = useState<Surcharge[]>([]);
   const [sharedMeters, setSharedMeters] = useState<SharedMeter[]>([]);
   const [loading,      setLoading]      = useState(true);
+  const [loadError,    setLoadError]    = useState<string | null>(null);
 
   const [statusFilter,      setStatusFilter]      = useState<StatusFilter>("all");
   const [showRoomForm,      setShowRoomForm]      = useState(false);
@@ -76,6 +77,7 @@ export default function PropertyDetailPage() {
   const [showEditProperty,  setShowEditProperty]  = useState(false);
 
   const load = useCallback(async () => {
+    setLoadError(null);
     try {
       const [prop, roomList, scList, smList] = await Promise.all([
         apiJson<Property>(`/properties/${id}`, getToken),
@@ -87,7 +89,11 @@ export default function PropertyDetailPage() {
       setRooms(roomList);
       setSurcharges(scList);
       setSharedMeters(smList);
-    } finally { setLoading(false); }
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Không thể tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
   }, [id, getToken]);
 
   useEffect(() => { load(); }, [load]);
@@ -109,6 +115,15 @@ export default function PropertyDetailPage() {
   }
 
   if (loading) return <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>;
+  if (loadError) return (
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--red-700)" }}>Không thể tải dữ liệu</div>
+      <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>{loadError}</div>
+      <button onClick={load} style={{ height: 32, padding: "0 16px", borderRadius: 7, border: "1px solid var(--vn-border)", background: "var(--vn-surface)", fontSize: 13, cursor: "pointer", color: "var(--vn-text-2)" }}>
+        Thử lại
+      </button>
+    </div>
+  );
   if (!property) return <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13 }}>Không tìm thấy nhà trọ.</div>;
 
   // ── derived ──────────────────────────────────────────────────────
@@ -372,6 +387,7 @@ export default function PropertyDetailPage() {
         rooms={rooms}
         onClose={() => { setShowConfig(false); load(); }}
         onEditProperty={() => { setShowConfig(false); setShowEditProperty(true); }}
+        onPropertyUpdated={p => setProperty(p)}
       />
 
       <Dialog open={showEditProperty} onOpenChange={o => { if (!o) setShowEditProperty(false); }}>

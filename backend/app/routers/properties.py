@@ -26,6 +26,7 @@ async def get_property(property_id: int, clerk_user_id: CurrentUserDep, service:
 
 
 @router.put("/{property_id}", response_model=PropertyRead)
+@router.patch("/{property_id}", response_model=PropertyRead)
 async def update_property(
     property_id: int, body: PropertyUpdate, clerk_user_id: CurrentUserDep, service: PropertyServiceDep
 ):

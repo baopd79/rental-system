@@ -37,6 +37,7 @@ export type Invoice = {
   total: string;
   status: InvoiceStatus;
   public_token: string;
+  payment_reported_at: string | null;
   items: InvoiceItem[];
 };
 

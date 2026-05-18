@@ -19,6 +19,27 @@ if config.config_file_name is not None:
 
 target_metadata = SQLModel.metadata
 
+# Tables managed by SQLModel models — autogenerate only touches these.
+# Any table in the DB that isn't in this set is ignored (no DROP generated).
+_MANAGED_TABLES = {m.name for m in target_metadata.sorted_tables}
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Guard against autogenerate producing DROP TABLE / DROP COLUMN for objects
+    that exist in the DB but are absent from the current migration chain snapshot.
+    This happens when `alembic stamp` is used to bypass revisions.
+
+    Rules:
+    - Tables: only include tables that are declared in SQLModel metadata.
+      Reflected-only tables (exist in DB, not in models) are skipped silently.
+    - Everything else (columns, indexes, constraints): always include so column
+      additions/changes are still detected normally.
+    """
+    if type_ == "table":
+        return name in _MANAGED_TABLES
+    return True
+
 
 def run_migrations_offline() -> None:
     url = settings.DATABASE_URL
@@ -27,6 +48,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -36,8 +58,8 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        # Ensure sqlmodel is importable in generated migration files
         user_module_prefix="sqlmodel.",
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()

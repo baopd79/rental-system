@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, Field
 from decimal import Decimal
+from datetime import datetime
 from enum import Enum
 import uuid
 
@@ -27,6 +28,7 @@ class Invoice(SQLModel, table=True):
     total: Decimal = Field(decimal_places=0, max_digits=14)
     status: InvoiceStatus = Field(default=InvoiceStatus.draft)
     public_token: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True)
+    payment_reported_at: datetime | None = Field(default=None)
 
 
 class InvoiceItem(SQLModel, table=True):

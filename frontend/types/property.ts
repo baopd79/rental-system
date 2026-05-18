@@ -15,6 +15,9 @@ export interface Property {
   default_elec_rate: string;
   default_water_rate: string;
   water_calc_type: WaterCalcType;
+  bank_account_no: string | null;
+  bank_name: string | null;
+  bank_holder: string | null;
   created_at: string;
 }
 
@@ -43,4 +46,7 @@ export interface PropertyUpdate {
   default_elec_rate?: string;
   default_water_rate?: string;
   water_calc_type?: WaterCalcType;
+  bank_account_no?: string | null;
+  bank_name?: string | null;
+  bank_holder?: string | null;
 }

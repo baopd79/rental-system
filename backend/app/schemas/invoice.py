@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from decimal import Decimal
+from datetime import datetime
 from app.models.invoice import InvoiceStatus, InvoiceItemType
 
 
@@ -21,6 +22,7 @@ class InvoiceRead(BaseModel):
     total: Decimal
     status: InvoiceStatus
     public_token: str
+    payment_reported_at: datetime | None = None
     items: list[InvoiceItemRead] = []
 
     model_config = {"from_attributes": True}
@@ -32,6 +34,20 @@ class InvoiceListRead(InvoiceRead):
     room_number: str
     property_name: str
     tenant_name: str
+    payment_reported_at: datetime | None = None
+
+
+class InvoicePublicRead(InvoiceRead):
+    """InvoiceRead for public (unauthenticated) tenant-facing views.
+    Excludes sensitive fields (CCCD, full phone). Includes bank transfer info.
+    payment_reported_at is set when tenant clicks "I have paid" — landlord must confirm.
+    """
+    room_number: str
+    property_name: str
+    tenant_name: str
+    bank_account_no: str | None
+    bank_name: str | None
+    bank_holder: str | None
 
 
 class InvoiceGenerateRequest(BaseModel):

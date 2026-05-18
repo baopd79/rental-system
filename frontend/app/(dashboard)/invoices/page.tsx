@@ -213,7 +213,19 @@ export default function InvoicesPage() {
                     {fmtMoney(inv.total)}
                   </td>
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
-                    <StatusBadge status={inv.status} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <StatusBadge status={inv.status} />
+                      {inv.payment_reported_at && inv.status === "sent" && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          fontSize: 11, fontWeight: 600, color: "#92400E",
+                          background: "#FFFBEB", border: "1px solid #FDE68A",
+                          padding: "1px 7px", borderRadius: 999,
+                        }}>
+                          ⏳ Khách báo đã TT
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", width: 60, textAlign: "right" }}
                     onClick={e => e.stopPropagation()}>

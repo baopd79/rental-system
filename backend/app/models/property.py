@@ -21,4 +21,7 @@ class Property(SQLModel, table=True):
     default_elec_rate: Decimal = Field(default=Decimal("0"), decimal_places=2, max_digits=10)
     default_water_rate: Decimal = Field(default=Decimal("0"), decimal_places=2, max_digits=10)
     water_calc_type: WaterCalcType = Field(default=WaterCalcType.per_meter)
+    bank_account_no: str | None = Field(default=None, max_length=30)
+    bank_name: str | None = Field(default=None, max_length=100)
+    bank_holder: str | None = Field(default=None, max_length=100)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None))

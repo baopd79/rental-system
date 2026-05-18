@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.dependencies import CurrentUserDep, InvoiceServiceDep
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate, InvoiceListRead
+from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate, InvoiceListRead, InvoicePublicRead
 
 router = APIRouter(tags=["invoices"])
 
@@ -40,6 +40,11 @@ async def delete_invoice(invoice_id: int, clerk_user_id: CurrentUserDep, service
     await service.delete_invoice(invoice_id, clerk_user_id)
 
 
-@router.get("/invoices/public/{token}", response_model=InvoiceRead)
+@router.get("/invoices/public/{token}", response_model=InvoicePublicRead)
 async def get_public_invoice(token: str, service: InvoiceServiceDep):
     return await service.get_by_public_token(token)
+
+
+@router.post("/invoices/public/{token}/report-payment", response_model=InvoicePublicRead)
+async def report_payment_public(token: str, service: InvoiceServiceDep):
+    return await service.report_payment_public(token)

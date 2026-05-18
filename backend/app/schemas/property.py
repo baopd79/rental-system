@@ -29,6 +29,9 @@ class PropertyUpdate(BaseModel):
     default_elec_rate: Decimal | None = None
     default_water_rate: Decimal | None = None
     water_calc_type: WaterCalcType | None = None
+    bank_account_no: str | None = None
+    bank_name: str | None = None
+    bank_holder: str | None = None
 
 
 class PropertyRead(BaseModel):
@@ -40,6 +43,9 @@ class PropertyRead(BaseModel):
     default_elec_rate: Decimal
     default_water_rate: Decimal
     water_calc_type: WaterCalcType
+    bank_account_no: str | None
+    bank_name: str | None
+    bank_holder: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
