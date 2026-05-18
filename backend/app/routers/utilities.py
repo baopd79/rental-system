@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, UtilityServiceDep
+from app.core.dependencies import CurrentUserDep, UtilityServiceDep
 from app.schemas.utility import UtilityReadingCreate, UtilityReadingRead, UtilityReadingUpdate
 
 router = APIRouter(tags=["utilities"])

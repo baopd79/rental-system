@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, BillingServiceDep
+from app.core.dependencies import CurrentUserDep, BillingServiceDep
 from app.schemas.billing import (
     RoomBillingStatus, BatchReadingRequest,
     BatchInvoiceRequest, BatchInvoiceResult,

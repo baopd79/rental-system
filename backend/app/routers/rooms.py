@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, RoomServiceDep
+from app.core.dependencies import CurrentUserDep, RoomServiceDep
 from app.schemas.room import RoomCreate, RoomRead, RoomUpdate
 
 router = APIRouter(tags=["rooms"])

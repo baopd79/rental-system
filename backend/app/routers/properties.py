@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import SessionDep, CurrentUserDep, PropertyServiceDep
+from app.core.dependencies import SessionDep, CurrentUserDep, PropertyServiceDep
 from app.schemas.property import PropertyCreate, PropertyRead, PropertyUpdate
 
 router = APIRouter(prefix="/properties", tags=["properties"])

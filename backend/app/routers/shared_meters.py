@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, SharedMeterServiceDep
+from app.core.dependencies import CurrentUserDep, SharedMeterServiceDep
 from app.schemas.shared_meter import (
     SharedMeterCreate, SharedMeterUpdate, SharedMeterRead,
     SharedMeterRoomAdd, SharedMeterReadingCreate, SharedMeterReadingRead,

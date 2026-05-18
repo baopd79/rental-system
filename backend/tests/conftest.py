@@ -1,7 +1,7 @@
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from app.database import engine
+from app.core.database import engine
 import app.core.clerk as clerk_module
 from app.core.config import settings
 

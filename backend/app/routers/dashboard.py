@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from app.dependencies import CurrentUserDep, DashboardServiceDep
+from app.core.dependencies import CurrentUserDep, DashboardServiceDep
 from app.schemas.dashboard import DashboardSummary, DashboardRevenue
 from datetime import date
 

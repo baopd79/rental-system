@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, SurchargeServiceDep
+from app.core.dependencies import CurrentUserDep, SurchargeServiceDep
 from app.schemas.surcharge import SurchargeCreate, SurchargeRead, SurchargeUpdate
 
 router = APIRouter(tags=["surcharges"])

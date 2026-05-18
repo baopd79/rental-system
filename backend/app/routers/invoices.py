@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, InvoiceServiceDep
+from app.core.dependencies import CurrentUserDep, InvoiceServiceDep
 from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate, InvoiceListRead, InvoicePublicRead
 
 router = APIRouter(tags=["invoices"])

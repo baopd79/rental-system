@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.dependencies import CurrentUserDep, ContractServiceDep
+from app.core.dependencies import CurrentUserDep, ContractServiceDep
 from app.schemas.contract import ContractCreate, ContractRead, ContractUpdate
 
 router = APIRouter(tags=["contracts"])

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from app.dependencies import CurrentUserDep, TenantServiceDep
+from app.core.dependencies import CurrentUserDep, TenantServiceDep
 from app.schemas.tenant import TenantCreate, TenantRead, TenantUpdate
 
 router = APIRouter(tags=["tenants"])
