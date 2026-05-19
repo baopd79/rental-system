@@ -25,6 +25,7 @@ class SharedMeterReadingCreate(BaseModel):
     shared_meter_id: int
     period: str
     curr_reading: Decimal
+    prev_reading: Decimal | None = None  # manual override — used when no previous period exists
 
 
 class SharedMeterReadingRead(BaseModel):
@@ -36,3 +37,12 @@ class SharedMeterReadingRead(BaseModel):
     prev_reading: Decimal | None
     curr_reading: Decimal
     is_prev_auto: bool
+
+
+class SharedMeterInvoiceDetail(BaseModel):
+    """Shared meter reading context attached to InvoiceDetailRead."""
+    meter_id: int
+    meter_name: str
+    prev_reading: Decimal | None
+    curr_reading: Decimal
+    total_usage: Decimal

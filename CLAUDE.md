@@ -23,8 +23,9 @@ pnpm build      # Type-check + build
 
 # DB reset (wipe all data, keep schema)
 docker exec rental-system-postgres-1 psql -U postgres -d rental_db -c "
-TRUNCATE TABLE shared_meter_reading, shared_meter_room, shared_meter, invoice_item, invoice,
-  surcharge_template, utility_reading, contract, tenant, room, property RESTART IDENTITY CASCADE;"
+TRUNCATE TABLE contract_event, shared_meter_reading, shared_meter_room, shared_meter,
+  invoice_item, invoice, surcharge_template, utility_reading, contract, tenant, room,
+  property RESTART IDENTITY CASCADE;"
 ```
 
 ---
@@ -47,10 +48,11 @@ Router → Service → Repository → Model
 - **Model** (`models/`): SQLModel `table=True` only, no logic.
 - **Schema** (`schemas/`): Pydantic request/response types separate from models. Named `XxxCreate`, `XxxRead`, `XxxUpdate`.
 
-**Dependency injection** via `Annotated` aliases in `dependencies.py`:
+**Dependency injection**: services are plain Python classes (no FastAPI `Depends` in constructors). DI wiring lives exclusively in `app/core/dependencies.py`:
 ```python
-PropertyServiceDep = Annotated[PropertyService, Depends()]
-CurrentUserDep = Annotated[str, Depends(verify_clerk_token)]  # returns clerk_user_id
+def _billing_service(session: SessionDep) -> BillingService:
+    return BillingService(session)
+BillingServiceDep = Annotated[BillingService, Depends(_billing_service)]
 ```
 
 **Auth**: All endpoints require `CurrentUserDep`. `clerk_user_id` is passed explicitly to every service method for row-level isolation — never read from global state.
@@ -67,7 +69,12 @@ CurrentUserDep = Annotated[str, Depends(verify_clerk_token)]  # returns clerk_us
 
 **Styling**: all inline styles using CSS variables from `globals.css`. Key tokens: `--vn-bg`, `--vn-surface`, `--vn-border`, `--vn-text`, `--vn-text-2`, `--vn-text-3`, `--blue-600` (primary), shadow tokens `--sh-xs/sm/md/pop`.
 
-**No routing on row-click** — drawers (`InvoiceDrawer`, `PropertyDrawer`, `PropertyConfigDrawer`) open from the right for detail views; modals (`BillingModal`) for workflows.
+**No routing on row-click** — drawers open from the right for detail/context views:
+- `InvoiceDrawer` — invoice detail + status actions
+- `InvoiceGenerateDrawer` — two-panel: form → invoice view (slide transition, `refreshSignal` prop to force re-fetch on back)
+- `ContractDrawer` — contract detail + event timeline
+- `TenantDrawer` — tenant info + contract history
+- `PropertyDrawer`, `PropertyConfigDrawer` — property settings
 
 ### Key domain concepts
 
@@ -76,7 +83,10 @@ CurrentUserDep = Annotated[str, Depends(verify_clerk_token)]  # returns clerk_us
 - Frontend "Ghi chỉ số" UI uses display period = reading month; internally calls API with `nextPeriod(displayPeriod)`.
 - Invoice for period M uses reading for period M: `electricity = elec_curr(M) - elec_prev(M)`, where `elec_prev(M)` is auto-filled from `elec_curr(M-1)`.
 - First month (move-in): reading has `elec_prev = NULL` → `electricity = 0`. `isInitialReading = reading_id !== null && elec_prev === null`.
+- When a user enters a monthly reading for an `isInitialReading` row, the backend **always shifts**: `elec_prev ← baseline, elec_curr ← new value` — even when both are equal (0 consumption). This converts the baseline into a proper monthly reading.
 - `Contract.end_date` is set to `date.today()` when ended (not the original contract end date).
+
+**Tenant isolation in readings**: `utility_reading.contract_id` links each reading to the contract that created it. In `billing_service.batch_save_readings`, `elec_prev` is only auto-filled from a previous month's reading **if it belongs to the same contract**. The month-skip guard also only enforces continuity within the same contract — readings from a previous tenant never block or contaminate the new tenant's billing.
 
 **Proration**: `_prorate_factor(start_date, end_date, period)` in `invoice_service.py` — applied to rent and fixed surcharges for first/last partial month. Meter-based utilities are never prorated.
 
@@ -86,9 +96,18 @@ CurrentUserDep = Annotated[str, Depends(verify_clerk_token)]  # returns clerk_us
 
 **Invoice status flow**: `draft → sent → paid`. Only `draft` can be deleted or edited. Cannot end a contract with unpaid (`draft`/`sent`) invoices.
 
+**Contract events**: `ContractService` logs to `contract_event` table on `created`, `rent_changed`, `people_changed`, `ended`. Surfaced via `GET /contracts/{id}/events`.
+
+**Invoice detail** (`GET /invoices/{id}`): returns `InvoiceDetailRead` — extends `InvoiceListRead` with `tenant_phone`, `elec_prev`, `elec_curr`, `water_prev`, `water_curr` sourced from the corresponding `utility_reading`.
+
 ### DB schema summary
 
-Tables: `property`, `room`, `tenant`, `contract`, `utility_reading`, `surcharge_template`, `shared_meter`, `shared_meter_room`, `shared_meter_reading`, `invoice`, `invoice_item`.
+Tables: `property`, `room`, `tenant`, `contract`, `contract_event`, `utility_reading`, `surcharge_template`, `shared_meter`, `shared_meter_room`, `shared_meter_reading`, `invoice`, `invoice_item`.
+
+Key constraints:
+- `room`: unique `(property_id, room_number)`
+- `utility_reading`: unique `(room_id, period)`, FK `contract_id → contract.id`
+- `shared_meter_room`: composite PK `(shared_meter_id, room_id)`
 
 All data is isolated by `clerk_user_id` on `property` — downstream joins reach user data via property FK chain.
 
@@ -96,17 +115,21 @@ Enums in PostgreSQL: `invoicestatus` (`draft/sent/paid`), `invoiceitemtype` (`re
 
 ### Migrations
 
-Always use manual migration files. After adding/changing a model:
+Always use manual migration files. After adding/changing a model, register new models in `app/models/__init__.py` so Alembic detects them. The `include_object` guard in `alembic/env.py` prevents autogenerate from dropping tables not in `SQLModel.metadata` (protects against `alembic stamp` edge cases).
+
 ```bash
 uv run alembic revision --autogenerate -m "describe change"
 # Review the generated file, then:
 uv run alembic upgrade head
 ```
+
 For adding PostgreSQL enum values use `op.execute("ALTER TYPE enumname ADD VALUE IF NOT EXISTS 'value'")` — not supported by `downgrade`.
 
 ### Never do
 - Import `HTTPException` in services — use `AppException` subclasses.
 - Use `async with session.begin()` in services — conflicts with asyncpg.
 - Commit in repositories — transaction boundary belongs to services.
+- Add `Depends()` inside service constructors — DI belongs in `core/dependencies.py` only.
 - Expose CCCD/SĐT on public invoice endpoint (`/invoices/public/*`).
 - Allow unauthenticated access outside `/invoices/public/*`.
+- Use previous tenant's `utility_reading` as `elec_prev` for a new tenant — always check `contract_id` matches.

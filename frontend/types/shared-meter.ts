@@ -9,6 +9,15 @@ export interface SharedMeterReadingCreate {
   shared_meter_id: number;
   period: string;
   curr_reading: number;
+  prev_reading?: number | null;
+}
+
+export interface SharedMeterInvoiceDetail {
+  meter_id: number;
+  meter_name: string;
+  prev_reading: number | null;
+  curr_reading: number;
+  total_usage: number;
 }
 
 export interface SharedMeterReading {

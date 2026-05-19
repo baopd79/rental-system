@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from decimal import Decimal
 from datetime import datetime
 from app.models.invoice import InvoiceStatus, InvoiceItemType
+from app.schemas.shared_meter import SharedMeterInvoiceDetail
 
 
 class InvoiceItemRead(BaseModel):
@@ -38,12 +39,13 @@ class InvoiceListRead(InvoiceRead):
 
 
 class InvoiceDetailRead(InvoiceListRead):
-    """Full detail view — adds tenant phone and meter readings."""
+    """Full detail view — adds tenant phone, meter readings, and shared meter context."""
     tenant_phone: str | None = None
     elec_prev: Decimal | None = None
     elec_curr: Decimal | None = None
     water_prev: Decimal | None = None
     water_curr: Decimal | None = None
+    shared_meter_readings: list[SharedMeterInvoiceDetail] = []
 
 
 class InvoicePublicRead(InvoiceRead):

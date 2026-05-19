@@ -183,19 +183,20 @@ class BillingService:
                 )
 
             if existing:
-                # If this is a move-in baseline (elec_prev=NULL), shift: prev←old_curr, curr←new
-                if existing.elec_prev is None and item.elec_curr != existing.elec_curr:
+                if existing.elec_prev is None:
+                    # Move-in baseline: shift prev←baseline, curr←new (equal = 0 consumption, allowed)
                     if item.elec_curr < existing.elec_curr:
                         raise BadRequestException(
                             f"Phòng {item.room_id}: chỉ số điện mới nhỏ hơn chỉ số vào"
                         )
                     existing.elec_prev = existing.elec_curr
+                    existing.elec_curr = item.elec_curr
                 else:
-                    if item.elec_curr < (existing.elec_prev or Decimal("0")):
+                    if item.elec_curr < existing.elec_prev:
                         raise BadRequestException(
                             f"Phòng {item.room_id}: chỉ số điện cuối kỳ nhỏ hơn đầu kỳ"
                         )
-                existing.elec_curr = item.elec_curr
+                    existing.elec_curr = item.elec_curr
                 if prop.water_calc_type == WaterCalcType.per_meter and item.water_curr is not None:
                     if existing.water_prev is None and existing.water_curr is not None:
                         existing.water_prev = existing.water_curr
@@ -206,16 +207,26 @@ class BillingService:
                     existing.water_curr = item.water_curr
                 await self.utility_repo.update(existing)
             else:
-                prev = await self.utility_repo.get_by_room_period(item.room_id, _prev_period(data.period))
-                elec_prev = prev.elec_curr if prev else None
-                is_prev_auto = prev is not None
+                active_contract = await self.contract_repo.get_active_by_room(item.room_id)
+                contract_id = active_contract.id if active_contract else None
 
-                # If no reading for prev month, verify this is truly the first-ever reading
-                # (move-in baseline). If any reading already exists for this room, the user
-                # skipped one or more months — block to prevent orphaned prev_reading.
-                if prev is None:
+                prev_reading = await self.utility_repo.get_by_room_period(item.room_id, _prev_period(data.period))
+
+                # Only carry over prev reading if it belongs to the same contract.
+                # A prev reading from an old tenant must never contaminate the new tenant's billing.
+                same_contract_prev = (
+                    prev_reading
+                    if prev_reading is not None and prev_reading.contract_id == contract_id
+                    else None
+                )
+                elec_prev = same_contract_prev.elec_curr if same_contract_prev else None
+                is_prev_auto = same_contract_prev is not None
+
+                # Month-skip guard: only enforce continuity within the same contract.
+                # Gaps from a previous tenant's readings must not block the new tenant.
+                if same_contract_prev is None:
                     latest = await self.utility_repo.get_latest_by_room(item.room_id)
-                    if latest is not None:
+                    if latest is not None and latest.contract_id == contract_id:
                         raise BadRequestException(
                             f"Phòng {item.room_id}: chưa có chỉ số kỳ {_prev_period(data.period)}, "
                             f"không thể nhảy sang kỳ {data.period}. Vui lòng nhập theo thứ tự tháng."
@@ -227,7 +238,7 @@ class BillingService:
                     )
 
                 if prop.water_calc_type == WaterCalcType.per_meter:
-                    water_prev = prev.water_curr if prev else None
+                    water_prev = same_contract_prev.water_curr if same_contract_prev else None
                     water_curr = item.water_curr
                     if water_prev is not None and water_curr is not None and water_curr < water_prev:
                         raise BadRequestException(
@@ -237,10 +248,9 @@ class BillingService:
                     water_prev = None
                     water_curr = None
 
-                active_contract = await self.contract_repo.get_active_by_room(item.room_id)
                 reading = UtilityReading(
                     room_id=item.room_id,
-                    contract_id=active_contract.id if active_contract else None,
+                    contract_id=contract_id,
                     period=data.period,
                     elec_prev=elec_prev,
                     elec_curr=item.elec_curr,

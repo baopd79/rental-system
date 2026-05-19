@@ -265,7 +265,7 @@ export function InvoiceGenerateForm({ onSuccess, onCancel, onViewInvoice, refres
                   </label>
                   <input type="number" min={0} value={elecInput}
                     onChange={e => setElecInput(e.target.value)}
-                    placeholder={elecStart ? `> ${fmtN(elecStart)}` : "Nhập…"}
+                    placeholder={elecStart ? `>= ${fmtN(elecStart)}` : "Nhập…"}
                     style={{ ...F, borderColor: elecInput ? "var(--blue-400)" : "var(--amber-300)" }} />
                 </div>
               </div>

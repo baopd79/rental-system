@@ -95,6 +95,9 @@ function ReadingTab({ propertyId, period, property }: { propertyId: string; peri
     if (r.next_reading_locked) return false;
     const inp = inputs[r.room_id];
     if (!inp?.elec_curr) return false;
+    // Initial readings (baseline, elec_prev=null): always send if user entered a value —
+    // equal value means 0 consumption for that month, still needs to be saved (shift on backend).
+    if (r.reading_id !== null && r.elec_prev === null) return true;
     return Number(r.elec_curr ?? -1) !== Number(inp.elec_curr);
   });
 
@@ -234,7 +237,7 @@ function ReadingTab({ propertyId, period, property }: { propertyId: string; peri
                               <input
                                 type="number" min={0} step="0.01" value={inp.elec_curr}
                                 onChange={e => setInp(row.room_id, "elec_curr", e.target.value)}
-                                placeholder={elecStart ? `> ${fmtN(elecStart)}` : "Nhập..."}
+                                placeholder={elecStart ? `>= ${fmtN(elecStart)}` : "Nhập..."}
                                 style={{ width: 110, height: 32, padding: "0 9px", border: `1.5px solid ${inp.elec_curr ? "var(--blue-400)" : isInitialReading ? "var(--amber-300)" : "var(--vn-border)"}`, borderRadius: 7, fontSize: 13, background: "#fff", outline: "none", fontVariantNumeric: "tabular-nums", transition: "border-color .12s" }}
                               />
                               {isInitialReading && !inp.elec_curr && (
@@ -352,11 +355,11 @@ function ReadingTab({ propertyId, period, property }: { propertyId: string; peri
 function SharedMeterReadingSection({ propertyId, period }: { propertyId: string; period: string }) {
   const { getToken } = useAuth();
   const [meters, setMeters] = useState<SharedMeter[]>([]);
-  // current period reading (null = not yet saved)
   const [readings, setReadings] = useState<Record<number, SharedMeterReading | null>>({});
-  // prev period reading — used to autofill "Chỉ số đầu" display
   const [prevReadings, setPrevReadings] = useState<Record<number, SharedMeterReading | null>>({});
   const [inputs, setInputs] = useState<Record<number, string>>({});
+  // manual prev_reading input — only shown when no previous period reading exists
+  const [prevInputs, setPrevInputs] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState<Record<number, boolean>>({});
   const [errors, setErrors] = useState<Record<number, string>>({});
 
@@ -388,15 +391,16 @@ function SharedMeterReadingSection({ propertyId, period }: { propertyId: string;
   async function saveMeterReading(meter: SharedMeter) {
     const val = inputs[meter.id];
     if (!val) return;
+    const prevVal = prevInputs[meter.id];
+    const hasPrevPeriod = !!prevReadings[meter.id];
     setSaving(p => ({ ...p, [meter.id]: true }));
     setErrors(p => ({ ...p, [meter.id]: "" }));
     try {
-      const rd = await apiJson<SharedMeterReading>("/shared-meter-readings", getToken, {
-        method: "POST",
-        body: { shared_meter_id: meter.id, period, curr_reading: Number(val) },
-      });
+      const body: Record<string, unknown> = { shared_meter_id: meter.id, period, curr_reading: Number(val) };
+      // Include manual prev_reading only when no auto-fill available
+      if (!hasPrevPeriod && prevVal) body.prev_reading = Number(prevVal);
+      const rd = await apiJson<SharedMeterReading>("/shared-meter-readings", getToken, { method: "POST", body });
       setReadings(p => ({ ...p, [meter.id]: rd }));
-      // After save, prev_reading is now canonical from response
     } catch (e) {
       setErrors(p => ({ ...p, [meter.id]: e instanceof Error ? e.message : "Lỗi" }));
     } finally {
@@ -425,15 +429,17 @@ function SharedMeterReadingSection({ propertyId, period }: { propertyId: string;
             const rd   = readings[meter.id];
             const prev = prevReadings[meter.id];
             const bd   = i < meters.length - 1 ? BD : "none";
+            const hasPrevPeriod = !!prev;
 
-            // "Chỉ số đầu": from saved reading's prev_reading, or fallback to prev period's curr_reading
             const startVal = rd?.prev_reading ?? prev?.curr_reading ?? null;
             const currVal  = rd ? rd.curr_reading : null;
             const usage    = startVal != null && currVal != null ? Number(currVal) - Number(startVal) : null;
 
-            const inputVal = inputs[meter.id] ?? "";
-            const liveUsage = startVal != null && inputVal
-              ? Number(inputVal) - Number(startVal)
+            const inputVal    = inputs[meter.id] ?? "";
+            const prevInputVal = prevInputs[meter.id] ?? "";
+            const effectiveStart = startVal ?? (prevInputVal ? Number(prevInputVal) : null);
+            const liveUsage = effectiveStart != null && inputVal
+              ? Number(inputVal) - Number(effectiveStart)
               : null;
 
             return (
@@ -441,15 +447,29 @@ function SharedMeterReadingSection({ propertyId, period }: { propertyId: string;
                 <td style={{ padding: "9px 12px", borderBottom: bd, fontWeight: 500 }}>{meter.name}</td>
 
                 {/* Chỉ số đầu */}
-                <td style={{ padding: "9px 12px", borderBottom: bd, fontVariantNumeric: "tabular-nums" }}>
-                  {startVal != null
-                    ? <div>
-                        <span style={{ color: "var(--vn-text-2)", fontWeight: 500 }}>{Number(startVal).toLocaleString("vi-VN")}</span>
-                        {rd == null && prev != null && (
-                          <div style={{ fontSize: 10, color: "var(--vn-text-3)", marginTop: 1 }}>Kỳ {prevP}</div>
-                        )}
-                      </div>
-                    : <span style={{ color: "var(--vn-text-3)" }}>—</span>}
+                <td style={{ padding: "7px 12px", borderBottom: bd, fontVariantNumeric: "tabular-nums" }}>
+                  {startVal != null ? (
+                    <div>
+                      <span style={{ color: "var(--vn-text-2)", fontWeight: 500 }}>{Number(startVal).toLocaleString("vi-VN")}</span>
+                      {rd == null && prev != null && (
+                        <div style={{ fontSize: 10, color: "var(--vn-text-3)", marginTop: 1 }}>Kỳ {prevP}</div>
+                      )}
+                    </div>
+                  ) : !hasPrevPeriod && !rd ? (
+                    // No prev period — allow manual entry
+                    <input
+                      type="number" min={0} step="0.01"
+                      value={prevInputVal}
+                      onChange={e => setPrevInputs(p => ({ ...p, [meter.id]: e.target.value }))}
+                      placeholder="Chỉ số đầu"
+                      style={{
+                        width: 100, height: 30, padding: "0 8px",
+                        border: `1.5px solid ${prevInputVal ? "var(--amber-400)" : "var(--amber-300)"}`,
+                        borderRadius: 6, fontSize: 13, background: "#fff", outline: "none",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    />
+                  ) : <span style={{ color: "var(--vn-text-3)" }}>—</span>}
                 </td>
 
                 {/* Chỉ số cuối */}
@@ -458,7 +478,7 @@ function SharedMeterReadingSection({ propertyId, period }: { propertyId: string;
                     type="number" min={0} step="0.01"
                     value={inputVal}
                     onChange={e => setInputs(p => ({ ...p, [meter.id]: e.target.value }))}
-                    placeholder={startVal != null ? `> ${Number(startVal).toLocaleString("vi-VN")}` : "Nhập chỉ số..."}
+                    placeholder={effectiveStart != null ? `>= ${Number(effectiveStart).toLocaleString("vi-VN")}` : "Chỉ số cuối"}
                     style={{
                       width: 120, height: 30, padding: "0 8px",
                       border: `1.5px solid ${inputVal ? (rd ? "var(--green-400)" : "var(--blue-400)") : "var(--vn-border)"}`,

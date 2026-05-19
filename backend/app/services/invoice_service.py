@@ -8,6 +8,7 @@ from app.models.property import Property, WaterCalcType
 from app.models.surcharge import SurchargeTemplate, SurchargeCalcType
 from app.models.utility import UtilityReading
 from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead, InvoiceDetailRead, InvoicePublicRead
+from app.schemas.shared_meter import SharedMeterInvoiceDetail
 from app.repositories.tenant_repo import TenantRepo
 from app.repositories.invoice_repo import InvoiceRepo
 from app.repositories.contract_repo import ContractRepo
@@ -291,6 +292,23 @@ class InvoiceService:
         prop = await self.property_repo.get_by_id(room.property_id)
         tenant = await self.tenant_repo.get_by_id(contract.tenant_id)
         reading = await self.utility_repo.get_by_room_period(room.id, invoice.period)
+
+        # Shared meter readings for meters that include this room
+        shared_meter_details: list[SharedMeterInvoiceDetail] = []
+        meters = await self.shared_meter_repo.get_meters_for_room(room.id)
+        for meter in meters:
+            sm_reading = await self.shared_meter_repo.get_reading(meter.id, invoice.period)
+            if sm_reading is None or sm_reading.prev_reading is None:
+                continue
+            total_usage = sm_reading.curr_reading - sm_reading.prev_reading
+            shared_meter_details.append(SharedMeterInvoiceDetail(
+                meter_id=meter.id,
+                meter_name=meter.name,
+                prev_reading=sm_reading.prev_reading,
+                curr_reading=sm_reading.curr_reading,
+                total_usage=total_usage,
+            ))
+
         return InvoiceDetailRead(
             id=invoice.id,
             contract_id=invoice.contract_id,
@@ -309,6 +327,7 @@ class InvoiceService:
             elec_curr=reading.elec_curr if reading else None,
             water_prev=reading.water_prev if reading else None,
             water_curr=reading.water_curr if reading else None,
+            shared_meter_readings=shared_meter_details,
         )
 
     async def generate(self, data: InvoiceGenerateRequest, clerk_user_id: str) -> InvoiceRead:

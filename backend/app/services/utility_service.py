@@ -6,6 +6,8 @@ from app.schemas.utility import UtilityReadingCreate, UtilityReadingRead, Utilit
 from app.repositories.utility_repo import UtilityRepo
 from app.repositories.room_repo import RoomRepo
 from app.repositories.property_repo import PropertyRepo
+from app.repositories.contract_repo import ContractRepo
+from app.repositories.tenant_repo import TenantRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
 
 
@@ -31,6 +33,8 @@ class UtilityService:
         self.utility_repo = UtilityRepo(session)
         self.room_repo = RoomRepo(session)
         self.property_repo = PropertyRepo(session)
+        self.contract_repo = ContractRepo(session)
+        self.tenant_repo = TenantRepo(session)
 
     async def _get_room_owned(self, room_id: int, clerk_user_id: str):
         room = await self.room_repo.get_by_id(room_id)
@@ -44,7 +48,24 @@ class UtilityService:
     async def list_readings(self, room_id: int, clerk_user_id: str) -> list[UtilityReadingRead]:
         await self._get_room_owned(room_id, clerk_user_id)
         readings = await self.utility_repo.get_all_by_room(room_id)
-        return [UtilityReadingRead.model_validate(r) for r in readings]
+
+        # Build contract_id → tenant_name map to avoid N+1
+        contract_ids = {r.contract_id for r in readings if r.contract_id is not None}
+        tenant_name_by_contract: dict[int, str] = {}
+        for cid in contract_ids:
+            contract = await self.contract_repo.get_by_id(cid)
+            if contract:
+                tenant = await self.tenant_repo.get_by_id(contract.tenant_id)
+                if tenant:
+                    tenant_name_by_contract[cid] = tenant.full_name
+
+        result = []
+        for r in readings:
+            read = UtilityReadingRead.model_validate(r)
+            read.contract_id = r.contract_id
+            read.tenant_name = tenant_name_by_contract.get(r.contract_id) if r.contract_id else None
+            result.append(read)
+        return result
 
     async def create_reading(self, data: UtilityReadingCreate, clerk_user_id: str) -> UtilityReadingRead:
         _, prop = await self._get_room_owned(data.room_id, clerk_user_id)

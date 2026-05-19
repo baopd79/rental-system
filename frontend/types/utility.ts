@@ -7,4 +7,6 @@ export type UtilityReading = {
   water_prev: number | null;
   water_curr: number | null;
   is_prev_auto: boolean;
+  contract_id: number | null;
+  tenant_name: string | null;
 };

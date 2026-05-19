@@ -49,6 +49,7 @@ export type Invoice = {
   elec_curr?: string | null;
   water_prev?: string | null;
   water_curr?: string | null;
+  shared_meter_readings?: import("./shared-meter").SharedMeterInvoiceDetail[];
 };
 
 export type InvoiceListItem = Invoice & {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { ArrowLeft, Plus, FileText, Edit2, ExternalLink, Zap, Droplets } from "lucide-react";
@@ -325,7 +325,7 @@ export default function RoomDetailPage() {
             <table style={{ width:"100%", borderCollapse:"separate", borderSpacing:0, fontSize:13.5 }}>
               <thead>
                 <tr>
-                  {["Kỳ", "Điện cũ", "Điện mới", "Tiêu thụ (kWh)", ...(showWater ? ["Nước cũ","Nước mới","Tiêu thụ (m³)"] : [])].map(h => (
+                  {["Kỳ", "Khách thuê", "Điện đầu", "Điện cuối", "Tiêu thụ (kWh)", ...(showWater ? ["Nước đầu","Nước cuối","Tiêu thụ (m³)"] : [])].map(h => (
                     <th key={h} style={{ textAlign:"left", padding:"10px 16px", fontSize:11, fontWeight:600, color:"var(--vn-text-3)", letterSpacing:"0.04em", textTransform:"uppercase", background:"var(--slate-50)", borderBottom:BD }}>{h}</th>
                   ))}
                 </tr>
@@ -334,28 +334,48 @@ export default function RoomDetailPage() {
                 {readings.map((r, i) => {
                   const elecUsage = r.elec_prev != null ? (r.elec_curr - r.elec_prev) : null;
                   const waterUsage = (showWater && r.water_prev != null && r.water_curr != null) ? (r.water_curr - r.water_prev) : null;
-                  const bd = i < readings.length-1 ? BD : "none";
+                  const prevR = i > 0 ? readings[i - 1] : null;
+                  const tenantChanged = prevR && prevR.contract_id !== r.contract_id;
+                  const isInitial = r.elec_prev === null;
+                  const bd = i < readings.length - 1 ? BD : "none";
                   const TD = (extra?: React.CSSProperties) => ({ padding:"11px 16px", borderBottom:bd, verticalAlign:"middle" as const, ...extra });
                   return (
-                    <tr key={r.id}>
-                      <td style={TD({ fontFamily:"var(--font-geist-mono)", fontSize:13, fontWeight:600 })}>{r.period}</td>
-                      <td style={TD({ color:"var(--vn-text-3)", fontVariantNumeric:"tabular-nums" })}>{r.elec_prev ?? <span style={{color:"var(--vn-border)"}}>—</span>}</td>
-                      <td style={TD({ fontVariantNumeric:"tabular-nums" })}>{r.elec_curr}</td>
-                      <td style={TD({ fontVariantNumeric:"tabular-nums" })}>
-                        {elecUsage != null
-                          ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, color:"var(--blue-700)", fontWeight:600 }}><Zap size={12}/>{elecUsage}</span>
-                          : <span style={{color:"var(--vn-border)"}}>—</span>}
-                      </td>
-                      {showWater && <>
-                        <td style={TD({ color:"var(--vn-text-3)", fontVariantNumeric:"tabular-nums" })}>{r.water_prev ?? <span style={{color:"var(--vn-border)"}}>—</span>}</td>
-                        <td style={TD({ fontVariantNumeric:"tabular-nums" })}>{r.water_curr ?? <span style={{color:"var(--vn-border)"}}>—</span>}</td>
+                    <React.Fragment key={r.id}>
+                      {tenantChanged && (
+                        <tr>
+                          <td colSpan={showWater ? 8 : 5} style={{ padding:"0 16px", height:1, background:"var(--vn-border)", borderBottom: BD }} />
+                        </tr>
+                      )}
+                      <tr style={{ background: isInitial ? "var(--amber-50)" : undefined }}>
+                        <td style={TD({ fontFamily:"var(--font-geist-mono)", fontSize:13, fontWeight:600 })}>{r.period}</td>
+                        <td style={TD({ fontSize:12.5 })}>
+                          {r.tenant_name
+                            ? <span style={{ color: isInitial ? "var(--amber-700)" : "var(--vn-text-2)", fontWeight: isInitial ? 600 : 400 }}>
+                                {r.tenant_name}
+                                {isInitial && <span style={{ marginLeft:5, fontSize:10.5, background:"var(--amber-100)", color:"var(--amber-700)", padding:"1px 6px", borderRadius:4, fontWeight:600 }}>Đầu vào</span>}
+                              </span>
+                            : <span style={{ color:"var(--vn-text-3)" }}>—</span>}
+                        </td>
+                        <td style={TD({ color:"var(--vn-text-3)", fontVariantNumeric:"tabular-nums" })}>
+                          {r.elec_prev != null ? r.elec_prev : <span style={{color:"var(--vn-border)"}}>—</span>}
+                        </td>
+                        <td style={TD({ fontVariantNumeric:"tabular-nums", fontWeight:500 })}>{r.elec_curr}</td>
                         <td style={TD({ fontVariantNumeric:"tabular-nums" })}>
-                          {waterUsage != null
-                            ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, color:"var(--blue-500)", fontWeight:600 }}><Droplets size={12}/>{waterUsage}</span>
+                          {elecUsage != null
+                            ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, color: elecUsage > 0 ? "var(--blue-700)" : "var(--vn-text-3)", fontWeight:600 }}><Zap size={12}/>{elecUsage}</span>
                             : <span style={{color:"var(--vn-border)"}}>—</span>}
                         </td>
-                      </>}
-                    </tr>
+                        {showWater && <>
+                          <td style={TD({ color:"var(--vn-text-3)", fontVariantNumeric:"tabular-nums" })}>{r.water_prev != null ? r.water_prev : <span style={{color:"var(--vn-border)"}}>—</span>}</td>
+                          <td style={TD({ fontVariantNumeric:"tabular-nums", fontWeight:500 })}>{r.water_curr ?? <span style={{color:"var(--vn-border)"}}>—</span>}</td>
+                          <td style={TD({ fontVariantNumeric:"tabular-nums" })}>
+                            {waterUsage != null
+                              ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, color:"var(--blue-500)", fontWeight:600 }}><Droplets size={12}/>{waterUsage}</span>
+                              : <span style={{color:"var(--vn-border)"}}>—</span>}
+                          </td>
+                        </>}
+                      </tr>
+                    </React.Fragment>
                   );
                 })}
               </tbody>

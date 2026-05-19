@@ -96,14 +96,18 @@ class SharedMeterService:
     async def upsert_reading(self, data: SharedMeterReadingCreate, clerk_user_id: str) -> SharedMeterReadingRead:
         meter = await self._get_meter_owned(data.shared_meter_id, clerk_user_id)
 
-        # Auto-fill prev from last period's curr_reading
-        prev_p = _prev_period(data.period)
-        prev_reading_row = await self.repo.get_reading(meter.id, prev_p)
-        prev_val = prev_reading_row.curr_reading if prev_reading_row else None
-        is_prev_auto = prev_reading_row is not None
+        # Determine prev_reading: manual override takes priority, else auto-fill from previous period
+        if data.prev_reading is not None:
+            prev_val = data.prev_reading
+            is_prev_auto = False
+        else:
+            prev_p = _prev_period(data.period)
+            prev_reading_row = await self.repo.get_reading(meter.id, prev_p)
+            prev_val = prev_reading_row.curr_reading if prev_reading_row else None
+            is_prev_auto = prev_reading_row is not None
 
         if prev_val is not None and data.curr_reading < prev_val:
-            raise BadRequestException("curr_reading must be >= prev_reading")
+            raise BadRequestException("curr_reading phải >= prev_reading")
 
         existing = await self.repo.get_reading(meter.id, data.period)
         if existing:

@@ -25,5 +25,7 @@ class UtilityReadingRead(BaseModel):
     water_prev: Decimal | None
     water_curr: Decimal | None
     is_prev_auto: bool
+    contract_id: int | None = None
+    tenant_name: str | None = None
 
     model_config = {"from_attributes": True}

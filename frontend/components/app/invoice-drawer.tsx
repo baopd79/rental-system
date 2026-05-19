@@ -139,6 +139,7 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBa
     rent:        (invoice?.items ?? []).filter(i => i.item_type === "rent"),
     electricity: (invoice?.items ?? []).filter(i => i.item_type === "electricity"),
     water:       (invoice?.items ?? []).filter(i => i.item_type === "water"),
+    shared_elec: (invoice?.items ?? []).filter(i => i.item_type === "shared_elec"),
     surcharge:   (invoice?.items ?? []).filter(i => i.item_type === "surcharge"),
   };
 
@@ -353,6 +354,44 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBa
                 </div>
               )}
 
+              {/* Shared meter readings */}
+              {invoice.shared_meter_readings && invoice.shared_meter_readings.length > 0 && (
+                <div style={{ border: BD, borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
+                  <div style={{ padding: "8px 14px", background: "var(--slate-50)", borderBottom: BD, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Share2 size={11} color="var(--amber-500)" />
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>Công tơ điện chung</span>
+                  </div>
+                  {invoice.shared_meter_readings.map((sm, idx) => (
+                    <div key={sm.meter_id} style={{
+                      display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                      borderBottom: idx < invoice.shared_meter_readings!.length - 1 ? BD : "none",
+                    }}>
+                      <div style={{ padding: "10px 14px", borderRight: BD }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 3 }}>Tên</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--vn-text)" }}>{sm.meter_name}</div>
+                      </div>
+                      <div style={{ padding: "10px 14px", borderRight: BD }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 3 }}>Đầu kỳ</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>{fmtNum(sm.prev_reading)}</div>
+                      </div>
+                      <div style={{ padding: "10px 14px", borderRight: BD }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 3 }}>Cuối kỳ</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>{fmtNum(sm.curr_reading)}</div>
+                      </div>
+                      <div style={{ padding: "10px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                          <Zap size={10} color="var(--amber-500)" />
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>Tổng tiêu thụ</span>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--amber-600)", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtNum(sm.total_usage)} <span style={{ fontSize: 11, fontWeight: 400, color: "var(--vn-text-3)" }}>kWh</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Items breakdown */}
               <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", padding: "9px 16px", background: "var(--slate-50)", borderBottom: BD, fontSize: 11, fontWeight: 600, color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
@@ -361,7 +400,7 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBa
                   <span style={{ textAlign: "right", minWidth: 100 }}>Thành tiền</span>
                 </div>
 
-                {(["rent","electricity","water","surcharge"] as const).flatMap(type =>
+                {(["rent","electricity","water","shared_elec","surcharge"] as const).flatMap(type =>
                   itemGroups[type].map((item: InvoiceItem) => (
                     <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", padding: "11px 16px", borderBottom: BD, alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
