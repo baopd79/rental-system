@@ -132,7 +132,7 @@ export default function TenantsPage() {
                 <tr
                   key={t.id}
                   onClick={() => setDrawerTenant(t)}
-                  className="hover:bg-(--vn-surface-2)"
+                  className="hover:bg-(--slate-50)"
                   style={{ cursor: "pointer" }}
                 >
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>

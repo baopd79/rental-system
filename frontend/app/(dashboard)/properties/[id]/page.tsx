@@ -280,12 +280,12 @@ export default function PropertyDetailPage() {
           {statusFilter === "all" && <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Thêm phòng đầu tiên.</div>}
         </div>
       ) : (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, overflow: "hidden", boxShadow: "var(--sh-xs)" }}>
+        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, boxShadow: "var(--sh-xs)" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>
-                {["Phòng", "Loại", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Trạng thái", ""].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "10px 14px", font: "600 11px var(--font-geist-sans)", color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase" as const, background: "var(--slate-50)", borderBottom: BD, whiteSpace: "nowrap" as const }}>{h}</th>
+                {["Phòng", "Loại", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Trạng thái", ""].map((h, idx, arr) => (
+                  <th key={h} style={{ textAlign: "left", padding: "10px 14px", font: "600 11px var(--font-geist-sans)", color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase" as const, background: "var(--slate-50)", borderBottom: BD, whiteSpace: "nowrap" as const, ...(idx === 0 ? { borderTopLeftRadius: 12 } : idx === arr.length - 1 ? { borderTopRightRadius: 12 } : {}) }}>{h}</th>
                 ))}
               </tr>
             </thead>

@@ -58,24 +58,14 @@ export default function ContractsPage() {
   const endedCount  = contracts.filter((c) => c.status === "ended").length;
 
   return (
-    <div style={{ padding: "20px 24px", maxWidth: 1100 }}>
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 12, color: "var(--vn-text-3)", marginBottom: 4 }}>Quản lý › Hợp đồng</div>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
-              Hợp đồng
-            </h1>
-            <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>
-              {loading ? "Đang tải..." : `${activeCount} đang thuê · ${endedCount} đã kết thúc`}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
+      <PageHeader
+        title="Hợp đồng"
+        description={loading ? "Đang tải..." : `${activeCount} đang thuê · ${endedCount} đã kết thúc`}
+      />
 
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-2)", marginBottom: "var(--sp-4)", flexWrap: "wrap" }}>
         {/* Status tabs */}
         <div style={{ display: "flex", background: "var(--vn-surface)", border: "1px solid var(--vn-border)", borderRadius: 8, padding: 3, gap: 2, boxShadow: "var(--sh-xs)" }}>
           {TABS.map(({ key, label }) => {
@@ -124,33 +114,30 @@ export default function ContractsPage() {
 
       {/* Table */}
       {loading ? (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>
+        <div style={{ padding: "var(--sp-8) 0", textAlign: "center", color: "var(--vn-text-3)", fontSize: "var(--text-label)" }}>Đang tải...</div>
       ) : filtered.length === 0 ? (
         <div style={{
           background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
-          borderRadius: 12, padding: "64px 32px", textAlign: "center", boxShadow: "var(--sh-xs)",
+          borderRadius: "var(--r-lg)", boxShadow: "var(--sh-xs)",
         }}>
-          <FileText size={28} color="var(--vn-text-3)" style={{ margin: "0 auto 12px", display: "block" }} />
-          <div style={{ fontSize: 14, fontWeight: 500, color: "var(--vn-text-2)", marginBottom: 4 }}>
-            {search ? "Không tìm thấy hợp đồng" : "Chưa có hợp đồng nào"}
-          </div>
-          <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>
-            {search ? "Thử từ khoá khác." : "Tạo hợp đồng từ trang chi tiết phòng."}
-          </div>
+          <EmptyState
+            message={search ? "Không tìm thấy hợp đồng" : "Chưa có hợp đồng nào"}
+            icon={FileText}
+          />
         </div>
       ) : (
         <div style={{
           background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
-          borderRadius: 12, overflow: "hidden", boxShadow: "var(--sh-xs)",
+          borderRadius: "var(--r-lg)", overflow: "hidden", boxShadow: "var(--sh-xs)",
         }}>
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: "var(--text-body)" }}>
             <thead>
               <tr>
                 {["Khách thuê", "Nhà trọ · Phòng", "Ngày vào", "Ngày ra", "Tiền thuê", "Trạng thái"].map((h) => (
                   <th key={h} style={{
-                    textAlign: "left", padding: "10px 16px",
-                    font: "600 11px var(--font-geist-sans)",
-                    color: "var(--vn-text-3)", letterSpacing: "0.04em",
+                    textAlign: "left", padding: "11px var(--sp-4)",
+                    fontSize: "var(--text-xs)", fontWeight: 600,
+                    color: "var(--vn-text-3)", letterSpacing: "0.05em",
                     textTransform: "uppercase", background: "var(--slate-50)",
                     borderBottom: "1px solid var(--vn-border)",
                   }}>{h}</th>
@@ -164,34 +151,32 @@ export default function ContractsPage() {
                   <tr
                     key={c.id}
                     onClick={() => setSelected(c)}
-                    className="hover:bg-(--vn-surface-2)"
+                    className="hover:bg-(--slate-50)"
                     style={{ cursor: "pointer" }}
                   >
-                    <td style={{ padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
+                    <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
                       <div style={{ fontWeight: 600, color: "var(--vn-text)" }}>{c.tenant_name}</div>
                       {c.tenant_phone && (
-                        <div style={{ fontSize: 12, color: "var(--vn-text-3)", marginTop: 1 }}>{c.tenant_phone}</div>
+                        <div style={{ fontSize: "var(--text-sm)", color: "var(--vn-text-3)", marginTop: 2 }}>{c.tenant_phone}</div>
                       )}
                     </td>
-                    <td style={{ padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
-                      <div style={{ color: "var(--vn-text-2)", fontSize: 13 }}>{c.property_name}</div>
-                      <div style={{ fontSize: 12, color: "var(--vn-text-3)", marginTop: 1 }}>Phòng {c.room_number}</div>
+                    <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
+                      <div style={{ color: "var(--vn-text-2)" }}>{c.property_name}</div>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--vn-text-3)", marginTop: 2 }}>Phòng {c.room_number}</div>
                     </td>
-                    <td style={{ padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)", fontSize: 13 }}>
+                    <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)" }}>
                       {fmtDate(c.start_date)}
                     </td>
-                    <td style={{ padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)", fontSize: 13 }}>
+                    <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)" }}>
                       {fmtDate(c.end_date)}
                     </td>
-                    <td style={{ padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
+                    <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
                       <span style={{ fontWeight: 600, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>
                         {fmtMoney(c.agreed_rent)}
                       </span>
                     </td>
-                    <td style={{ padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 999, background: sc.bg, color: sc.fg }}>
-                        {CONTRACT_STATUS_LABELS[c.status]}
-                      </span>
+                    <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
+                      <StatusBadge bg={sc.bg} fg={sc.fg} label={CONTRACT_STATUS_LABELS[c.status]} />
                     </td>
                   </tr>
                 );
@@ -199,6 +184,7 @@ export default function ContractsPage() {
             </tbody>
           </table>
         </div>
+
       )}
 
       <ContractDrawer contract={selected} onClose={() => setSelected(null)} />

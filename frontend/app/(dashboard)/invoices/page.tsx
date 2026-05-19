@@ -135,7 +135,7 @@ export default function InvoicesPage() {
       <PageHeader title="Hóa đơn" description={`${invoices.length} hóa đơn`} action={actions} />
 
       {/* KPI row */}
-      <div style={{ display: "flex", gap: "var(--sp-2)", marginBottom: "var(--sp-4)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--sp-3)", marginBottom: "var(--sp-4)" }}>
         <KpiCard label={`Tổng HĐ · ${kpiLabel}`} value={String(kpi.total)}   sub={fmtMoney(kpi.totalAmt)}  />
         <KpiCard label="Đã thanh toán"            value={String(kpi.paid)}    sub={fmtMoney(kpi.paidAmt)}   valueColor="var(--green-600)" />
         <KpiCard label="Chưa thanh toán"           value={String(kpi.unpaid)}  sub={fmtMoney(kpi.unpaidAmt)} valueColor="var(--blue-600)" />

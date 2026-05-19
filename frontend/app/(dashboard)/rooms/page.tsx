@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Search, Zap, Droplets } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { RoomStatusBadge } from "@/components/app/room-status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { fmtMoney } from "@/lib/format";
 import type { Property } from "@/types/property";
 import type { Room } from "@/types/room";
 
@@ -13,7 +15,6 @@ interface PropertyWithRooms extends Property {
   rooms: Room[];
 }
 
-const fmtMoney = (n: number | string) => Number(n).toLocaleString("vi-VN") + "₫";
 const fmtRate = (n: number | string) => {
   const v = Number(n);
   return v >= 1000 ? (v / 1000).toLocaleString("vi-VN") + "k" : v.toLocaleString("vi-VN");
@@ -68,19 +69,18 @@ export default function RoomsPage() {
   const totalOccupied = allRooms.filter(r => r.status === "occupied").length;
   const totalVacant   = allRooms.filter(r => r.status === "vacant").length;
 
-  if (loading) return <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>;
+  if (loading) return <div style={{ padding: "var(--sp-6)", color: "var(--vn-text-3)", fontSize: "var(--text-body)" }}>Đang tải...</div>;
 
   return (
-    <div style={{ padding: "20px 24px" }}>
+    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 12, color: "var(--vn-text-3)", marginBottom: 4 }}>Quản lý › Phòng</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "var(--sp-5)" }}>
+        <div>
+          <h1 style={{ fontSize: "var(--text-display)", fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
             Tổng quan phòng
           </h1>
-          <div style={{ display: "flex", gap: 10, fontSize: 12.5, color: "var(--vn-text-3)" }}>
+          <div style={{ display: "flex", gap: "var(--sp-3)", fontSize: "var(--text-sm)", color: "var(--vn-text-3)", marginTop: "var(--sp-1)" }}>
             <span>Tổng <strong style={{ color: "var(--vn-text-2)" }}>{allRooms.length}</strong></span>
             <span style={{ color: "var(--blue-600)", fontWeight: 500 }}>{totalOccupied} đang thuê</span>
             <span style={{ color: "var(--green-600)", fontWeight: 500 }}>{totalVacant} trống</span>
@@ -120,16 +120,15 @@ export default function RoomsPage() {
 
       {/* Table */}
       {data.length === 0 ? (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, padding: "48px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: "var(--vn-text-2)", marginBottom: 6 }}>Chưa có nhà trọ nào</div>
-          <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Thêm nhà trọ và tạo phòng trong mục Nhà trọ.</div>
+        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: "var(--r-lg)" }}>
+          <EmptyState message="Chưa có nhà trọ nào. Thêm nhà trọ và tạo phòng trong mục Nhà trọ." />
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, padding: "40px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Không tìm thấy phòng phù hợp.</div>
+        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: "var(--r-lg)" }}>
+          <EmptyState message="Không tìm thấy phòng phù hợp." />
         </div>
       ) : (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, overflow: "hidden", boxShadow: "var(--sh-xs)" }}>
+        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: "var(--r-lg)", overflow: "hidden", boxShadow: "var(--sh-xs)" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>

@@ -267,12 +267,12 @@ export default function PropertiesPage() {
           </div>
         </div>
       ) : (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, overflow: "hidden", boxShadow: "var(--sh-xs)" }}>
+        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, boxShadow: "var(--sh-xs)" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>
                 {/* Checkbox */}
-                <th style={{ ...TH_STYLE, width: 44, textAlign: "center", padding: "10px 0 10px 16px" }}>
+                <th style={{ ...TH_STYLE, width: 44, textAlign: "center", padding: "10px 0 10px 16px", borderTopLeftRadius: 12 }}>
                   <input type="checkbox" checked={allSelected} onChange={toggleAll}
                     style={{ width: 14, height: 14, cursor: "pointer", accentColor: "var(--blue-600)" }} />
                 </th>
@@ -281,7 +281,7 @@ export default function PropertiesPage() {
                 <th style={{ ...TH_STYLE }}>Cấu hình</th>
                 <th style={{ ...TH_STYLE, textAlign: "right" }}>Doanh thu tháng</th>
                 <th style={{ ...TH_STYLE }}>Trạng thái</th>
-                <th style={{ ...TH_STYLE, width: 48 }} />
+                <th style={{ ...TH_STYLE, width: 48, borderTopRightRadius: 12 }} />
               </tr>
             </thead>
             <tbody>
