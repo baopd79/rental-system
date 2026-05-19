@@ -7,6 +7,8 @@ from app.schemas.shared_meter import (
 from app.repositories.shared_meter_repo import SharedMeterRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.room_repo import RoomRepo
+from app.repositories.contract_repo import ContractRepo
+from app.repositories.invoice_repo import InvoiceRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
 
 
@@ -15,12 +17,19 @@ def _prev_period(period: str) -> str:
     return f"{y - 1}-12" if m == 1 else f"{y}-{str(m - 1).zfill(2)}"
 
 
+def _next_period(period: str) -> str:
+    y, m = int(period[:4]), int(period[5:7])
+    return f"{y + 1}-01" if m == 12 else f"{y}-{str(m + 1).zfill(2)}"
+
+
 class SharedMeterService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repo = SharedMeterRepo(session)
         self.property_repo = PropertyRepo(session)
         self.room_repo = RoomRepo(session)
+        self.contract_repo = ContractRepo(session)
+        self.invoice_repo = InvoiceRepo(session)
 
     async def _get_property_owned(self, property_id: int, clerk_user_id: str):
         prop = await self.property_repo.get_by_id(property_id)
@@ -111,6 +120,30 @@ class SharedMeterService:
 
         existing = await self.repo.get_reading(meter.id, data.period)
         if existing:
+            # Block if N+1 already has a reading
+            next_reading = await self.repo.get_reading(meter.id, _next_period(data.period))
+            if next_reading is not None:
+                raise BadRequestException(
+                    f"Không thể sửa chỉ số kỳ {data.period} vì kỳ {_next_period(data.period)} đã có chỉ số lưu."
+                )
+            # Block if any room using this meter already has an invoice for this period
+            room_ids = await self.repo.get_room_ids(meter.id)
+            for rid in room_ids:
+                contract = await self.contract_repo.get_active_by_room(rid)
+                if contract is None:
+                    # check ended contracts that were active during this period
+                    all_contracts = await self.contract_repo.get_all_by_room(rid)
+                    contract = next(
+                        (c for c in all_contracts
+                         if c.start_date.strftime("%Y-%m") <= data.period <= c.end_date.strftime("%Y-%m")),
+                        None,
+                    )
+                if contract:
+                    invoice = await self.invoice_repo.get_by_contract_period(contract.id, data.period)
+                    if invoice is not None:
+                        raise BadRequestException(
+                            f"Không thể sửa chỉ số kỳ {data.period} vì hoá đơn kỳ này đã được tạo."
+                        )
             existing.curr_reading = data.curr_reading
             existing.prev_reading = prev_val
             existing.is_prev_auto = is_prev_auto

@@ -88,11 +88,11 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
       return;
     }
     if (initialElec === "") {
-      setError("Vui lòng nhập chỉ số điện lúc vào");
+      setError("Vui lòng nhập chỉ số điện đầu kỳ");
       return;
     }
     if (waterCalcType === "per_meter" && initialWater === "") {
-      setError("Vui lòng nhập chỉ số nước lúc vào");
+      setError("Vui lòng nhập chỉ số nước đầu kỳ");
       return;
     }
 
@@ -320,7 +320,7 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
       {/* Initial meter readings */}
       <div>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--vn-text-2)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          Chỉ số công tơ lúc vào <span style={{ color: "var(--red-500)" }}>*</span>
+          Chỉ số đầu kỳ <span style={{ color: "var(--red-500)" }}>*</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: waterCalcType === "per_meter" ? "1fr 1fr" : "1fr", gap: 12 }}>
           <div>
@@ -343,7 +343,7 @@ export function ContractForm({ roomId, propertyId, defaultRent, defaultDeposit, 
           )}
         </div>
         <p style={{ fontSize: 12, color: "var(--vn-text-3)", margin: "5px 0 0" }}>
-          Hoá đơn tháng đầu: điện/nước = 0đ (chưa tiêu thụ). Tháng sau mới tính từ chỉ số này.
+          Chỉ số đồng hồ lúc bàn giao phòng. Tháng đầu nhập chỉ số cuối bằng đầu = 0 tiêu thụ, hoặc lớn hơn nếu khách đã dùng.
         </p>
       </div>
 

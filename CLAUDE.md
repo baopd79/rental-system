@@ -82,8 +82,8 @@ BillingServiceDep = Annotated[BillingService, Depends(_billing_service)]
 - `UtilityReading.period = "YYYY-MM"` = the **invoice month** (not the reading-taken month).
 - Frontend "Ghi chỉ số" UI uses display period = reading month; internally calls API with `nextPeriod(displayPeriod)`.
 - Invoice for period M uses reading for period M: `electricity = elec_curr(M) - elec_prev(M)`, where `elec_prev(M)` is auto-filled from `elec_curr(M-1)`.
-- First month (move-in): reading has `elec_prev = NULL` → `electricity = 0`. `isInitialReading = reading_id !== null && elec_prev === null`.
-- When a user enters a monthly reading for an `isInitialReading` row, the backend **always shifts**: `elec_prev ← baseline, elec_curr ← new value` — even when both are equal (0 consumption). This converts the baseline into a proper monthly reading.
+- **Move-in reading** (`ContractCreate.initial_elec_curr`): stored as `elec_prev = elec_curr = initial_value` for the move-in month. The landlord then enters the actual `elec_curr` via billing modal. `curr == prev` → 0 consumption (tenant didn't use); `curr > prev` → tenant used electricity before billing period ended. Both are valid.
+- **Legacy data**: old readings where `elec_prev = NULL` still exist. Frontend detects these via `isInitialReading = reading_id !== null && elec_prev === null` and shows amber border. Backend shifts on update: `elec_prev ← old_curr, elec_curr ← new_value`. This is backward-compatible but won't appear for contracts created under the new logic.
 - `Contract.end_date` is set to `date.today()` when ended (not the original contract end date).
 
 **Tenant isolation in readings**: `utility_reading.contract_id` links each reading to the contract that created it. In `billing_service.batch_save_readings`, `elec_prev` is only auto-filled from a previous month's reading **if it belongs to the same contract**. The month-skip guard also only enforces continuity within the same contract — readings from a previous tenant never block or contaminate the new tenant's billing.

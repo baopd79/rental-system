@@ -7,9 +7,10 @@ import { apiJson } from "@/lib/api";
 import type { ContractListItem, ContractStatus } from "@/types/contract";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS } from "@/types/contract";
 import { ContractDrawer } from "@/components/app/contract-drawer";
-
-const fmtMoney = (n: number) => n.toLocaleString("vi-VN") + "₫";
-const fmtDate  = (d: string) => { const [y, m, day] = d.split("-"); return `${day}/${m}/${y}`; };
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { fmtMoney, fmtDate } from "@/lib/format";
 
 type Tab = "all" | ContractStatus;
 const TABS: { key: Tab; label: string }[] = [

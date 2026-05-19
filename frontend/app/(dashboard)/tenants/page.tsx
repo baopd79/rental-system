@@ -8,6 +8,8 @@ import { apiJson } from "@/lib/api";
 import type { Tenant } from "@/types/tenant";
 import { TenantForm } from "@/components/app/tenant-form";
 import { TenantDrawer } from "@/components/app/tenant-drawer";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function TenantsPage() {
   const { getToken } = useAuth();
@@ -54,49 +56,43 @@ export default function TenantsPage() {
   });
 
   if (loading) return (
-    <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13.5 }}>Đang tải...</div>
+    <div style={{ padding: "var(--sp-6)", color: "var(--vn-text-3)", fontSize: "var(--text-body)" }}>Đang tải...</div>
+  );
+
+  const addBtn = (
+    <button
+      onClick={() => { setEditing(null); setShowForm(true); }}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        height: 36, padding: "0 var(--sp-3)", borderRadius: "var(--r-md)",
+        background: "var(--blue-600)", color: "#fff",
+        fontSize: "var(--text-label)", fontWeight: 600, border: "none", cursor: "pointer",
+        boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
+      }}
+    >
+      <Plus size={14} color="#fff" />
+      Thêm khách thuê
+    </button>
   );
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
-            Khách thuê
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>
-            {tenants.length} khách thuê
-          </p>
-        </div>
-        <button
-          onClick={() => { setEditing(null); setShowForm(true); }}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            height: 36, padding: "0 14px", borderRadius: 8,
-            background: "var(--blue-600)", color: "#fff",
-            fontSize: 13.5, fontWeight: 500, border: "none", cursor: "pointer",
-            boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
-          }}
-        >
-          <Plus size={15} color="#fff" />
-          Thêm khách thuê
-        </button>
-      </div>
+    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
+      <PageHeader title="Khách thuê" description={`${tenants.length} khách thuê`} action={addBtn} />
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: "var(--sp-4)" }}>
         <div style={{
           display: "flex", alignItems: "center",
           height: 36, background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
-          borderRadius: 8, padding: "0 12px", width: 300, gap: 8, boxShadow: "var(--sh-xs)",
+          borderRadius: "var(--r-md)", padding: "0 var(--sp-3)", width: 300, gap: "var(--sp-2)", boxShadow: "var(--sh-xs)",
         }}>
-          <Search size={14} color="var(--vn-text-3)" />
+          <Search size={13} color="var(--vn-text-3)" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo tên, SĐT, CCCD…"
             style={{
               flex: 1, border: "none", outline: "none",
-              fontSize: 13, color: "var(--vn-text)", background: "transparent",
+              fontSize: "var(--text-label)", color: "var(--vn-text)", background: "transparent",
             }}
           />
         </div>
@@ -105,35 +101,26 @@ export default function TenantsPage() {
       {filtered.length === 0 ? (
         <div style={{
           background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
-          borderRadius: 14, padding: "64px 32px", textAlign: "center", boxShadow: "var(--sh-xs)",
+          borderRadius: "var(--r-lg)", boxShadow: "var(--sh-xs)",
         }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: "var(--blue-50)", display: "grid",
-            placeItems: "center", margin: "0 auto 16px",
-          }}>
-            <User size={22} color="var(--blue-600)" />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 500, color: "var(--vn-text-2)", marginBottom: 6 }}>
-            {search ? "Không tìm thấy khách thuê" : "Chưa có khách thuê nào"}
-          </div>
-          <div style={{ fontSize: 13.5, color: "var(--vn-text-3)" }}>
-            {search ? "Thử từ khóa khác." : "Thêm khách thuê để tạo hợp đồng."}
-          </div>
+          <EmptyState
+            message={search ? "Không tìm thấy khách thuê" : "Chưa có khách thuê nào"}
+            icon={User}
+          />
         </div>
       ) : (
         <div style={{
           background: "var(--vn-surface)", border: "1px solid var(--vn-border)",
-          borderRadius: 14, overflow: "hidden", boxShadow: "var(--sh-xs)",
+          borderRadius: "var(--r-lg)", overflow: "hidden", boxShadow: "var(--sh-xs)",
         }}>
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: "var(--text-body)" }}>
             <thead>
               <tr>
                 {["Họ tên", "SĐT", "CCCD", "Email", "Ngày sinh"].map((h) => (
                   <th key={h} style={{
-                    textAlign: "left", padding: "11px 16px",
-                    font: "600 11px var(--font-geist-sans)",
-                    color: "var(--vn-text-3)", letterSpacing: "0.04em",
+                    textAlign: "left", padding: "11px var(--sp-4)",
+                    fontSize: "var(--text-xs)", fontWeight: 600,
+                    color: "var(--vn-text-3)", letterSpacing: "0.05em",
                     textTransform: "uppercase", background: "var(--slate-50)",
                     borderBottom: "1px solid var(--vn-border)",
                   }}>{h}</th>

@@ -16,6 +16,7 @@ from app.repositories.surcharge_repo import SurchargeRepo
 from app.repositories.utility_repo import UtilityRepo
 from app.repositories.shared_meter_repo import SharedMeterRepo
 from app.repositories.contract_repo import ContractRepo
+from app.repositories.invoice_repo import InvoiceRepo
 from app.services.invoice_service import InvoiceService, _build_items, _build_shared_elec_items, _prorate_factor, _round
 from app.services.utility_service import _prev_period, _next_period
 from app.core.exceptions import ForbiddenException, NotFoundException, BadRequestException, ConflictException
@@ -30,6 +31,7 @@ class BillingService:
         self.utility_repo = UtilityRepo(session)
         self.shared_meter_repo = SharedMeterRepo(session)
         self.contract_repo = ContractRepo(session)
+        self.invoice_repo = InvoiceRepo(session)
         self.invoice_service = InvoiceService(session)
 
     async def _get_property_owned(self, property_id: int, clerk_user_id: str):
@@ -181,6 +183,13 @@ class BillingService:
                     f"Phòng {item.room_id}: không thể sửa chỉ số kỳ {data.period} "
                     f"vì kỳ {next_period} đã có chỉ số lưu."
                 )
+            if existing and existing.contract_id:
+                invoice = await self.invoice_repo.get_by_contract_period(existing.contract_id, data.period)
+                if invoice is not None:
+                    raise BadRequestException(
+                        f"Phòng {item.room_id}: không thể sửa chỉ số kỳ {data.period} "
+                        f"vì hoá đơn kỳ này đã được tạo."
+                    )
 
             if existing:
                 if existing.elec_prev is None:

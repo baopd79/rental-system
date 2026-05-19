@@ -127,9 +127,9 @@ class ContractService:
             existing = await self.utility_repo.get_by_room_period(room.id, period)
             if existing is not None:
                 existing.contract_id = created.id
-                existing.elec_prev = None
+                existing.elec_prev = data.initial_elec_curr
                 existing.elec_curr = data.initial_elec_curr
-                existing.water_prev = None
+                existing.water_prev = water_curr
                 existing.water_curr = water_curr
                 existing.is_prev_auto = False
                 await self.utility_repo.update(existing)
@@ -138,9 +138,9 @@ class ContractService:
                     room_id=room.id,
                     contract_id=created.id,
                     period=period,
-                    elec_prev=None,
+                    elec_prev=data.initial_elec_curr,
                     elec_curr=data.initial_elec_curr,
-                    water_prev=None,
+                    water_prev=water_curr,
                     water_curr=water_curr,
                     is_prev_auto=False,
                 )
