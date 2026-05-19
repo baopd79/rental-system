@@ -37,6 +37,15 @@ class InvoiceListRead(InvoiceRead):
     payment_reported_at: datetime | None = None
 
 
+class InvoiceDetailRead(InvoiceListRead):
+    """Full detail view — adds tenant phone and meter readings."""
+    tenant_phone: str | None = None
+    elec_prev: Decimal | None = None
+    elec_curr: Decimal | None = None
+    water_prev: Decimal | None = None
+    water_curr: Decimal | None = None
+
+
 class InvoicePublicRead(InvoiceRead):
     """InvoiceRead for public (unauthenticated) tenant-facing views.
     Excludes sensitive fields (CCCD, full phone). Includes bank transfer info.

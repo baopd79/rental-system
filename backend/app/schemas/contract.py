@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 from app.models.contract import ContractStatus
 from app.schemas.tenant import TenantRead
 
@@ -35,5 +35,39 @@ class ContractRead(BaseModel):
     num_people: int
     status: ContractStatus
     tenant: TenantRead
+
+    model_config = {"from_attributes": True}
+
+
+class ContractReadWithRoom(ContractRead):
+    room_number: str
+    property_name: str
+    property_id: int
+
+
+class ContractListItem(BaseModel):
+    id: int
+    status: ContractStatus
+    start_date: date
+    end_date: date
+    agreed_rent: Decimal
+    deposit: Decimal
+    num_people: int
+    tenant_id: int
+    tenant_name: str
+    tenant_phone: str | None
+    room_id: int
+    room_number: str
+    property_id: int
+    property_name: str
+
+
+class ContractEventRead(BaseModel):
+    id: int
+    contract_id: int
+    event_type: str
+    old_value: str | None
+    new_value: str | None
+    occurred_at: datetime
 
     model_config = {"from_attributes": True}

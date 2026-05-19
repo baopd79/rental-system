@@ -210,6 +210,17 @@ class BillingService:
                 elec_prev = prev.elec_curr if prev else None
                 is_prev_auto = prev is not None
 
+                # If no reading for prev month, verify this is truly the first-ever reading
+                # (move-in baseline). If any reading already exists for this room, the user
+                # skipped one or more months — block to prevent orphaned prev_reading.
+                if prev is None:
+                    latest = await self.utility_repo.get_latest_by_room(item.room_id)
+                    if latest is not None:
+                        raise BadRequestException(
+                            f"Phòng {item.room_id}: chưa có chỉ số kỳ {_prev_period(data.period)}, "
+                            f"không thể nhảy sang kỳ {data.period}. Vui lòng nhập theo thứ tự tháng."
+                        )
+
                 if elec_prev is not None and item.elec_curr < elec_prev:
                     raise BadRequestException(
                         f"Phòng {item.room_id}: chỉ số điện cuối kỳ nhỏ hơn đầu kỳ"
@@ -226,8 +237,10 @@ class BillingService:
                     water_prev = None
                     water_curr = None
 
+                active_contract = await self.contract_repo.get_active_by_room(item.room_id)
                 reading = UtilityReading(
                     room_id=item.room_id,
+                    contract_id=active_contract.id if active_contract else None,
                     period=data.period,
                     elec_prev=elec_prev,
                     elec_curr=item.elec_curr,

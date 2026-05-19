@@ -21,6 +21,7 @@ export function SharedMeterSection({ propertyId, rooms }: Props) {
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [openRooms, setOpenRooms] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     apiJson<SharedMeter[]>(`/properties/${propertyId}/shared-meters`, getToken)
@@ -41,7 +42,13 @@ export function SharedMeterSection({ propertyId, rooms }: Props) {
   }
 
   async function handleDelete(meterId: number) {
-    await apiFetch(`/shared-meters/${meterId}`, getToken, { method: "DELETE" });
+    setDeleteError(null);
+    const res = await apiFetch(`/shared-meters/${meterId}`, getToken, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      setDeleteError(err.detail ?? "Xoá thất bại");
+      return;
+    }
     setMeters(prev => prev.filter(m => m.id !== meterId));
   }
 
@@ -136,6 +143,11 @@ export function SharedMeterSection({ propertyId, rooms }: Props) {
             Hủy
           </button>
         </form>
+      )}
+      {deleteError && (
+        <div style={{ marginTop: 8, fontSize: 12, color: "var(--red-600)", padding: "6px 10px", background: "var(--red-50)", borderRadius: 6, border: "1px solid var(--red-200)" }}>
+          {deleteError}
+        </div>
       )}
     </div>
   );

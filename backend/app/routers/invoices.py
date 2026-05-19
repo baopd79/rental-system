@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.core.dependencies import CurrentUserDep, InvoiceServiceDep
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate, InvoiceListRead, InvoicePublicRead
+from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceStatusUpdate, InvoiceListRead, InvoiceDetailRead, InvoicePublicRead
 
 router = APIRouter(tags=["invoices"])
 
@@ -25,7 +25,7 @@ async def generate_invoice(body: InvoiceGenerateRequest, clerk_user_id: CurrentU
     return await service.generate(body, clerk_user_id)
 
 
-@router.get("/invoices/{invoice_id}", response_model=InvoiceRead)
+@router.get("/invoices/{invoice_id}", response_model=InvoiceDetailRead)
 async def get_invoice(invoice_id: int, clerk_user_id: CurrentUserDep, service: InvoiceServiceDep):
     return await service.get_invoice(invoice_id, clerk_user_id)
 

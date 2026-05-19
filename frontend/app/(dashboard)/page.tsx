@@ -10,6 +10,7 @@ import {
 import { apiJson } from "@/lib/api";
 import type { DashboardSummary, DashboardRevenue, ExpiringContract, UnpaidInvoiceSummary } from "@/types/dashboard";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "@/types/invoice";
+import { InvoiceDrawer } from "@/components/app/invoice-drawer";
 
 const fmtMoney = (n: number) => n.toLocaleString("vi-VN") + "₫";
 const fmtDate = (d: string) => { const [y, m, day] = d.split("-"); return `${day}/${m}/${y}`; };
@@ -112,7 +113,7 @@ function RevenueChart({ revenue, loading }: { revenue: DashboardRevenue | null; 
 
 // ── Expiring contracts list ───────────────────────────────────────
 function ExpiringList({ items, loading, onNavigate }: {
-  items: ExpiringContract[]; loading: boolean; onNavigate: (contractId: number) => void;
+  items: ExpiringContract[]; loading: boolean; onNavigate: () => void;
 }) {
   return (
     <div style={{ background: "var(--vn-surface)", border: "1px solid var(--vn-border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--sh-xs)" }}>
@@ -131,7 +132,7 @@ function ExpiringList({ items, loading, onNavigate }: {
       ) : items.map((item, i) => (
         <div
           key={item.contract_id}
-          onClick={() => onNavigate(item.contract_id)}
+          onClick={() => onNavigate()}
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "11px 18px", cursor: "pointer",
@@ -229,6 +230,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [revenue, setRevenue] = useState<DashboardRevenue | null>(null);
   const [loading, setLoading] = useState(true);
+  const [drawerInvoiceId, setDrawerInvoiceId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -255,7 +257,7 @@ export default function DashboardPage() {
     : null;
 
   return (
-    <div style={{ padding: "20px 24px", maxWidth: 1200 }}>
+    <div style={{ padding: "20px 24px", maxWidth: 1600 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
@@ -316,14 +318,18 @@ export default function DashboardPage() {
         <ExpiringList
           items={summary?.expiring_contracts ?? []}
           loading={loading}
-          onNavigate={(contractId) => router.push(`/invoices`)}
+          onNavigate={() => router.push(`/invoices`)}
         />
         <UnpaidList
           items={summary?.unpaid_invoice_list ?? []}
           loading={loading}
-          onOpen={(id) => router.push(`/invoices`)}
+          onOpen={(id) => setDrawerInvoiceId(id)}
         />
       </div>
+      <InvoiceDrawer
+        invoiceId={drawerInvoiceId}
+        onClose={() => setDrawerInvoiceId(null)}
+      />
     </div>
   );
 }

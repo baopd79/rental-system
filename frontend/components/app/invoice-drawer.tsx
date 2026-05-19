@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { X, Copy, Check, Zap, Droplets, Home, Tag, ExternalLink, AlertTriangle, Share2 } from "lucide-react";
+import { X, Copy, Check, Zap, Droplets, Home, Tag, ExternalLink, AlertTriangle, Share2, User, Building2, DoorOpen, Phone } from "lucide-react";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Invoice, InvoiceItem, InvoiceStatus } from "@/types/invoice";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, INVOICE_ITEM_LABELS } from "@/types/invoice";
 
 // ── helpers ───────────────────────────────────────────────────────
 const fmtMoney = (n: string | number) => Number(n).toLocaleString("vi-VN") + "₫";
+const fmtNum   = (n: string | number | null | undefined) => n == null ? "—" : Number(n).toLocaleString("vi-VN");
 const BD = "1px solid var(--vn-border)";
 
 const TRANSITIONS: Record<InvoiceStatus, { label: string; next: InvoiceStatus; color: string }[]> = {
@@ -247,6 +248,111 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBa
 
           {invoice && (
             <>
+              {/* Tenant + room info */}
+              {(invoice.tenant_name || invoice.room_number) && (
+                <div style={{
+                  display: "grid", gridTemplateColumns: "1fr 1fr",
+                  gap: 1, background: "var(--vn-border)",
+                  border: BD, borderRadius: 10, overflow: "hidden",
+                  marginBottom: 14,
+                }}>
+                  {[
+                    { icon: User,      label: "Khách thuê",  value: invoice.tenant_name },
+                    { icon: Phone,     label: "Số điện thoại", value: invoice.tenant_phone ?? "—" },
+                    { icon: Building2, label: "Nhà trọ",     value: invoice.property_name },
+                    { icon: DoorOpen,  label: "Phòng",       value: invoice.room_number ? `Phòng ${invoice.room_number}` : undefined },
+                  ].filter(r => r.value).map(({ icon: Icon, label, value }) => (
+                    <div key={label} style={{ background: "var(--vn-surface)", padding: "10px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                        <Icon size={11} color="var(--vn-text-3)" />
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--vn-text)" }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Meter readings */}
+              {(invoice.elec_curr != null) && (
+                <div style={{
+                  border: BD, borderRadius: 10, overflow: "hidden",
+                  marginBottom: 14,
+                }}>
+                  <div style={{ padding: "8px 14px", background: "var(--slate-50)", borderBottom: BD, fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Chỉ số công tơ
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
+                    {/* Electricity row */}
+                    <div style={{ padding: "10px 14px", borderRight: BD }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                        <Zap size={11} color="var(--amber-500)" />
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Đầu kỳ</span>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>
+                        {fmtNum(invoice.elec_prev)}
+                      </div>
+                    </div>
+                    <div style={{ padding: "10px 14px", borderRight: BD }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                        <Zap size={11} color="var(--amber-500)" />
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Cuối kỳ</span>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>
+                        {fmtNum(invoice.elec_curr)}
+                      </div>
+                    </div>
+                    <div style={{ padding: "10px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                        <Zap size={11} color="var(--amber-500)" />
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Tiêu thụ</span>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--amber-600)", fontVariantNumeric: "tabular-nums" }}>
+                        {invoice.elec_prev != null && invoice.elec_curr != null
+                          ? fmtNum(Number(invoice.elec_curr) - Number(invoice.elec_prev))
+                          : fmtNum(invoice.elec_curr)
+                        } <span style={{ fontSize: 11, fontWeight: 400, color: "var(--vn-text-3)" }}>kWh</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Water row — only if per_meter */}
+                  {invoice.water_curr != null && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderTop: BD }}>
+                      <div style={{ padding: "10px 14px", borderRight: BD }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                          <Droplets size={11} color="var(--blue-400)" />
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Đầu kỳ</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtNum(invoice.water_prev)}
+                        </div>
+                      </div>
+                      <div style={{ padding: "10px 14px", borderRight: BD }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                          <Droplets size={11} color="var(--blue-400)" />
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Cuối kỳ</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtNum(invoice.water_curr)}
+                        </div>
+                      </div>
+                      <div style={{ padding: "10px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                          <Droplets size={11} color="var(--blue-400)" />
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--vn-text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Tiêu thụ</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--blue-600)", fontVariantNumeric: "tabular-nums" }}>
+                          {invoice.water_prev != null && invoice.water_curr != null
+                            ? fmtNum(Number(invoice.water_curr) - Number(invoice.water_prev))
+                            : fmtNum(invoice.water_curr)
+                          } <span style={{ fontSize: 11, fontWeight: 400, color: "var(--vn-text-3)" }}>m³</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Items breakdown */}
               <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", padding: "9px 16px", background: "var(--slate-50)", borderBottom: BD, fontSize: 11, fontWeight: 600, color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase" }}>

@@ -39,6 +39,16 @@ export type Invoice = {
   public_token: string;
   payment_reported_at: string | null;
   items: InvoiceItem[];
+  // InvoiceDetailRead fields (present when fetched via GET /invoices/{id})
+  room_id?: number;
+  room_number?: string;
+  property_name?: string;
+  tenant_name?: string;
+  tenant_phone?: string | null;
+  elec_prev?: string | null;
+  elec_curr?: string | null;
+  water_prev?: string | null;
+  water_curr?: string | null;
 };
 
 export type InvoiceListItem = Invoice & {

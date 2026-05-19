@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { apiJson } from "@/lib/api";
 import type { Tenant } from "@/types/tenant";
 import { TenantForm } from "@/components/app/tenant-form";
+import { TenantDrawer } from "@/components/app/tenant-drawer";
 
 export default function TenantsPage() {
   const { getToken } = useAuth();
@@ -15,6 +16,7 @@ export default function TenantsPage() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Tenant | null>(null);
+  const [drawerTenant, setDrawerTenant] = useState<Tenant | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -31,8 +33,15 @@ export default function TenantsPage() {
     setTenants((prev) =>
       editing ? prev.map((x) => (x.id === t.id ? t : x)) : [t, ...prev]
     );
+    // If the drawer is open for the same tenant, refresh it
+    if (drawerTenant?.id === t.id) setDrawerTenant(t);
     setShowForm(false);
     setEditing(null);
+  }
+
+  function openEdit(t: Tenant) {
+    setEditing(t);
+    setShowForm(true);
   }
 
   const filtered = tenants.filter((t) => {
@@ -120,7 +129,7 @@ export default function TenantsPage() {
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>
-                {["Họ tên", "SĐT", "CCCD", "Email", "Ngày sinh", ""].map((h) => (
+                {["Họ tên", "SĐT", "CCCD", "Email", "Ngày sinh"].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "11px 16px",
                     font: "600 11px var(--font-geist-sans)",
@@ -133,7 +142,12 @@ export default function TenantsPage() {
             </thead>
             <tbody>
               {filtered.map((t, i) => (
-                <tr key={t.id}>
+                <tr
+                  key={t.id}
+                  onClick={() => setDrawerTenant(t)}
+                  className="hover:bg-(--vn-surface-2)"
+                  style={{ cursor: "pointer" }}
+                >
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{
@@ -163,19 +177,6 @@ export default function TenantsPage() {
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle", color: "var(--vn-text-2)" }}>
                     {t.date_of_birth ?? <span style={{ color: "var(--vn-text-3)" }}>—</span>}
                   </td>
-                  <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
-                    <button
-                      onClick={() => { setEditing(t); setShowForm(true); }}
-                      style={{
-                        height: 28, padding: "0 12px", borderRadius: 6,
-                        background: "var(--slate-100)", border: "none",
-                        fontSize: 12.5, cursor: "pointer", color: "var(--vn-text-2)",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Chỉnh sửa
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -183,6 +184,14 @@ export default function TenantsPage() {
         </div>
       )}
 
+      {/* Tenant detail drawer */}
+      <TenantDrawer
+        tenant={drawerTenant}
+        onClose={() => setDrawerTenant(null)}
+        onEdit={openEdit}
+      />
+
+      {/* Edit form dialog */}
       <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setShowForm(false); setEditing(null); } }}>
         <DialogContent>
           <DialogHeader>

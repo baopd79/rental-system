@@ -9,6 +9,7 @@ class UtilityReading(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     room_id: int = Field(foreign_key="room.id", index=True)
+    contract_id: int | None = Field(default=None, foreign_key="contract.id", index=True)
     period: str = Field(max_length=7)          # "YYYY-MM"
     elec_prev: Decimal | None = Field(default=None, decimal_places=2, max_digits=10)
     elec_curr: Decimal = Field(decimal_places=2, max_digits=10)

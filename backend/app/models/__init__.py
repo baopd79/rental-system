@@ -6,3 +6,5 @@ from app.models.contract import Contract  # noqa: F401
 from app.models.utility import UtilityReading  # noqa: F401
 from app.models.surcharge import SurchargeTemplate  # noqa: F401
 from app.models.invoice import Invoice, InvoiceItem  # noqa: F401
+from app.models.contract_event import ContractEvent  # noqa: F401
+from app.models.shared_meter import SharedMeter, SharedMeterRoom, SharedMeterReading  # noqa: F401

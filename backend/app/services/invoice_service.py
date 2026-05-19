@@ -7,7 +7,8 @@ from app.models.contract import Contract
 from app.models.property import Property, WaterCalcType
 from app.models.surcharge import SurchargeTemplate, SurchargeCalcType
 from app.models.utility import UtilityReading
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead, InvoicePublicRead
+from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead, InvoiceDetailRead, InvoicePublicRead
+from app.repositories.tenant_repo import TenantRepo
 from app.repositories.invoice_repo import InvoiceRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.room_repo import RoomRepo
@@ -219,6 +220,7 @@ class InvoiceService:
         self.surcharge_repo = SurchargeRepo(session)
         self.utility_repo = UtilityRepo(session)
         self.shared_meter_repo = SharedMeterRepo(session)
+        self.tenant_repo = TenantRepo(session)
 
     async def _get_invoice_owned(self, invoice_id: int, clerk_user_id: str):
         invoice = await self.invoice_repo.get_by_id(invoice_id)
@@ -281,9 +283,33 @@ class InvoiceService:
             result.append(await self._load_invoice_read(inv))
         return result
 
-    async def get_invoice(self, invoice_id: int, clerk_user_id: str) -> InvoiceRead:
+    async def get_invoice(self, invoice_id: int, clerk_user_id: str) -> InvoiceDetailRead:
         invoice, _ = await self._get_invoice_owned(invoice_id, clerk_user_id)
-        return await self._load_invoice_read(invoice)
+        items = await self.invoice_repo.get_items(invoice.id)
+        contract = await self.contract_repo.get_by_id(invoice.contract_id)
+        room = await self.room_repo.get_by_id(contract.room_id)
+        prop = await self.property_repo.get_by_id(room.property_id)
+        tenant = await self.tenant_repo.get_by_id(contract.tenant_id)
+        reading = await self.utility_repo.get_by_room_period(room.id, invoice.period)
+        return InvoiceDetailRead(
+            id=invoice.id,
+            contract_id=invoice.contract_id,
+            period=invoice.period,
+            total=invoice.total,
+            status=invoice.status,
+            public_token=invoice.public_token,
+            payment_reported_at=invoice.payment_reported_at,
+            items=[InvoiceItemRead.model_validate(i) for i in items],
+            room_id=room.id,
+            room_number=room.room_number,
+            property_name=prop.name,
+            tenant_name=tenant.full_name,
+            tenant_phone=tenant.phone,
+            elec_prev=reading.elec_prev if reading else None,
+            elec_curr=reading.elec_curr if reading else None,
+            water_prev=reading.water_prev if reading else None,
+            water_curr=reading.water_curr if reading else None,
+        )
 
     async def generate(self, data: InvoiceGenerateRequest, clerk_user_id: str) -> InvoiceRead:
         contract = await self.contract_repo.get_by_id(data.contract_id)
