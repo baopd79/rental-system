@@ -212,3 +212,31 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+@layer components {
+  /* ── Primary button ───────────────────────────────────────── */
+  .btn-primary {
+    transition: background-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease;
+  }
+  .btn-primary:hover  { background-color: var(--blue-700) !important; }
+  .btn-primary:active { transform: scale(0.97); }
+
+  /* ── Outline / ghost button ───────────────────────────────── */
+  .btn-outline {
+    transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  }
+  .btn-outline:hover  { background-color: var(--slate-50) !important; }
+  .btn-outline:active { transform: scale(0.97); }
+
+  /* ── Icon button (MoreVertical, Bell, etc.) ───────────────── */
+  .btn-icon {
+    transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  }
+  .btn-icon:hover  { background-color: var(--slate-100) !important; color: var(--slate-700) !important; }
+  .btn-icon:active { transform: scale(0.88); }
+
+  /* ── Clickable table row ──────────────────────────────────── */
+  .tr-row {
+    transition: background-color 0.1s ease;
+  }
+}

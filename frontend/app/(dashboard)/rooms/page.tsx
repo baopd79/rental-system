@@ -147,7 +147,7 @@ export default function RoomsPage() {
                 });
                 return (
                   <tr key={r.id} onClick={() => router.push(`/rooms/${r.id}`)} style={{ cursor: "pointer" }}
-                    className="hover:bg-(--slate-50)">
+                    className="hover:bg-(--slate-50) tr-row">
 
                     {/* Phòng */}
                     <td style={TD()}>

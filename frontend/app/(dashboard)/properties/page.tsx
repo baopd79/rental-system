@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PropertyForm } from "@/components/app/property-form";
 import { PropertyDrawer } from "@/components/app/property-drawer";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
 import { WATER_CALC_LABELS } from "@/types/property";
@@ -86,7 +87,6 @@ export default function PropertiesPage() {
   const [editing, setEditing] = useState<Property | null>(null);
   const [deleting, setDeleting] = useState<Property | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -195,6 +195,7 @@ export default function PropertiesPage() {
         </div>
         <button
           onClick={() => { setEditing(null); setShowForm(true); }}
+          className="btn-primary"
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             height: 36, padding: "0 14px", borderRadius: 8,
@@ -300,7 +301,7 @@ export default function PropertiesPage() {
                     key={p.id}
                     onClick={() => setDrawerProperty(p)}
                     style={{ cursor: "pointer" }}
-                    className="hover:bg-(--slate-50)"
+                    className="hover:bg-(--slate-50) tr-row"
                   >
                     {/* Checkbox */}
                     <td style={{ ...TD(), width: 44, textAlign: "center", padding: "13px 0 13px 16px" }}
@@ -372,36 +373,20 @@ export default function PropertiesPage() {
 
                     {/* Actions */}
                     <td style={{ ...TD(), padding: "13px 12px" }} onClick={e => e.stopPropagation()}>
-                      <div style={{ position: "relative" }}>
-                        <button
-                          onClick={() => setOpenMenu(openMenu === p.id ? null : p.id)}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="btn-icon"
                           style={{ width: 28, height: 28, borderRadius: 6, border: BD, background: "var(--vn-surface)", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--vn-text-3)" }}
                         >
                           <MoreVertical size={14} />
-                        </button>
-                        {openMenu === p.id && (
-                          <div style={{
-                            position: "absolute", right: 0, top: 32, zIndex: 20,
-                            background: "var(--vn-surface)", border: BD,
-                            borderRadius: 8, boxShadow: "var(--sh-md)", minWidth: 148, overflow: "hidden",
-                          }}>
-                            {[
-                              { label: "Xem chi tiết", action: () => { setDrawerProperty(p); setOpenMenu(null); } },
-                              { label: "Chỉnh sửa",    action: () => { setEditing(p); setShowForm(true); setOpenMenu(null); } },
-                              { label: "Xóa",           action: () => { setDeleting(p); setOpenMenu(null); }, danger: true },
-                            ].map(({ label, action, danger }) => (
-                              <button key={label} onClick={action} style={{
-                                display: "flex", alignItems: "center", width: "100%",
-                                padding: "9px 14px", background: "none", border: "none",
-                                fontSize: 13, cursor: "pointer", textAlign: "left",
-                                color: danger ? "var(--red-600)" : "var(--vn-text)",
-                              }}>
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="bottom" align="end">
+                          <DropdownMenuItem onClick={() => setDrawerProperty(p)}>Xem chi tiết</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setEditing(p); setShowForm(true); }}>Chỉnh sửa</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => setDeleting(p)}>Xóa</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );

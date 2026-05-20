@@ -102,7 +102,7 @@ export default function InvoicesPage() {
 
   const actions = (
     <div style={{ display: "flex", gap: "var(--sp-2)" }}>
-      <button onClick={() => setShowBatchPicker(true)} style={{
+      <button onClick={() => setShowBatchPicker(true)} className="btn-outline" style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         height: 36, padding: "0 var(--sp-3)", borderRadius: "var(--r-md)",
         background: "var(--vn-surface)", color: "var(--vn-text-2)",
@@ -111,7 +111,7 @@ export default function InvoicesPage() {
       }}>
         <Layers size={14} /> Tạo hàng loạt
       </button>
-      <button onClick={() => setShowForm(true)} style={{
+      <button onClick={() => setShowForm(true)} className="btn-primary" style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         height: 36, padding: "0 var(--sp-3)", borderRadius: "var(--r-md)",
         background: "var(--blue-600)", color: "#fff",

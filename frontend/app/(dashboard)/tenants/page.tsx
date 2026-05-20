@@ -69,6 +69,7 @@ export default function TenantsPage() {
         fontSize: "var(--text-label)", fontWeight: 600, border: "none", cursor: "pointer",
         boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)",
       }}
+      className="btn-primary"
     >
       <Plus size={14} color="#fff" />
       Thêm khách thuê
@@ -132,7 +133,7 @@ export default function TenantsPage() {
                 <tr
                   key={t.id}
                   onClick={() => setDrawerTenant(t)}
-                  className="hover:bg-(--slate-50)"
+                  className="hover:bg-(--slate-50) tr-row"
                   style={{ cursor: "pointer" }}
                 >
                   <td style={{ padding: "13px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>

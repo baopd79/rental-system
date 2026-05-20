@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { X, Copy, Check, Zap, Droplets, Home, Tag, ExternalLink, AlertTriangle, Share2, User, Building2, DoorOpen, Phone } from "lucide-react";
+import { X, Copy, Check, Zap, Droplets, Home, Tag, ExternalLink, AlertTriangle, Share2, User, Building2, DoorOpen, Phone, Printer } from "lucide-react";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Invoice, InvoiceItem, InvoiceStatus } from "@/types/invoice";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, INVOICE_ITEM_LABELS } from "@/types/invoice";
@@ -430,17 +430,29 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBa
               </div>
 
               {/* Public link */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 14px", borderRadius: 10, background: "var(--blue-50)", border: "1px solid var(--blue-200)", fontSize: 13, color: "var(--blue-700)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-                  <ExternalLink size={13} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontFamily: "var(--font-geist-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    /invoice/public/{invoice.public_token.slice(0, 8)}…
-                  </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "11px 14px", borderRadius: 10, background: "var(--blue-50)", border: "1px solid var(--blue-200)", fontSize: 13, color: "var(--blue-700)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+                    <ExternalLink size={13} style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontFamily: "var(--font-geist-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      /invoice/public/{invoice.public_token.slice(0, 8)}…
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <a
+                      href={`/invoice/public/${invoice.public_token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 12px", borderRadius: 6, background: "#fff", color: "var(--blue-700)", border: "1px solid var(--blue-300)", fontSize: 12.5, fontWeight: 500, textDecoration: "none" }}
+                    >
+                      <Printer size={12} /> In PDF
+                    </a>
+                    <button onClick={handleCopyLink} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 12px", borderRadius: 6, background: copied ? "var(--green-600)" : "#fff", color: copied ? "#fff" : "var(--blue-700)", border: `1px solid ${copied ? "var(--green-600)" : "var(--blue-300)"}`, fontSize: 12.5, cursor: "pointer", fontWeight: 500, transition: "all .15s" }}>
+                      {copied ? <Check size={12} /> : <Copy size={12} />}
+                      {copied ? "Đã copy" : "Copy link"}
+                    </button>
+                  </div>
                 </div>
-                <button onClick={handleCopyLink} style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, height: 28, padding: "0 12px", borderRadius: 6, background: copied ? "var(--green-600)" : "#fff", color: copied ? "#fff" : "var(--blue-700)", border: `1px solid ${copied ? "var(--green-600)" : "var(--blue-300)"}`, fontSize: 12.5, cursor: "pointer", fontWeight: 500, transition: "all .15s" }}>
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
-                  {copied ? "Đã copy" : "Copy link"}
-                </button>
               </div>
             </>
           )}

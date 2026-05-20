@@ -14,6 +14,7 @@ import { RoomForm } from "@/components/app/room-form";
 import { BillingModal } from "@/components/app/billing-modal";
 import { PropertyConfigDrawer } from "@/components/app/property-config-drawer";
 import { PropertyForm } from "@/components/app/property-form";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
 import { WATER_CALC_LABELS } from "@/types/property";
@@ -70,7 +71,6 @@ export default function PropertyDetailPage() {
   const [editingRoom,       setEditingRoom]       = useState<Room | null>(null);
   const [deletingRoom,      setDeletingRoom]      = useState<Room | null>(null);
   const [deleteError,       setDeleteError]       = useState<string | null>(null);
-  const [openMenu,          setOpenMenu]          = useState<number | null>(null);
   const [showBilling,       setShowBilling]       = useState(false);
   const [billingTab,        setBillingTab]        = useState<"readings" | "invoices">("readings");
   const [showConfig,        setShowConfig]        = useState(false);
@@ -155,16 +155,16 @@ export default function PropertyDetailPage() {
           <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>{property.address}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowConfig(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
+          <button onClick={() => setShowConfig(true)} className="btn-outline" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
             <Settings2 size={14} /> Cấu hình
           </button>
-          <button onClick={() => { setBillingTab("readings"); setShowBilling(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
+          <button onClick={() => { setBillingTab("readings"); setShowBilling(true); }} className="btn-outline" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
             <Zap size={14} /> Ghi chỉ số
           </button>
-          <button onClick={() => { setBillingTab("invoices"); setShowBilling(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
+          <button onClick={() => { setBillingTab("invoices"); setShowBilling(true); }} className="btn-outline" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
             <Calculator size={14} /> Tạo hoá đơn
           </button>
-          <button onClick={() => { setEditingRoom(null); setShowRoomForm(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--blue-600)", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)" }}>
+          <button onClick={() => { setEditingRoom(null); setShowRoomForm(true); }} className="btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--blue-600)", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", boxShadow: "0 1px 0 rgba(255,255,255,.18) inset, var(--sh-sm)" }}>
             <Plus size={14} color="#fff" /> Thêm phòng
           </button>
         </div>
@@ -296,7 +296,7 @@ export default function PropertyDetailPage() {
                 const bd = i < filtered.length - 1 ? BD : "none";
                 const TD = (extra?: React.CSSProperties): React.CSSProperties => ({ padding: "11px 14px", borderBottom: bd, verticalAlign: "middle", ...extra });
                 return (
-                  <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/rooms/${r.id}`)} className="hover:bg-(--slate-50)">
+                  <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/rooms/${r.id}`)} className="hover:bg-(--slate-50) tr-row">
 
                     {/* Phòng */}
                     <td style={TD()}>
@@ -356,21 +356,19 @@ export default function PropertyDetailPage() {
 
                     {/* Actions */}
                     <td style={{ ...TD(), width: 40 }} onClick={e => e.stopPropagation()}>
-                      <div style={{ position: "relative" }}>
-                        <button onClick={() => setOpenMenu(openMenu === r.id ? null : r.id)} style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--vn-text-3)" }}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="btn-icon"
+                          style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--vn-text-3)" }}
+                        >
                           <MoreVertical size={14} />
-                        </button>
-                        {openMenu === r.id && (
-                          <div style={{ position: "absolute", right: 0, top: 32, zIndex: 10, background: "var(--vn-surface)", border: BD, borderRadius: 8, boxShadow: "var(--sh-md)", minWidth: 130, overflow: "hidden" }}>
-                            {[
-                              { label: "Chỉnh sửa", action: () => { setEditingRoom(r); setShowRoomForm(true); setOpenMenu(null); } },
-                              { label: "Xóa", action: () => { setDeletingRoom(r); setOpenMenu(null); }, danger: true },
-                            ].map(({ label, action, danger }) => (
-                              <button key={label} onClick={action} style={{ display: "flex", alignItems: "center", width: "100%", padding: "9px 14px", background: "none", border: "none", fontSize: 13, cursor: "pointer", color: danger ? "var(--red-600)" : "var(--vn-text)", textAlign: "left" }}>{label}</button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="bottom" align="end">
+                          <DropdownMenuItem onClick={() => { setEditingRoom(r); setShowRoomForm(true); }}>Chỉnh sửa</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => setDeletingRoom(r)}>Xóa</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );

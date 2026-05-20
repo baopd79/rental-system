@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import {
   Zap, Droplets, Home, Tag, Copy, Check,
   Building2, BedDouble, CircleCheck, Clock, AlertCircle,
-  ChevronDown, ChevronUp, Share2,
+  ChevronDown, ChevronUp, Share2, Printer,
 } from "lucide-react";
 import type { InvoiceItem } from "@/types/invoice";
 
@@ -111,6 +111,15 @@ export default function PublicInvoicePage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function handlePrint() {
+    if (!detailOpen) {
+      setDetailOpen(true);
+      setTimeout(() => window.print(), 100);
+    } else {
+      window.print();
+    }
+  }
+
   // ── Loading ───────────────────────────────────────────────────────
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F8FAFC" }}>
@@ -145,6 +154,16 @@ export default function PublicInvoicePage() {
   const otherItems  = invoice.items.filter(i => i.item_type === "surcharge");
 
   return (
+    <>
+    <style>{`
+      @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        header { position: static !important; box-shadow: none !important; }
+        @page { margin: 0.8cm 1cm; size: A4 portrait; }
+      }
+    `}</style>
     <div style={{ minHeight: "100vh", background: "#F0F4F8", fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
       {/* ── App Header ────────────────────────────────────────────── */}
@@ -161,18 +180,28 @@ export default function PublicInvoicePage() {
           </div>
           <span style={{ fontWeight: 800, fontSize: 15, color: "#0F172A", letterSpacing: "-0.02em" }}>VnRental</span>
         </div>
-        <button onClick={handleCopy} style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          height: 34, padding: "0 14px", borderRadius: 8,
-          background: copied ? "#F0FDF4" : "#F1F5F9",
-          border: `1px solid ${copied ? "#BBF7D0" : "#E2E8F0"}`,
-          color: copied ? "#15803D" : "#475569",
-          fontSize: 13, fontWeight: 500, cursor: "pointer",
-          transition: "all .15s",
-        }}>
-          {copied ? <Check size={13} /> : <Copy size={13} />}
-          {copied ? "Đã sao chép!" : "Sao chép link"}
-        </button>
+        <div className="no-print" style={{ display: "flex", gap: 8 }}>
+          <button onClick={handlePrint} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            height: 34, padding: "0 14px", borderRadius: 8,
+            background: "#F1F5F9", border: "1px solid #E2E8F0",
+            color: "#475569", fontSize: 13, fontWeight: 500, cursor: "pointer",
+          }}>
+            <Printer size={13} /> In / Lưu PDF
+          </button>
+          <button onClick={handleCopy} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            height: 34, padding: "0 14px", borderRadius: 8,
+            background: copied ? "#F0FDF4" : "#F1F5F9",
+            border: `1px solid ${copied ? "#BBF7D0" : "#E2E8F0"}`,
+            color: copied ? "#15803D" : "#475569",
+            fontSize: 13, fontWeight: 500, cursor: "pointer",
+            transition: "all .15s",
+          }}>
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? "Đã sao chép!" : "Sao chép link"}
+          </button>
+        </div>
       </header>
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "28px 16px 48px" }}>
@@ -325,6 +354,7 @@ export default function PublicInvoicePage() {
                         {reportErr}
                       </div>
                     )}
+                    <div className="no-print">
                     <button
                       onClick={handleReportPayment}
                       disabled={reporting}
@@ -345,6 +375,7 @@ export default function PublicInvoicePage() {
                     <div style={{ marginTop: 8, fontSize: 11.5, color: "#94A3B8", textAlign: "center" }}>
                       Chủ nhà sẽ xác nhận sau khi kiểm tra tài khoản
                     </div>
+                  </div>
                   </>
                 )}
               </div>
@@ -386,6 +417,7 @@ export default function PublicInvoicePage() {
         }}>
           {/* Collapsible header */}
           <button
+            className="no-print"
             onClick={() => setDetailOpen(o => !o)}
             style={{
               width: "100%", padding: "16px 22px",
@@ -400,6 +432,10 @@ export default function PublicInvoicePage() {
               {detailOpen ? <ChevronUp size={16} color="#94A3B8" /> : <ChevronDown size={16} color="#94A3B8" />}
             </div>
           </button>
+          {/* Always-visible header for print */}
+          <div className="print-only" style={{ display: "none", padding: "16px 22px", borderBottom: "1px solid #F1F5F9" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>Chi tiết hoá đơn</span>
+          </div>
 
           {detailOpen && (
             <div>
@@ -458,5 +494,6 @@ export default function PublicInvoicePage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

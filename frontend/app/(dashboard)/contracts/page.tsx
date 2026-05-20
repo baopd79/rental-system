@@ -151,7 +151,7 @@ export default function ContractsPage() {
                   <tr
                     key={c.id}
                     onClick={() => setSelected(c)}
-                    className="hover:bg-(--slate-50)"
+                    className="hover:bg-(--slate-50) tr-row"
                     style={{ cursor: "pointer" }}
                   >
                     <td style={{ padding: "12px var(--sp-4)", borderBottom: i < filtered.length - 1 ? "1px solid var(--vn-border)" : "none", verticalAlign: "middle" }}>
