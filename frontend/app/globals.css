@@ -49,17 +49,17 @@
 }
 
 :root {
-  /* ── Brand blues ──────────────────────────────────────────────── */
-  --blue-50:  #EFF6FF;
-  --blue-100: #DBEAFE;
-  --blue-200: #BFDBFE;
-  --blue-300: #93C5FD;
-  --blue-400: #60A5FA;
-  --blue-500: #3B82F6;
-  --blue-600: #2563EB;   /* primary action */
-  --blue-700: #1D4ED8;
-  --blue-800: #1E40AF;
-  --blue-900: #1E3A8A;
+  /* ── Brand blues (Chartwell Blue scale) ──────────────────────── */
+  --blue-50:  #EFF8FF;
+  --blue-100: #DCEDFA;
+  --blue-200: #C1E1F7;   /* Sky Tint */
+  --blue-300: #93CFEE;
+  --blue-400: #5AB8E8;
+  --blue-500: #4AAEE4;
+  --blue-600: #3BA6F1;   /* Chartwell Blue — primary action */
+  --blue-700: #2D94E0;   /* hover */
+  --blue-800: #1E6EB5;
+  --blue-900: #1A5A96;
 
   /* ── Cool slate ───────────────────────────────────────────────── */
   --slate-50:  #F8FAFC;
@@ -91,14 +91,14 @@
   --violet-50:  #F5F3FF;
   --violet-600: #7C3AED;
 
-  /* ── VnRental surfaces ────────────────────────────────────────── */
-  --vn-bg:            #F7F8FA;
-  --vn-surface:       #FFFFFF;
-  --vn-border:        #E5E9F0;
-  --vn-border-strong: #D5DBE5;
-  --vn-text:          #0F172A;
-  --vn-text-2:        #475569;
-  --vn-text-3:        #94A3B8;
+  /* ── VnRental surfaces (Seline warm palette) ─────────────────── */
+  --vn-bg:            #fafaf9;   /* Canvas Fog */
+  --vn-surface:       #ffffff;   /* Cloud White */
+  --vn-border:        #e5e7eb;   /* Stone Border */
+  --vn-border-strong: #d6d3d1;   /* Platinum Outline */
+  --vn-text:          #0c0a09;   /* Slate Text */
+  --vn-text-2:        #78716c;   /* Ash Gray */
+  --vn-text-3:        #a8a29e;   /* Steel Gray */
 
   /* ── Typography scale ─────────────────────────────────────────── */
   --text-xs:      11px;
@@ -107,6 +107,11 @@
   --text-label:   13px;
   --text-heading: 16px;
   --text-display: 22px;
+
+  /* ── Letter-spacing scale ────────────────────────────────────── */
+  --tracking-sm: -0.017em;   /* small headings (20px) */
+  --tracking-md: -0.021em;   /* medium headings (32px) */
+  --tracking-lg: -0.025em;   /* large display (52px+) */
 
   /* ── Spacing scale (multiples of 4) ──────────────────────────── */
   --sp-1: 4px;
@@ -123,12 +128,12 @@
   --r-md: 8px;
   --r-lg: 12px;
 
-  /* ── Shadows ──────────────────────────────────────────────────── */
-  --sh-xs:  0 1px 2px rgba(15,23,42,.06);
-  --sh-sm:  0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.05);
-  --sh-md:  0 4px 12px rgba(15,23,42,.10), 0 2px 4px rgba(15,23,42,.06);
-  --sh-lg:  0 10px 24px rgba(15,23,42,.12), 0 4px 8px rgba(15,23,42,.07);
-  --sh-pop: 0 24px 48px -12px rgba(15,23,42,.25), 0 8px 16px rgba(15,23,42,.12);
+  /* ── Shadows (Seline diffused model) ─────────────────────────── */
+  --sh-xs:  rgba(0,0,0,0.05) 0px 1px 2px 0px;
+  --sh-sm:  rgba(0,0,0,0.1) 0px 4px 6px -1px, rgba(0,0,0,0.1) 0px 2px 4px -2px;
+  --sh-md:  rgba(0,0,0,0.05) 0px 4px 16px 0px;
+  --sh-lg:  rgba(0,0,0,0.08) 0px 8px 24px 0px;
+  --sh-pop: rgba(17,12,46,0.12) 0px 12px 45px 0px;
 
   /* ── shadcn tokens (original oklch — do not change) ──────────── */
   --background: oklch(0.988 0.003 247);
@@ -218,7 +223,7 @@
   .btn-primary {
     transition: background-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease;
   }
-  .btn-primary:hover  { background-color: var(--blue-700) !important; }
+  .btn-primary:hover  { background-color: var(--blue-700) !important; box-shadow: 0 4px 12px rgba(59,166,241,.4) !important; }
   .btn-primary:active { transform: scale(0.97); }
 
   /* ── Outline / ghost button ───────────────────────────────── */
