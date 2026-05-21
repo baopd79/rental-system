@@ -820,13 +820,33 @@ Defer sang sau Phase 6 Invoice. Invoice MVP không tính điện chung. Sẽ imp
 | 2. Rooms | T2.1–T2.3 | S+M+M | ✅ Done |
 | 3. Tenants & Contracts | T3.1–T3.3 | S+L+L | ✅ Done |
 | 4. Utility Readings | T4.1–T4.3 | S+M+M | ✅ Done |
-| 5. Surcharges | T5.1 | M | ✅ Done |
-| 6. Invoices | T6.1–T6.5 | S+M+M+M+L | 🔜 Next |
-| 7. Public Invoice + SharedMeter | T7.1–T7.2 | M+M | — |
-| 8. Dashboard | T8.1–T8.2 | M+M | — |
-| 9. Tests | T9.1–T9.3 | S+S+M | — |
+| 5. Surcharges + SharedMeter | T5.1–T5.2 | M+L | ✅ Done |
+| 6. Invoices | T6.1–T6.5 | S+M+M+M+L | ✅ Done |
+| 7. Public Invoice + Billing Batch | T7.1–T7.3 | M+M+L | ✅ Done |
+| 8. Dashboard | T8.1–T8.2 | M+M | ✅ Done |
+| — | Landing page | S | ✅ Done |
+| 9. Tests | T9.1–T9.4 | S+S+M+S | 🔲 Next |
 
-**Tiến độ: Phase 0–5 hoàn thành. Phase 6 (Invoice) là next.**
+**Tiến độ: Phase 0–8 + Landing page hoàn thành. Phase 9 (Tests) là next.**
+
+---
+
+## Deviations từ Plan gốc
+
+| Item | Plan gốc | Thực tế |
+|------|----------|---------|
+| PDF | WeasyPrint server-side | CSS `@media print` + `window.print()` |
+| SharedMeter | Defer sang Phase 7 | Triển khai cùng Phase 5 |
+| Pro-rata | Không tính | `_prorate_factor` đã triển khai cho rent, surcharge, water flat |
+| Invoice requires reading | Không bắt buộc | Bắt buộc có `UtilityReading` trước khi generate |
+| Payment flow | Status tự chuyển | Two-phase: tenant báo → `payment_reported_at`; chủ nhà confirm thủ công |
+| `BillingService` | Không có trong plan | Batch operations: readings + preview + generate cho cả property |
+| `ContractEvent` | Không có trong plan | Log sự kiện hợp đồng (created, rent_changed, people_changed, ended) |
+| `contract_id` on UtilityReading | Không có trong plan | FK để cách ly tenant trong reading chain |
+| Dashboard chart | Recharts | Inline bar chart không cần thư viện |
+| Frontend data fetching | TanStack Query | useState/useEffect thuần |
+| Frontend forms | zod + react-hook-form | State thuần |
+| Routing `/` | Dashboard | Landing page; Dashboard tại `/dashboard` |
 
 ---
 
