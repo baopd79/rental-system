@@ -17,6 +17,7 @@ from app.repositories.utility_repo import UtilityRepo
 from app.repositories.shared_meter_repo import SharedMeterRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.invoice_repo import InvoiceRepo
+from app.repositories.room_repo import RoomRepo
 from app.services.invoice_service import InvoiceService, _build_items, _build_shared_elec_items, _prorate_factor, _round
 from app.services.utility_service import _prev_period, _next_period
 from app.core.exceptions import ForbiddenException, NotFoundException, BadRequestException, ConflictException
@@ -32,6 +33,7 @@ class BillingService:
         self.shared_meter_repo = SharedMeterRepo(session)
         self.contract_repo = ContractRepo(session)
         self.invoice_repo = InvoiceRepo(session)
+        self.room_repo = RoomRepo(session)
         self.invoice_service = InvoiceService(session)
 
     async def _get_property_owned(self, property_id: int, clerk_user_id: str):
@@ -171,6 +173,11 @@ class BillingService:
     ) -> list[RoomBillingStatus]:
         prop = await self._get_property_owned(property_id, clerk_user_id)
 
+        valid_room_ids = {r.id for r in await self.room_repo.get_all_by_property(property_id)}
+        for item in data.readings:
+            if item.room_id not in valid_room_ids:
+                raise ForbiddenException()
+
         next_period = _next_period(data.period)
         for item in data.readings:
             # Block editing period N if period N+1 already has a reading.
@@ -279,11 +286,17 @@ class BillingService:
         self, property_id: int, data: BatchInvoiceRequest, clerk_user_id: str
     ) -> BatchInvoiceResult:
         await self._get_property_owned(property_id, clerk_user_id)
+
+        active_contracts = await self.contract_repo.get_active_by_property(property_id)
+        valid_contract_ids = {info["id"] for info in active_contracts.values()}
+
         created = 0
         skipped = 0
         errors: list[str] = []
 
         for contract_id in data.contract_ids:
+            if contract_id not in valid_contract_ids:
+                raise ForbiddenException()
             try:
                 await self.invoice_service.generate(
                     InvoiceGenerateRequest(contract_id=contract_id, period=data.period),
