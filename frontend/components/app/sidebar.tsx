@@ -25,7 +25,7 @@ const buildNav = (counts: { properties: number; rooms: number; unpaid: number })
   {
     heading: "Tổng quan",
     items: [
-      { href: "/",           label: "Dashboard",         icon: LayoutDashboard },
+      { href: "/dashboard",  label: "Dashboard",         icon: LayoutDashboard },
     ],
   },
   {
@@ -104,7 +104,7 @@ export function Sidebar() {
 
   const groups = buildNav(counts);
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
   const displayName = user?.fullName || user?.firstName || "Tài khoản";
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
