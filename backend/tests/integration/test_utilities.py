@@ -212,3 +212,37 @@ async def test_delete_non_latest_reading_returns_409():
             headers=auth_headers(USER_A),
         )
     assert r.status_code == 409
+
+
+# --- Cross-user isolation ---
+
+USER_B = "user_utility_b"
+
+
+@pytest.mark.asyncio
+async def test_post_reading_to_other_user_room_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop = await create_property(client)
+        room = await create_room(client, prop["id"])
+
+        token = jwt.encode({"sub": USER_B}, key="test", algorithm="HS256")
+        r = await client.post(
+            "/api/v1/utility-readings",
+            json={"room_id": room["id"], "period": "2026-05", "elec_curr": "500"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_readings_for_other_user_room_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop = await create_property(client)
+        room = await create_room(client, prop["id"])
+
+        token = jwt.encode({"sub": USER_B}, key="test", algorithm="HS256")
+        r = await client.get(
+            f"/api/v1/rooms/{room['id']}/utility-readings",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert r.status_code == 403

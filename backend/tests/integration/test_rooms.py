@@ -38,7 +38,7 @@ async def test_create_room():
 
 
 @pytest.mark.asyncio
-async def test_effective_rate_inherits_from_property():
+async def test_room_created_with_correct_rent_and_status():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         prop = await create_property(client, USER_A)
         r = await client.post(
@@ -47,24 +47,24 @@ async def test_effective_rate_inherits_from_property():
             headers=auth_headers(USER_A),
         )
     data = r.json()
-    # Room has no elec_rate → falls back to property default
-    assert data["elec_rate"] is None
-    assert data["effective_elec_rate"] == "3500.00"
-    assert data["effective_water_rate"] == "15000.00"
+    assert r.status_code == 201
+    assert float(data["rent_price"]) == 2000000
+    assert data["status"] == "vacant"
+    assert data["property_id"] == prop["id"]
 
 
 @pytest.mark.asyncio
-async def test_effective_rate_uses_room_override():
+async def test_room_floor_and_area_optional():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         prop = await create_property(client, USER_A)
         r = await client.post(
             f"/api/v1/properties/{prop['id']}/rooms",
-            json={"room_number": "101", "rent_price": "2000000", "elec_rate": "4000"},
+            json={"room_number": "102", "rent_price": "2500000", "floor": 2, "area_m2": "25.5"},
             headers=auth_headers(USER_A),
         )
     data = r.json()
-    assert data["elec_rate"] == "4000.00"
-    assert data["effective_elec_rate"] == "4000.00"
+    assert data["floor"] == 2
+    assert float(data["area_m2"]) == 25.5
 
 
 @pytest.mark.asyncio

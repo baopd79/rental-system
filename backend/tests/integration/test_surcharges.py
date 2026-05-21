@@ -137,3 +137,30 @@ async def test_delete_surcharge_by_non_owner_returns_403():
 
         r = await client.delete(f"/api/v1/surcharges/{surcharge['id']}", headers=auth_headers(USER_B))
     assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_post_surcharge_to_other_user_property_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop = await create_property(client, USER_A)
+
+        r = await client.post(
+            f"/api/v1/properties/{prop['id']}/surcharges",
+            json={"name": "Hack", "calc_type": "per_room", "amount": "999"},
+            headers=auth_headers(USER_B),
+        )
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_update_surcharge_by_non_owner_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prop = await create_property(client, USER_A)
+        surcharge = await create_surcharge(client, USER_A, prop["id"])
+
+        r = await client.put(
+            f"/api/v1/surcharges/{surcharge['id']}",
+            json={"name": "Hacked"},
+            headers=auth_headers(USER_B),
+        )
+    assert r.status_code == 403
