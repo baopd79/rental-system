@@ -23,7 +23,7 @@ class InvoiceRepo:
 
     async def get_public_context(self, token: str) -> dict | None:
         """Fetch invoice + room/property/tenant context for public view. No sensitive fields."""
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT i.id, i.contract_id, i.period, i.total, i.status, i.public_token,
                    r.room_number, p.name AS property_name,
                    t.full_name AS tenant_name,
@@ -34,13 +34,13 @@ class InvoiceRepo:
             JOIN property p ON p.id = r.property_id
             JOIN tenant t ON t.id = c.tenant_id
             WHERE i.public_token = :token
-        """), {"token": token})
+        """), params={"token": token})
         row = result.mappings().first()
         return dict(row) if row else None
 
     async def get_all_by_user(self, clerk_user_id: str) -> list[dict]:
         """Return invoices with room/tenant context for list views."""
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT i.id, i.contract_id, i.period, i.total, i.status, i.public_token,
                    i.payment_reported_at,
                    r.id AS room_id, r.room_number,
@@ -53,11 +53,11 @@ class InvoiceRepo:
             JOIN tenant t ON t.id = c.tenant_id
             WHERE p.clerk_user_id = :uid
             ORDER BY i.period DESC, i.id DESC
-        """), {"uid": clerk_user_id})
+        """), params={"uid": clerk_user_id})
         return [dict(row._mapping) for row in result]
 
     async def get_all_by_room(self, room_id: int) -> list[dict]:
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT i.id, i.contract_id, i.period, i.total, i.status, i.public_token,
                    i.payment_reported_at,
                    r.id AS room_id, r.room_number,
@@ -70,7 +70,7 @@ class InvoiceRepo:
             JOIN tenant t ON t.id = c.tenant_id
             WHERE r.id = :room_id
             ORDER BY i.period DESC, i.id DESC
-        """), {"room_id": room_id})
+        """), params={"room_id": room_id})
         return [dict(row) for row in result.mappings().all()]
 
     async def get_unpaid_by_contract(self, contract_id: int) -> list[Invoice]:

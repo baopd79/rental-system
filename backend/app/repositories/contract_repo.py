@@ -10,14 +10,14 @@ class ContractRepo:
 
     async def get_active_by_property(self, property_id: int) -> dict[int, dict]:
         """Return {room_id: contract+tenant info} for all active contracts in a property."""
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT c.id, c.room_id, c.agreed_rent, c.start_date, c.end_date, c.num_people,
                    t.full_name AS tenant_name
             FROM contract c
             JOIN tenant t ON t.id = c.tenant_id
             JOIN room r ON r.id = c.room_id
             WHERE r.property_id = :property_id AND c.status = 'active'
-        """), {"property_id": property_id})
+        """), params={"property_id": property_id})
         return {row["room_id"]: dict(row) for row in result.mappings().all()}
 
     async def get_active_by_room(self, room_id: int) -> Contract | None:
@@ -43,7 +43,7 @@ class ContractRepo:
         return contract
 
     async def get_all_by_user(self, clerk_user_id: str) -> list[dict]:
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT c.id, c.status, c.start_date, c.end_date,
                    c.agreed_rent, c.deposit, c.num_people,
                    c.tenant_id, t.full_name AS tenant_name, t.phone AS tenant_phone,
@@ -54,11 +54,11 @@ class ContractRepo:
             JOIN property p ON p.id = r.property_id
             WHERE p.clerk_user_id = :clerk_user_id
             ORDER BY c.start_date DESC
-        """), {"clerk_user_id": clerk_user_id})
+        """), params={"clerk_user_id": clerk_user_id})
         return [dict(row) for row in result.mappings().all()]
 
     async def get_all_by_tenant(self, tenant_id: int) -> list[dict]:
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT c.id, c.room_id, c.tenant_id, c.start_date, c.end_date,
                    c.agreed_rent, c.deposit, c.num_people, c.status,
                    r.room_number, p.name AS property_name, p.id AS property_id
@@ -67,7 +67,7 @@ class ContractRepo:
             JOIN property p ON p.id = r.property_id
             WHERE c.tenant_id = :tenant_id
             ORDER BY c.start_date DESC
-        """), {"tenant_id": tenant_id})
+        """), params={"tenant_id": tenant_id})
         return [dict(row) for row in result.mappings().all()]
 
     async def update(self, contract: Contract) -> Contract:

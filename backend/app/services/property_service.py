@@ -21,7 +21,7 @@ class PropertyService:
     async def get_stats(self, clerk_user_id: str) -> list[dict]:
         today = date.today()
         period = f"{today.year}-{str(today.month).zfill(2)}"
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT
                 p.id,
                 COUNT(r.id)                                          AS total_rooms,
@@ -40,7 +40,7 @@ class PropertyService:
             WHERE p.clerk_user_id = :uid
             GROUP BY p.id
             ORDER BY p.id
-        """), {"uid": clerk_user_id, "period": period})
+        """), params={"uid": clerk_user_id, "period": period})
         return [
             {
                 "id": row.id,

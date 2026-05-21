@@ -21,7 +21,8 @@ class BillingRepo:
         Readings for month M feed invoices for month M+1 — ended contracts have no future invoices.
         next_reading_locked = True when period N+1 already has a reading saved, meaning N cannot be edited.
         """
-        result = await self.session.execute(text("""
+        result = await self.session.exec(
+            text("""
             SELECT
                 r.id          AS room_id,
                 r.room_number,
@@ -56,17 +57,27 @@ class BillingRepo:
             LEFT JOIN invoice i ON i.contract_id = c.id AND i.period = :period
             WHERE r.property_id = :property_id
             ORDER BY r.room_number
-        """), {"property_id": property_id, "period": period, "prev_period": prev_period, "next_period": next_period})
+        """),
+            params={
+                "property_id": property_id,
+                "period": period,
+                "prev_period": prev_period,
+                "next_period": next_period,
+            },
+        )
         return [dict(row) for row in result.mappings().all()]
 
-    async def get_invoice_preview_data(self, property_id: int, period: str) -> list[dict]:
+    async def get_invoice_preview_data(
+        self, property_id: int, period: str
+    ) -> list[dict]:
         """Invoice-generation view: active + recently-ended contracts.
         For rows with an existing invoice, stored invoice_item amounts are included
         so the preview shows the actual invoice figures rather than re-calculating
         from current rates (which may have changed since the invoice was created).
         """
         period_start, period_end = _period_bounds(period)
-        result = await self.session.execute(text("""
+        result = await self.session.exec(
+            text("""
             SELECT
                 r.id          AS room_id,
                 r.room_number,
@@ -116,10 +127,12 @@ class BillingRepo:
             ) ii ON ii.invoice_id = i.id
             WHERE r.property_id = :property_id
             ORDER BY r.room_number
-        """), {
-            "property_id": property_id,
-            "period": period,
-            "period_start": period_start,
-            "period_end": period_end,
-        })
+        """),
+            params={
+                "property_id": property_id,
+                "period": period,
+                "period_start": period_start,
+                "period_end": period_end,
+            },
+        )
         return [dict(row) for row in result.mappings().all()]

@@ -10,13 +10,13 @@ class TenantRepo:
 
     async def get_by_property(self, property_id: int, clerk_user_id: str) -> list[Tenant]:
         """Tenants who have had any contract in this property."""
-        result = await self.session.execute(text("""
+        result = await self.session.exec(text("""
             SELECT DISTINCT t.* FROM tenant t
             JOIN contract c ON c.tenant_id = t.id
             JOIN room r ON r.id = c.room_id
             WHERE r.property_id = :property_id AND t.clerk_user_id = :uid
             ORDER BY t.full_name
-        """), {"property_id": property_id, "uid": clerk_user_id})
+        """), params={"property_id": property_id, "uid": clerk_user_id})
         rows = result.mappings().all()
         return [Tenant(**dict(row)) for row in rows]
 
