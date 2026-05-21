@@ -16,8 +16,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add shared_elec to invoiceitemtype enum
-    op.execute("ALTER TYPE invoiceitemtype ADD VALUE IF NOT EXISTS 'shared_elec'")
+    # ALTER TYPE ... ADD VALUE cannot run inside a transaction block.
+    # autocommit_block() commits the current transaction, runs the statement
+    # outside any transaction, then opens a new transaction for the remaining DDL.
+    with op.get_context().autocommit_block():
+        op.execute(sa.text("ALTER TYPE invoiceitemtype ADD VALUE IF NOT EXISTS 'shared_elec'"))
 
     op.create_table(
         "shared_meter",
