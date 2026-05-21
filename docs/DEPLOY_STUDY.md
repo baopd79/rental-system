@@ -277,7 +277,165 @@ Render free tier tắt container sau 15 phút idle → request đầu tiên mấ
 
 ---
 
-## 10. Câu hỏi ôn tập
+## 10. CI/CD với GitHub Actions
+
+### CI vs CD
+
+| | CI (Continuous Integration) | CD (Continuous Deployment) |
+|--|----------------------------|---------------------------|
+| **Là gì** | Tự động chạy test khi có code mới | Tự động deploy khi code merge vào main |
+| **Chạy khi nào** | Mỗi push / mỗi PR | Sau khi merge vào main |
+| **Mục đích** | Phát hiện lỗi sớm | Đưa code lên production nhanh |
+| **Setup ở đâu** | `.github/workflows/ci.yml` | Vercel + Render tự làm |
+
+**Hiểu đúng thứ tự:**
+
+```
+Developer push lên feature-branch
+           │
+           ▼
+    GitHub nhận code
+    ┌──────┴──────────────────┐
+    │                         │
+    ▼                         ▼
+GitHub Actions (CI)      Chờ merge
+chạy test
+    │
+✅ pass → cho phép merge
+❌ fail → block merge
+           │
+           ▼ (sau khi merge vào main)
+    Vercel + Render auto-deploy (CD)
+```
+
+> CI không chạy trước push — CI chạy sau push, trên server của GitHub.
+
+### File ci.yml
+
+```yaml
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:                        # Job 1: chạy pytest
+    services:
+      postgres:                   # Tạo DB tạm thời cho test
+        image: postgres:16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run alembic upgrade head   # migrate test DB
+      - run: uv run pytest -v
+
+  frontend:                       # Job 2: build TypeScript
+    steps:
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install
+      - run: pnpm build
+```
+
+**2 jobs chạy song song** → tổng thời gian = job nào chậm hơn (không cộng lại).
+
+### GitHub Secrets
+
+Secrets là env vars nhạy cảm lưu trên GitHub, inject vào CI lúc chạy — không lộ trong code:
+
+```yaml
+env:
+  CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}  # lấy từ GitHub Secrets
+```
+
+Thêm tại: **Repo → Settings → Secrets and variables → Actions**.
+
+---
+
+## 11. GitHub Flow — PR Workflow
+
+### Tại sao không push thẳng vào main?
+
+Push thẳng vào `main` → Vercel + Render deploy ngay → nếu code lỗi thì production bị vỡ.
+
+### Branch Protection
+
+Bật tại **Repo → Settings → Branches → Add ruleset**:
+- ✅ Require a pull request before merging
+- ✅ Require status checks to pass → thêm `Backend Tests`, `Frontend Build`
+
+Kết quả: GitHub **chặn merge** vào `main` nếu CI chưa pass.
+
+### Workflow hàng ngày
+
+```bash
+# 1. Tạo branch mới từ main
+git checkout -b feat/ten-tinh-nang
+
+# 2. Code, commit
+git add .
+git commit -m "feat: mô tả thay đổi"
+
+# 3. Push branch lên GitHub
+git push origin feat/ten-tinh-nang
+
+# 4. Mở Pull Request trên GitHub
+#    → CI tự chạy → pass → merge → Vercel/Render deploy
+
+# 5. Sync local sau khi merge
+git checkout main
+git pull origin main
+git branch -d feat/ten-tinh-nang   # xóa branch local
+```
+
+### 3 kiểu merge PR
+
+| Option | Kết quả | Dùng khi |
+|--------|---------|---------|
+| **Create a merge commit** | Giữ tất cả commits + thêm merge commit | Team lớn, cần traceability |
+| **Squash and merge** ← khuyên dùng | Gộp tất cả thành 1 commit | Branch có commit lộn xộn, muốn history gọn |
+| **Rebase and merge** | Đặt commits lên đầu main, không merge commit | Muốn history thẳng tắp |
+
+---
+
+## 12. Git — Divergent Branches
+
+### Khi nào xảy ra?
+
+Khi local `main` và remote `main` có commits khác nhau — thường xảy ra sau khi squash merge PR (squash tạo commit mới với hash khác).
+
+```
+Local main:  A → B → C
+Remote main: A → B → D   (D là squash commit của C)
+→ Diverged!
+```
+
+### Cách fix
+
+```bash
+# Khi thay đổi đã có trên remote (qua PR) → reset local về remote
+git reset --hard origin/main
+
+# Khi muốn giữ local commits, đặt lên trên remote
+git pull --rebase origin main
+```
+
+**`git reset --hard`** — hủy toàn bộ local changes, khớp hoàn toàn với remote. Dùng khi chắc chắn không mất gì quan trọng.
+
+---
+
+## 13. Lỗi đã gặp (bổ sung)
+
+| Lỗi | Nguyên nhân | Fix |
+|-----|-------------|-----|
+| `ERROR packages field missing or empty` (pnpm CI) | `pnpm-workspace.yaml` tồn tại nhưng không có field `packages` → pnpm hiểu nhầm là workspace mode | Thêm `packages: ['.']` vào `pnpm-workspace.yaml` |
+| `fatal: Need to specify how to reconcile divergent branches` | Local và remote `main` có commit history khác nhau | `git reset --hard origin/main` |
+
+---
+
+## 14. Câu hỏi ôn tập
 
 ### Docker
 1. Dockerfile là gì? Tại sao Render cần file này?
@@ -290,10 +448,17 @@ Render free tier tắt container sau 15 phút idle → request đầu tiên mấ
 6. Tại sao không hardcode `DATABASE_URL` trực tiếp trong code?
 7. Biến `NEXT_PUBLIC_API_URL` và `CLERK_SECRET_KEY` — cái nào có thể đọc từ browser? Tại sao?
 8. Khi thêm env var mới trên Vercel, cần làm thêm bước gì để app nhận giá trị mới?
+phải deploy lại frontend để build-time env vars được cập nhật.
 
 ### CORS
 9. CORS là gì? Khi nào browser kích hoạt cơ chế này?
+?
+CORS (Cross-Origin Resource Sharing) là cơ chế bảo mật của browser, chặn request từ domain A gọi sang domain B nếu backend không cho phép. CORS được kích hoạt khi frontend và backend ở domain khác nhau (cross-origin).
+
 10. Nếu quên update `CORS_ORIGINS` sau khi đổi domain Vercel, điều gì xảy ra?
+?
+Nếu quên update `CORS_ORIGINS` trên backend Render sau khi đổi domain Vercel, frontend sẽ bị browser chặn khi gọi API → app không hoạt động được, thường thấy lỗi CORS trong console.
+
 11. Tại sao không nên dùng `allow_origins=["*"]` trong production?
 
 ### Database & SSL
@@ -310,3 +475,22 @@ Render free tier tắt container sau 15 phút idle → request đầu tiên mấ
 18. Giải thích tại sao Dockerfile viết cho Render có thể dùng lại trên VPS mà không cần sửa.
 19. App đang dùng Clerk test keys. Để chuyển sang production keys cần làm những bước nào?
 20. Cold start là gì? Nó ảnh hưởng như thế nào đến trải nghiệm người dùng trên Render free tier?
+
+### CI/CD
+21. CI chạy trước hay sau khi push code lên GitHub? Tại sao?
+22. Sự khác nhau giữa CI và CD là gì? Trong project này cái nào tự setup sẵn, cái nào phải tự làm?
+23. GitHub Secrets là gì? Tại sao không đặt `CLERK_SECRET_KEY` trực tiếp trong file `ci.yml`?
+24. Tại sao cần PostgreSQL service container trong CI job backend? Không dùng Neon production DB được không?
+25. 2 jobs `backend` và `frontend` trong CI chạy tuần tự hay song song? Điều đó ảnh hưởng gì đến tốc độ?
+
+### GitHub Flow & PR
+26. Tại sao không nên push thẳng vào `main` sau khi bật Branch Protection?
+27. Branch Protection "Require status checks to pass" có tác dụng gì?
+28. Giải thích sự khác nhau giữa 3 kiểu merge: merge commit, squash, rebase.
+29. Khi nào nên dùng `Squash and merge`? Lợi ích so với merge commit thông thường?
+30. Sau khi merge PR và xóa branch trên GitHub, cần làm gì ở local để đồng bộ?
+
+### Git
+31. "Divergent branches" nghĩa là gì? Trong project này nó xảy ra do đâu?
+32. `git reset --hard origin/main` làm gì? Khi nào nên dùng lệnh này?
+33. Sự khác nhau giữa `git pull --rebase` và `git pull --no-rebase` (merge)?
