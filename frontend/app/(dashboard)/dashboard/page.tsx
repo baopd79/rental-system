@@ -242,10 +242,10 @@ export default function DashboardPage() {
     : null;
 
   return (
-    <div style={{ padding: "var(--sp-5) var(--sp-6)", maxWidth: 1600 }}>
+    <div className="page-pad" style={{ maxWidth: 1600 }}>
       <PageHeader title="Dashboard" description="Tổng quan hệ thống quản lý nhà trọ." />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
+      <div className="grid-kpi" style={{ marginBottom: "var(--sp-5)" }}>
         <KpiCard
           label="Phòng đang cho thuê"
           value={summary ? `${summary.rooms.occupied} / ${summary.rooms.total}` : "—"}
@@ -284,7 +284,7 @@ export default function DashboardPage() {
         <RevenueChart revenue={revenue} loading={loading} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--sp-3)" }}>
+      <div className="grid-2col">
         <ExpiringList items={summary?.expiring_contracts ?? []} loading={loading} />
         <UnpaidList items={summary?.unpaid_invoice_list ?? []} loading={loading} onOpen={setDrawerInvoiceId} />
       </div>

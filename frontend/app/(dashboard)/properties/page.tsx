@@ -159,13 +159,13 @@ export default function PropertiesPage() {
   }
 
   if (loading) return (
-    <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>
+    <div className="page-pad" style={{ color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>
   );
 
   const allSelected = paged.length > 0 && selected.size === paged.length;
 
   return (
-    <div style={{ padding: "20px 24px" }}>
+    <div className="page-pad">
 
       {/* Toast */}
       {toast && (

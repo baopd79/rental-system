@@ -77,7 +77,7 @@ export default function TenantsPage() {
   );
 
   return (
-    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
+    <div className="page-pad">
       <PageHeader title="Khách thuê" description={`${tenants.length} khách thuê`} action={addBtn} />
 
       <div style={{ marginBottom: "var(--sp-4)" }}>

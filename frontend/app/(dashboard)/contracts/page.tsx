@@ -58,7 +58,7 @@ export default function ContractsPage() {
   const endedCount  = contracts.filter((c) => c.status === "ended").length;
 
   return (
-    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
+    <div className="page-pad">
       <PageHeader
         title="Hợp đồng"
         description={loading ? "Đang tải..." : `${activeCount} đang thuê · ${endedCount} đã kết thúc`}

@@ -72,7 +72,7 @@ export default function RoomsPage() {
   if (loading) return <div style={{ padding: "var(--sp-6)", color: "var(--vn-text-3)", fontSize: "var(--text-body)" }}>Đang tải...</div>;
 
   return (
-    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
+    <div className="page-pad">
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "var(--sp-5)" }}>

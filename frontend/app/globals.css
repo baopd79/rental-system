@@ -244,4 +244,37 @@
   .tr-row {
     transition: background-color 0.1s ease;
   }
+
+  /* ── Responsive grid helpers ──────────────────────────────── */
+  .grid-kpi {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-3);
+  }
+  .grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+  }
+  .page-pad {
+    padding: var(--sp-5) var(--sp-6);
+  }
+}
+
+/* ── Mobile breakpoint (< 768px) ─────────────────────────────── */
+@media (max-width: 767px) {
+  .grid-kpi {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-2col {
+    grid-template-columns: 1fr;
+  }
+  .page-pad {
+    padding: var(--sp-4);
+  }
+
+  /* Drawers: full width on mobile */
+  .vn-drawer {
+    width: 100vw !important;
+  }
 }

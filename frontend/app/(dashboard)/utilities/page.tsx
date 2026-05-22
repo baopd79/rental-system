@@ -48,10 +48,10 @@ export default function UtilitiesPage() {
   const [y, m] = period.split("-");
   const periodLabel = `Tháng ${Number(m)}/${y}`;
 
-  if (loading) return <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>;
+  if (loading) return <div className="page-pad" style={{ color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>;
 
   return (
-    <div style={{ padding: "20px 24px" }}>
+    <div className="page-pad">
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 12, color: "var(--vn-text-3)", marginBottom: 4 }}>Tài chính › Chỉ số Điện/Nước</div>

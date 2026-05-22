@@ -255,7 +255,7 @@ export function InvoiceGenerateDrawer({ open, onClose, onInvoiceCreated }: Props
       />
 
       {/* Panel */}
-      <div style={{
+      <div className="vn-drawer" style={{
         position: "fixed", top: 0, right: 0, bottom: 0, width: 480,
         zIndex: 401,
         background: "var(--vn-surface)",
