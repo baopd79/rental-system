@@ -153,7 +153,7 @@ async def test_post_surcharge_to_other_user_property_returns_403():
 
 
 @pytest.mark.asyncio
-async def test_update_surcharge_by_non_owner_returns_403():
+async def test_update_surcharge_by_non_owner_returns_403_put():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])

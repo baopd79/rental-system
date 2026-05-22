@@ -75,7 +75,7 @@ class RoomService:
         return _build_read(room)
 
     async def create_room(self, property_id: int, data: RoomCreate, clerk_user_id: str) -> RoomRead:
-        prop = await self._get_property_owned(property_id, clerk_user_id)
+        await self._get_property_owned(property_id, clerk_user_id)
         room = Room(**data.model_dump(), property_id=property_id)
         try:
             created = await self.room_repo.create(room)

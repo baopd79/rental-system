@@ -35,6 +35,10 @@ jobs:
         working-directory: backend
         run: uv sync --frozen
 
+      - name: Lint
+        working-directory: backend
+        run: uv run ruff check .
+
       - name: Run migrations
         working-directory: backend
         run: uv run alembic upgrade head

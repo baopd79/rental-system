@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import AppException
+from app.routers import auth, properties, rooms, tenants, contracts, utilities, surcharges, invoices, billing, dashboard, shared_meters
 
 
 @asynccontextmanager
@@ -26,8 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-from app.routers import auth, properties, rooms, tenants, contracts, utilities, surcharges, invoices, billing, dashboard, shared_meters
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(properties.router, prefix="/api/v1")
