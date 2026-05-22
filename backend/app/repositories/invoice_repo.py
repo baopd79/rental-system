@@ -25,7 +25,7 @@ class InvoiceRepo:
             select(Invoice.contract_id, Invoice.status)
             .where(Invoice.contract_id.in_(contract_ids), Invoice.period == period)
         )
-        return {row[0]: str(row[1]) for row in result.all()}
+        return {row[0]: row[1].value for row in result.all()}
 
     async def get_by_public_token(self, token: str) -> Invoice | None:
         result = await self.session.exec(select(Invoice).where(Invoice.public_token == token))

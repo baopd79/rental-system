@@ -356,6 +356,7 @@ export default function PropertyDetailPage() {
                     <td style={TD()}>
                       {r.current_invoice_status ? (() => {
                         const sc = INVOICE_STATUS_COLORS[r.current_invoice_status as InvoiceStatus];
+                        if (!sc) return <span style={{ color: "var(--vn-text-3)", fontSize: 12 }}>—</span>;
                         return (
                           <span style={{
                             display: "inline-flex", alignItems: "center", gap: 4,
