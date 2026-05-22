@@ -181,7 +181,7 @@ export default function PropertyDetailPage() {
           { label: "Tổng",      value: counts.all,         color: "var(--vn-text)",   bg: "transparent" },
           { label: "Đang thuê", value: counts.occupied,    color: "var(--blue-600)",  bg: "var(--blue-50)" },
           { label: "Trống",     value: counts.vacant,      color: "var(--amber-600)", bg: "var(--amber-50)" },
-          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-700)", bg: "var(--amber-200)" },
+          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-700)", bg: "var(--amber-50)" },
         ] as const).map(({ label, value, color, bg }, i, arr) => (
           <div key={label} style={{
             flex: 1, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10,
@@ -219,10 +219,10 @@ export default function PropertyDetailPage() {
 
         {/* Surcharges */}
         {surcharges.map(sc => (
-          <span key={sc.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--violet-600)", background: "var(--violet-50)", border: "1px solid #ede9fe", padding: "3px 9px", borderRadius: 999 }}>
+          <span key={sc.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--vn-text-2)", background: "var(--vn-surface)", border: BD, padding: "3px 9px", borderRadius: 999 }}>
             <Tag size={10} />
             <span style={{ fontVariantNumeric: "tabular-nums" }}>{sc.name}: {fmtMoney(sc.amount)}</span>
-            <span style={{ fontSize: 11, color: "var(--violet-600)", opacity: 0.7 }}>
+            <span style={{ fontSize: 11, color: "var(--vn-text-3)" }}>
               /{sc.calc_type === "per_room" ? "phòng" : "người"}
             </span>
           </span>

@@ -216,6 +216,9 @@
     @apply font-sans;
     -webkit-font-smoothing: antialiased;
   }
+  input, textarea, select, button {
+    font-family: inherit;
+  }
 }
 
 @layer components {
@@ -239,6 +242,13 @@
   }
   .btn-icon:hover  { background-color: var(--slate-100) !important; color: var(--slate-700) !important; }
   .btn-icon:active { transform: scale(0.88); }
+
+  /* ── Add room dashed button ───────────────────────────────── */
+  .add-room-btn:hover {
+    background-color: var(--slate-50) !important;
+    color: var(--vn-text) !important;
+    border-color: var(--slate-300) !important;
+  }
 
   /* ── Clickable table row ──────────────────────────────────── */
   .tr-row {
@@ -300,6 +310,11 @@
   }
   .page-header-row .header-actions {
     flex-wrap: wrap;
+  }
+
+  /* Room grid in property form: 3col → 1col */
+  .room-grid {
+    grid-template-columns: 1fr !important;
   }
 
   /* Table: horizontal scroll */
