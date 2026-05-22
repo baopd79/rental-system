@@ -277,4 +277,51 @@
   .vn-drawer {
     width: 100vw !important;
   }
+
+  /* Filter bar: wrap to two rows on mobile */
+  .filter-bar {
+    flex-wrap: wrap;
+  }
+  .filter-bar .filter-search {
+    width: 100% !important;
+    order: -1;
+  }
+  .filter-bar .filter-count {
+    margin-left: 0 !important;
+    width: 100%;
+    order: 99;
+  }
+
+  /* Page header: stack title + actions vertically */
+  .page-header-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: var(--sp-3) !important;
+  }
+  .page-header-row .header-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Table: horizontal scroll */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Stat strip: 2x2 on mobile */
+  .stat-strip {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat-strip > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--vn-border);
+  }
+  .stat-strip > div:nth-child(odd) {
+    border-right: 1px solid var(--vn-border) !important;
+  }
+  .stat-strip > div:last-child,
+  .stat-strip > div:nth-last-child(2):nth-child(odd) {
+    border-bottom: none !important;
+  }
 }
