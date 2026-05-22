@@ -16,10 +16,16 @@ const FIELD: React.CSSProperties = {
   border: "1px solid var(--vn-border)", borderRadius: 7,
   fontSize: 13, color: "var(--vn-text)",
   background: "var(--vn-surface)", outline: "none",
-  boxSizing: "border-box",
+  boxSizing: "border-box", fontFamily: "inherit",
 };
 
 const BD = "1px solid var(--vn-border)";
+
+function fmtNum(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("vi-VN");
+}
 
 // ── inline form (add / edit inside drawer) ─────────────────────────
 function InlineForm({
@@ -33,17 +39,18 @@ function InlineForm({
   const { getToken } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name:      editing?.name ?? "",
-    calc_type: (editing?.calc_type ?? "per_room") as SurchargeCalcType,
-    amount:    editing ? String(editing.amount) : "",
-  });
+  const [name, setName]           = useState(editing?.name ?? "");
+  const [calcType, setCalcType]   = useState<SurchargeCalcType>(editing?.calc_type ?? "per_room");
+  const [amountDisplay, setAmountDisplay] = useState(
+    editing ? fmtNum(String(editing.amount)) : ""
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setError(null);
     try {
-      const body = { name: form.name, calc_type: form.calc_type, amount: Number(form.amount) };
+      const rawAmount = Number(amountDisplay.replace(/\D/g, "") || "0");
+      const body = { name, calc_type: calcType, amount: rawAmount };
       const result = editing
         ? await apiJson<Surcharge>(`/surcharges/${editing.id}`, getToken, { method: "PUT", body })
         : await apiJson<Surcharge>(`/properties/${propertyId}/surcharges`, getToken, { method: "POST", body });
@@ -58,27 +65,27 @@ function InlineForm({
       background: "var(--slate-50)", border: BD, borderRadius: 8,
       padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10,
     }}>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 118px", gap: 8, minWidth: 0 }}>
         <input
-          required autoFocus value={form.name}
-          onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+          required autoFocus value={name}
+          onChange={e => setName(e.target.value)}
           placeholder="Tên phụ phí"
-          style={{ ...FIELD, flex: 1 }}
+          style={{ ...FIELD, width: "100%", minWidth: 0 }}
+        />
+        <input
+          required inputMode="numeric" value={amountDisplay}
+          onChange={e => setAmountDisplay(fmtNum(e.target.value))}
+          placeholder="100.000"
+          style={{ ...FIELD, width: "100%", minWidth: 0, fontVariantNumeric: "tabular-nums" }}
         />
         <select
-          value={form.calc_type}
-          onChange={e => setForm(p => ({ ...p, calc_type: e.target.value as SurchargeCalcType }))}
-          style={{ ...FIELD, width: 120, cursor: "pointer" }}
+          value={calcType}
+          onChange={e => setCalcType(e.target.value as SurchargeCalcType)}
+          style={{ ...FIELD, width: "100%", minWidth: 0, cursor: "pointer" }}
         >
           <option value="per_room">Theo phòng</option>
           <option value="per_person">Theo người</option>
         </select>
-        <input
-          required type="number" min={0} value={form.amount}
-          onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
-          placeholder="Số tiền ₫"
-          style={{ ...FIELD, width: 110, fontVariantNumeric: "tabular-nums" }}
-        />
       </div>
       {error && <p style={{ fontSize: 12, color: "var(--red-600)", margin: 0 }}>{error}</p>}
       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
@@ -105,19 +112,17 @@ function DialogForm({
   const { getToken } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name:      editing?.name ?? "",
-    calc_type: (editing?.calc_type ?? "per_room") as SurchargeCalcType,
-    amount:    editing ? String(editing.amount) : "",
-  });
+  const [dName,        setDName]        = useState(editing?.name ?? "");
+  const [dCalcType,    setDCalcType]    = useState<SurchargeCalcType>(editing?.calc_type ?? "per_room");
+  const [dAmountDisp,  setDAmountDisp]  = useState(editing ? fmtNum(String(editing.amount)) : "");
 
-  const FIELD_LG: React.CSSProperties = { width: "100%", height: 36, padding: "0 10px", border: BD, borderRadius: 8, fontSize: 13.5, color: "var(--vn-text)", background: "var(--vn-surface)", outline: "none", boxSizing: "border-box" };
+  const FIELD_LG: React.CSSProperties = { width: "100%", height: 36, padding: "0 10px", border: BD, borderRadius: 8, fontSize: 13.5, color: "var(--vn-text)", background: "var(--vn-surface)", outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
   const LBL: React.CSSProperties = { fontSize: 12.5, fontWeight: 500, color: "var(--vn-text-2)", marginBottom: 5, display: "block" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setError(null);
     try {
-      const body = { name: form.name, calc_type: form.calc_type, amount: Number(form.amount) };
+      const body = { name: dName, calc_type: dCalcType, amount: Number(dAmountDisp.replace(/\D/g, "") || "0") };
       const result = editing
         ? await apiJson<Surcharge>(`/surcharges/${editing.id}`, getToken, { method: "PUT", body })
         : await apiJson<Surcharge>(`/properties/${propertyId}/surcharges`, getToken, { method: "POST", body });
@@ -128,10 +133,10 @@ function DialogForm({
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div><label style={LBL}>Tên phụ phí *</label><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={FIELD_LG} placeholder="VD: Phí wifi, Phí rác" /></div>
+      <div><label style={LBL}>Tên phụ phí *</label><input required value={dName} onChange={e => setDName(e.target.value)} style={FIELD_LG} placeholder="VD: Phí wifi, Phí rác" /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div><label style={LBL}>Cách tính *</label><select value={form.calc_type} onChange={e => setForm(p => ({ ...p, calc_type: e.target.value as SurchargeCalcType }))} style={{ ...FIELD_LG, cursor: "pointer" }}><option value="per_room">Theo phòng</option><option value="per_person">Theo người</option></select></div>
-        <div><label style={LBL}>Số tiền (₫) *</label><input required type="number" min={0} value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} style={FIELD_LG} placeholder="100000" /></div>
+        <div><label style={LBL}>Cách tính *</label><select value={dCalcType} onChange={e => setDCalcType(e.target.value as SurchargeCalcType)} style={{ ...FIELD_LG, cursor: "pointer" }}><option value="per_room">Theo phòng</option><option value="per_person">Theo người</option></select></div>
+        <div><label style={LBL}>Số tiền (₫) *</label><input required inputMode="numeric" value={dAmountDisp} onChange={e => setDAmountDisp(fmtNum(e.target.value))} style={{ ...FIELD_LG, fontVariantNumeric: "tabular-nums" }} placeholder="300.000" /></div>
       </div>
       {error && <p style={{ fontSize: 13, color: "var(--red-600)", margin: 0 }}>{error}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
