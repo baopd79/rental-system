@@ -19,6 +19,7 @@ import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
 import { WATER_CALC_LABELS } from "@/types/property";
 import type { Room } from "@/types/room";
+import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, type InvoiceStatus } from "@/types/invoice";
 import type { Surcharge } from "@/types/surcharge";
 import type { SharedMeter } from "@/types/shared-meter";
 
@@ -139,7 +140,7 @@ export default function PropertyDetailPage() {
   const filtered = statusFilter === "all" ? rooms : rooms.filter(r => r.status === statusFilter);
 
   return (
-    <div style={{ padding: "20px 24px" }}>
+    <div className="page-pad">
 
       {/* Breadcrumb */}
       <button onClick={() => router.push("/properties")} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--vn-text-3)", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 12 }}>
@@ -147,14 +148,14 @@ export default function PropertyDetailPage() {
       </button>
 
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+      <div className="page-header-row" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em", color: "var(--vn-text)", margin: 0 }}>
             {property.name}
           </h1>
           <p style={{ fontSize: 13, color: "var(--vn-text-3)", marginTop: 3 }}>{property.address}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="header-actions" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
           <button onClick={() => setShowConfig(true)} className="btn-outline" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 14px", borderRadius: 8, background: "var(--vn-surface)", color: "var(--vn-text-2)", fontSize: 13, fontWeight: 500, border: BD, cursor: "pointer" }}>
             <Settings2 size={14} /> Cấu hình
           </button>
@@ -171,7 +172,7 @@ export default function PropertyDetailPage() {
       </div>
 
       {/* ── Compact stat strip ──────────────────────────────────── */}
-      <div style={{
+      <div className="stat-strip" style={{
         display: "flex", alignItems: "center",
         background: "var(--vn-surface)", border: BD, borderRadius: 10,
         marginBottom: 10, overflow: "hidden", boxShadow: "var(--sh-xs)",
@@ -179,8 +180,8 @@ export default function PropertyDetailPage() {
         {([
           { label: "Tổng",      value: counts.all,         color: "var(--vn-text)",   bg: "transparent" },
           { label: "Đang thuê", value: counts.occupied,    color: "var(--blue-600)",  bg: "var(--blue-50)" },
-          { label: "Trống",     value: counts.vacant,      color: "var(--green-600)", bg: "var(--green-50)" },
-          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-600)", bg: "var(--amber-50)" },
+          { label: "Trống",     value: counts.vacant,      color: "var(--amber-600)", bg: "var(--amber-50)" },
+          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-700)", bg: "var(--amber-200)" },
         ] as const).map(({ label, value, color, bg }, i, arr) => (
           <div key={label} style={{
             flex: 1, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10,
@@ -233,8 +234,8 @@ export default function PropertyDetailPage() {
       </div>
 
       {/* ── Filter bar ──────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 1 }}>
+      <div className="filter-bar" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
           {(Object.keys(STATUS_FILTER_LABELS) as StatusFilter[]).map((s, i, arr) => (
             <button key={s} onClick={() => setStatusFilter(s)} style={{
               height: 32, padding: "0 12px", border: BD, cursor: "pointer",
@@ -258,12 +259,12 @@ export default function PropertyDetailPage() {
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", height: 32, background: "var(--vn-surface)", border: BD, borderRadius: 7, padding: "0 10px", gap: 6, boxShadow: "var(--sh-xs)" }}>
+        <div className="filter-search" style={{ display: "flex", alignItems: "center", height: 32, background: "var(--vn-surface)", border: BD, borderRadius: 7, padding: "0 10px", gap: 6, boxShadow: "var(--sh-xs)" }}>
           <Search size={12} color="var(--vn-text-3)" />
           <span style={{ fontSize: 12.5, color: "var(--vn-text-3)" }}>Tìm phòng…</span>
         </div>
 
-        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--vn-text-3)" }}>
+        <span className="filter-count" style={{ marginLeft: "auto", fontSize: 12, color: "var(--vn-text-3)" }}>
           {filtered.length} phòng
         </span>
       </div>
@@ -280,11 +281,11 @@ export default function PropertyDetailPage() {
           {statusFilter === "all" && <div style={{ fontSize: 13, color: "var(--vn-text-3)" }}>Thêm phòng đầu tiên.</div>}
         </div>
       ) : (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, boxShadow: "var(--sh-xs)" }}>
+        <div className="table-scroll" style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, boxShadow: "var(--sh-xs)" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>
-                {["Phòng", "Loại", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Trạng thái", ""].map((h, idx, arr) => (
+                {["Phòng", "Loại", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Hóa đơn", "Trạng thái", ""].map((h, idx, arr) => (
                   <th key={h} style={{ textAlign: "left", padding: "10px 14px", font: "600 11px var(--font-geist-sans)", color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase" as const, background: "var(--slate-50)", borderBottom: BD, whiteSpace: "nowrap" as const, ...(idx === 0 ? { borderTopLeftRadius: 12 } : idx === arr.length - 1 ? { borderTopRightRadius: 12 } : {}) }}>{h}</th>
                 ))}
               </tr>
@@ -349,6 +350,26 @@ export default function PropertyDetailPage() {
                     {/* Số người */}
                     <td style={TD({ color: "var(--vn-text-2)", textAlign: "center" })}>
                       {c ? c.num_people : <span style={{ color: "var(--vn-text-3)" }}>—</span>}
+                    </td>
+
+                    {/* Hóa đơn tháng này */}
+                    <td style={TD()}>
+                      {r.current_invoice_status ? (() => {
+                        const sc = INVOICE_STATUS_COLORS[r.current_invoice_status as InvoiceStatus];
+                        if (!sc) return <span style={{ color: "var(--vn-text-3)", fontSize: 12 }}>—</span>;
+                        return (
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            height: 20, padding: "0 8px", borderRadius: 999,
+                            fontSize: 11, fontWeight: 500,
+                            background: sc.bg, color: sc.fg,
+                            whiteSpace: "nowrap" as const,
+                          }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.dot }} />
+                            {INVOICE_STATUS_LABELS[r.current_invoice_status as InvoiceStatus]}
+                          </span>
+                        );
+                      })() : <span style={{ color: "var(--vn-text-3)", fontSize: 12 }}>—</span>}
                     </td>
 
                     {/* Trạng thái */}

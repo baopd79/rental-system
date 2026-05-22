@@ -224,7 +224,7 @@ export function InvoiceDrawer({ invoiceId, onClose, onUpdate, onDelete, zIndexBa
       />
 
       {/* Drawer panel */}
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 520, zIndex: zIndexBase + 1, background: "var(--vn-bg, #fff)", boxShadow: "-8px 0 40px rgba(0,0,0,0.12)", transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="vn-drawer" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 520, zIndex: zIndexBase + 1, background: "var(--vn-bg, #fff)", boxShadow: "-8px 0 40px rgba(0,0,0,0.12)", transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
         <div style={{ padding: "16px 20px", borderBottom: BD, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>

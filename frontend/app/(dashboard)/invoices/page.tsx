@@ -131,11 +131,11 @@ export default function InvoicesPage() {
   );
 
   return (
-    <div style={{ padding: "var(--sp-5) var(--sp-6)" }}>
+    <div className="page-pad">
       <PageHeader title="Hóa đơn" description={`${invoices.length} hóa đơn`} action={actions} />
 
       {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--sp-3)", marginBottom: "var(--sp-4)" }}>
+      <div className="grid-kpi" style={{ marginBottom: "var(--sp-4)" }}>
         <KpiCard label={`Tổng HĐ · ${kpiLabel}`} value={String(kpi.total)}   sub={fmtMoney(kpi.totalAmt)}  />
         <KpiCard label="Đã thanh toán"            value={String(kpi.paid)}    sub={fmtMoney(kpi.paidAmt)}   valueColor="var(--green-600)" />
         <KpiCard label="Chưa thanh toán"           value={String(kpi.unpaid)}  sub={fmtMoney(kpi.unpaidAmt)} valueColor="var(--blue-600)" />

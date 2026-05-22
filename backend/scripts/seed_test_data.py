@@ -23,7 +23,6 @@ sys.path.insert(0, ".")
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel
 
 from app.core.config import settings
 from app.models.property import Property, WaterCalcType

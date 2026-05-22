@@ -1,4 +1,3 @@
-from decimal import Decimal
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.utility import UtilityReading
 from app.models.property import WaterCalcType

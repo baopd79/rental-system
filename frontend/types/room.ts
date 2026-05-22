@@ -19,6 +19,7 @@ export interface Room {
   deposit: string;
   status: RoomStatus;
   active_contract: ActiveContractInfo | null;
+  current_invoice_status: string | null;
 }
 
 export interface RoomCreate {

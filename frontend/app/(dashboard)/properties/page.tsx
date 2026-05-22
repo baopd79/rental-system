@@ -159,13 +159,13 @@ export default function PropertiesPage() {
   }
 
   if (loading) return (
-    <div style={{ padding: 24, color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>
+    <div className="page-pad" style={{ color: "var(--vn-text-3)", fontSize: 13 }}>Đang tải...</div>
   );
 
   const allSelected = paged.length > 0 && selected.size === paged.length;
 
   return (
-    <div style={{ padding: "20px 24px" }}>
+    <div className="page-pad">
 
       {/* Toast */}
       {toast && (
@@ -210,9 +210,9 @@ export default function PropertiesPage() {
       </div>
 
       {/* Filter bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+      <div className="filter-bar" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         {/* Search */}
-        <div style={{
+        <div className="filter-search" style={{
           display: "flex", alignItems: "center", height: 34,
           background: "var(--vn-surface)", border: BD,
           borderRadius: 7, padding: "0 11px", width: 260, gap: 7,
@@ -227,8 +227,8 @@ export default function PropertiesPage() {
         </div>
 
         {/* Sort */}
-        <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {([ ["name", "Tên A-Z"], ["revenue", "Doanh thu cao nhất"], ["occupancy", "Lấp đầy cao nhất"] ] as [SortKey, string][]).map(([key, label]) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+          {([ ["name", "Tên A-Z"], ["revenue", "Doanh thu"], ["occupancy", "Lấp đầy"] ] as [SortKey, string][]).map(([key, label]) => (
             <button key={key} onClick={() => setSort(key)} style={{
               height: 34, padding: "0 12px", border: BD, cursor: "pointer",
               borderRadius: key === "name" ? "7px 0 0 7px" : key === "occupancy" ? "0 7px 7px 0" : "0",
@@ -245,7 +245,7 @@ export default function PropertiesPage() {
         </div>
 
         {/* Total count */}
-        <div style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--vn-text-3)", fontVariantNumeric: "tabular-nums" }}>
+        <div className="filter-count" style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--vn-text-3)", fontVariantNumeric: "tabular-nums" }}>
           Tổng <strong style={{ color: "var(--vn-text-2)" }}>{filtered.length} nhà</strong>
           {totalRooms > 0 && <> · <strong style={{ color: "var(--vn-text-2)" }}>{totalRooms} phòng</strong></>}
         </div>
@@ -268,7 +268,7 @@ export default function PropertiesPage() {
           </div>
         </div>
       ) : (
-        <div style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, boxShadow: "var(--sh-xs)" }}>
+        <div className="table-scroll" style={{ background: "var(--vn-surface)", border: BD, borderRadius: 12, boxShadow: "var(--sh-xs)" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>

@@ -1,3 +1,4 @@
+from datetime import date
 from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.room import Room
@@ -5,6 +6,7 @@ from app.schemas.room import ActiveContractInfo, RoomCreate, RoomRead, RoomUpdat
 from app.repositories.room_repo import RoomRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.contract_repo import ContractRepo
+from app.repositories.invoice_repo import InvoiceRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 
@@ -18,6 +20,7 @@ class RoomService:
         self.room_repo = RoomRepo(session)
         self.property_repo = PropertyRepo(session)
         self.contract_repo = ContractRepo(session)
+        self.invoice_repo = InvoiceRepo(session)
 
     async def _get_property_owned(self, property_id: int, clerk_user_id: str):
         prop = await self.property_repo.get_by_id(property_id)
@@ -40,6 +43,16 @@ class RoomService:
         await self._get_property_owned(property_id, clerk_user_id)
         rooms = await self.room_repo.get_all_by_property(property_id)
         active = await self.contract_repo.get_active_by_property(property_id)
+
+        current_period = date.today().strftime("%Y-%m")
+        contract_ids = [c["id"] for c in active.values()]
+        invoice_status_map = await self.invoice_repo.get_status_by_contracts(contract_ids, current_period)
+        room_invoice: dict[int, str] = {
+            room_id: invoice_status_map[c["id"]]
+            for room_id, c in active.items()
+            if c["id"] in invoice_status_map
+        }
+
         result = []
         for r in rooms:
             read = _build_read(r)
@@ -53,6 +66,7 @@ class RoomService:
                     end_date=c["end_date"],
                     num_people=c["num_people"],
                 )
+            read.current_invoice_status = room_invoice.get(r.id)
             result.append(read)
         return result
 
@@ -61,7 +75,7 @@ class RoomService:
         return _build_read(room)
 
     async def create_room(self, property_id: int, data: RoomCreate, clerk_user_id: str) -> RoomRead:
-        prop = await self._get_property_owned(property_id, clerk_user_id)
+        await self._get_property_owned(property_id, clerk_user_id)
         room = Room(**data.model_dump(), property_id=property_id)
         try:
             created = await self.room_repo.create(room)

@@ -10,7 +10,13 @@ import {
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
 import type { DashboardSummary } from "@/types/dashboard";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
 
 // ── types ─────────────────────────────────────────────────────────
 interface NavItem {
@@ -84,12 +90,13 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────
-export function Sidebar() {
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
 
+  const isMobile = useIsMobile();
   const [counts, setCounts] = useState({ properties: 0, rooms: 0, unpaid: 0 });
 
   useEffect(() => {
@@ -111,13 +118,35 @@ export function Sidebar() {
   const initials = displayName.split(" ").slice(-2).map((w: string) => w[0]).join("").toUpperCase();
 
   return (
-    <aside style={{
-      width: 240,
-      background: "var(--vn-surface)",
-      borderRight: "1px solid var(--vn-border)",
-      display: "flex", flexDirection: "column", flexShrink: 0,
-      height: "100vh", position: "sticky", top: 0,
-    }}>
+    <>
+      {/* Mobile overlay backdrop */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={onMobileClose}
+          style={{
+            position: "fixed", inset: 0, zIndex: 40,
+            background: "rgba(0,0,0,0.35)",
+          }}
+        />
+      )}
+      <aside style={{
+        width: 240,
+        background: "var(--vn-surface)",
+        borderRight: "1px solid var(--vn-border)",
+        display: "flex", flexDirection: "column", flexShrink: 0,
+        height: "100vh",
+        ...(isMobile ? {
+          position: "fixed" as const,
+          top: 0, left: 0, zIndex: 50,
+          transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s ease",
+          boxShadow: mobileOpen ? "var(--sh-pop)" : "none",
+        } : {
+          position: "sticky" as const,
+          top: 0,
+        }),
+      }}
+    >
 
       {/* Logo */}
       <div style={{ padding: "16px 16px 10px", display: "flex", alignItems: "center", gap: 9 }}>
@@ -214,5 +243,6 @@ export function Sidebar() {
         </DropdownMenu>
       </div>
     </aside>
+    </>
   );
 }
