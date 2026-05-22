@@ -1,4 +1,3 @@
-import pytest
 from app.services.utility_service import _prev_period
 
 

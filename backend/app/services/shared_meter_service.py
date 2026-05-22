@@ -9,7 +9,7 @@ from app.repositories.property_repo import PropertyRepo
 from app.repositories.room_repo import RoomRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.invoice_repo import InvoiceRepo
-from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
+from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 
 
 def _prev_period(period: str) -> str:
