@@ -1,9 +1,9 @@
 import type { RoomStatus } from "@/types/room";
 
 const CONFIG: Record<RoomStatus, { label: string; bg: string; color: string }> = {
-  vacant:      { label: "Đang trống",  bg: "var(--green-50)",  color: "var(--green-700)" },
+  vacant:      { label: "Đang trống",  bg: "var(--amber-50)",  color: "var(--amber-700)" },
   occupied:    { label: "Đang thuê",   bg: "var(--blue-50)",   color: "var(--blue-700)" },
-  maintenance: { label: "Bảo trì",     bg: "var(--amber-50)",  color: "var(--amber-700)" },
+  maintenance: { label: "Bảo trì",     bg: "var(--amber-200)", color: "var(--amber-700)" },
 };
 
 export function RoomStatusBadge({ status }: { status: RoomStatus }) {

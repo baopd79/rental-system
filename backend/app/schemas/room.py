@@ -40,5 +40,6 @@ class RoomRead(BaseModel):
     deposit: Decimal
     status: RoomStatus
     active_contract: ActiveContractInfo | None = None
+    current_invoice_status: str | None = None
 
     model_config = {"from_attributes": True}

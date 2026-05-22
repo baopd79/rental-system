@@ -19,6 +19,7 @@ import { apiJson, apiFetch } from "@/lib/api";
 import type { Property } from "@/types/property";
 import { WATER_CALC_LABELS } from "@/types/property";
 import type { Room } from "@/types/room";
+import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, type InvoiceStatus } from "@/types/invoice";
 import type { Surcharge } from "@/types/surcharge";
 import type { SharedMeter } from "@/types/shared-meter";
 
@@ -179,8 +180,8 @@ export default function PropertyDetailPage() {
         {([
           { label: "Tổng",      value: counts.all,         color: "var(--vn-text)",   bg: "transparent" },
           { label: "Đang thuê", value: counts.occupied,    color: "var(--blue-600)",  bg: "var(--blue-50)" },
-          { label: "Trống",     value: counts.vacant,      color: "var(--green-600)", bg: "var(--green-50)" },
-          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-600)", bg: "var(--amber-50)" },
+          { label: "Trống",     value: counts.vacant,      color: "var(--amber-600)", bg: "var(--amber-50)" },
+          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-700)", bg: "var(--amber-200)" },
         ] as const).map(({ label, value, color, bg }, i, arr) => (
           <div key={label} style={{
             flex: 1, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10,
@@ -284,7 +285,7 @@ export default function PropertyDetailPage() {
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5 }}>
             <thead>
               <tr>
-                {["Phòng", "Loại", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Trạng thái", ""].map((h, idx, arr) => (
+                {["Phòng", "Loại", "Giá thuê", "Người thuê", "HĐ còn lại", "Số người", "Hóa đơn", "Trạng thái", ""].map((h, idx, arr) => (
                   <th key={h} style={{ textAlign: "left", padding: "10px 14px", font: "600 11px var(--font-geist-sans)", color: "var(--vn-text-3)", letterSpacing: "0.04em", textTransform: "uppercase" as const, background: "var(--slate-50)", borderBottom: BD, whiteSpace: "nowrap" as const, ...(idx === 0 ? { borderTopLeftRadius: 12 } : idx === arr.length - 1 ? { borderTopRightRadius: 12 } : {}) }}>{h}</th>
                 ))}
               </tr>
@@ -349,6 +350,25 @@ export default function PropertyDetailPage() {
                     {/* Số người */}
                     <td style={TD({ color: "var(--vn-text-2)", textAlign: "center" })}>
                       {c ? c.num_people : <span style={{ color: "var(--vn-text-3)" }}>—</span>}
+                    </td>
+
+                    {/* Hóa đơn tháng này */}
+                    <td style={TD()}>
+                      {r.current_invoice_status ? (() => {
+                        const sc = INVOICE_STATUS_COLORS[r.current_invoice_status as InvoiceStatus];
+                        return (
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            height: 20, padding: "0 8px", borderRadius: 999,
+                            fontSize: 11, fontWeight: 500,
+                            background: sc.bg, color: sc.fg,
+                            whiteSpace: "nowrap" as const,
+                          }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.dot }} />
+                            {INVOICE_STATUS_LABELS[r.current_invoice_status as InvoiceStatus]}
+                          </span>
+                        );
+                      })() : <span style={{ color: "var(--vn-text-3)", fontSize: 12 }}>—</span>}
                     </td>
 
                     {/* Trạng thái */}

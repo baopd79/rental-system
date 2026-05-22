@@ -17,6 +17,16 @@ class InvoiceRepo:
         )
         return result.first()
 
+    async def get_status_by_contracts(self, contract_ids: list[int], period: str) -> dict[int, str]:
+        """Return {contract_id: status} for given contract_ids and period."""
+        if not contract_ids:
+            return {}
+        result = await self.session.exec(
+            select(Invoice.contract_id, Invoice.status)
+            .where(Invoice.contract_id.in_(contract_ids), Invoice.period == period)
+        )
+        return {row[0]: str(row[1]) for row in result.all()}
+
     async def get_by_public_token(self, token: str) -> Invoice | None:
         result = await self.session.exec(select(Invoice).where(Invoice.public_token == token))
         return result.first()
