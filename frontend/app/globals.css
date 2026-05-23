@@ -338,6 +338,7 @@
     grid-template-columns: 1fr !important;
   }
 
+
   /* Table: horizontal scroll */
   .table-scroll {
     overflow-x: auto;

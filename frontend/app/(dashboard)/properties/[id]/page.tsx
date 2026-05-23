@@ -181,7 +181,7 @@ export default function PropertyDetailPage() {
           { label: "Tổng",      value: counts.all,         color: "var(--vn-text)",   bg: "transparent" },
           { label: "Đang thuê", value: counts.occupied,    color: "var(--blue-600)",  bg: "var(--blue-50)" },
           { label: "Trống",     value: counts.vacant,      color: "var(--amber-600)", bg: "var(--amber-50)" },
-          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-700)", bg: "var(--amber-50)" },
+          { label: "Bảo trì",   value: counts.maintenance, color: "var(--amber-700)", bg: "var(--amber-200)" },
         ] as const).map(({ label, value, color, bg }, i, arr) => (
           <div key={label} style={{
             flex: 1, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10,
