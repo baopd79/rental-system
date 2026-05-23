@@ -8,11 +8,15 @@ class RoomRepo:
         self.session = session
 
     async def count_by_property(self, property_id: int) -> int:
-        result = await self.session.exec(select(func.count()).where(Room.property_id == property_id))
+        result = await self.session.exec(
+            select(func.count()).where(Room.property_id == property_id)
+        )
         return result.one()
 
     async def get_all_by_property(self, property_id: int) -> list[Room]:
-        result = await self.session.exec(select(Room).where(Room.property_id == property_id))
+        result = await self.session.exec(
+            select(Room).where(Room.property_id == property_id)
+        )
         return list(result.all())
 
     async def get_by_id(self, room_id: int) -> Room | None:

@@ -5,12 +5,13 @@ Revises: 055f20ea142d
 Create Date: 2026-05-19
 
 """
+
 from typing import Union, Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = 'a7b8c9d0e1f2'
-down_revision: Union[str, Sequence[str], None] = '055f20ea142d'
+revision: str = "a7b8c9d0e1f2"
+down_revision: Union[str, Sequence[str], None] = "055f20ea142d"
 branch_labels = None
 depends_on = None
 
@@ -19,7 +20,13 @@ def upgrade() -> None:
     # Add contract_id to utility_reading
     op.add_column(
         "utility_reading",
-        sa.Column("contract_id", sa.Integer(), sa.ForeignKey("contract.id"), nullable=True, index=True),
+        sa.Column(
+            "contract_id",
+            sa.Integer(),
+            sa.ForeignKey("contract.id"),
+            nullable=True,
+            index=True,
+        ),
     )
 
     # Backfill: link each reading to the contract that was active during that month.
@@ -41,7 +48,13 @@ def upgrade() -> None:
     op.create_table(
         "contract_event",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("contract_id", sa.Integer(), sa.ForeignKey("contract.id"), nullable=False, index=True),
+        sa.Column(
+            "contract_id",
+            sa.Integer(),
+            sa.ForeignKey("contract.id"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("event_type", sa.String(30), nullable=False),
         sa.Column("old_value", sa.String(200), nullable=True),
         sa.Column("new_value", sa.String(200), nullable=True),

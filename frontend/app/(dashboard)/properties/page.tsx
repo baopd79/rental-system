@@ -32,13 +32,13 @@ const ACCENT = [
 
 const fmtMoney = (n: number) => {
   if (n === 0) return "—";
-  if (n >= 1_000_000) return (n / 1_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 1 }) + "tr₫";
   return n.toLocaleString("vi-VN") + "₫";
 };
-const fmtRate = (n: number | string) => {
-  const v = Number(n);
-  if (v >= 1000) return (v / 1000).toLocaleString("vi-VN") + "k";
-  return v.toLocaleString("vi-VN");
+const fmtRate = (n: number | string) =>
+  Number(n).toLocaleString("vi-VN");
+const fmtPeriod = (period: string) => {
+  const [y, m] = period.split("-");
+  return `T${parseInt(m)}/${y}`;
 };
 
 const BD = "1px solid var(--vn-border)";
@@ -51,14 +51,27 @@ const TH_STYLE: React.CSSProperties = {
 };
 
 // ── Occupancy bar ─────────────────────────────────────────────────
+function occupancyColor(pct: number) {
+  if (pct >= 100) return "var(--green-600)";
+  if (pct >= 75)  return "var(--green-600)";
+  if (pct >= 50)  return "var(--blue-600)";
+  if (pct >= 25)  return "var(--amber-600)";
+  return "var(--red-600)";
+}
+
 function OccupancyCell({ occupied, total }: { occupied: number; total: number }) {
   const pct = total > 0 ? (occupied / total) * 100 : 0;
-  const color = pct >= 80 ? "var(--green-600)" : pct >= 50 ? "var(--blue-600)" : "var(--amber-600)";
+  const color = occupancyColor(pct);
   return (
-    <div style={{ minWidth: 120 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 5 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>{occupied}</span>
-        <span style={{ fontSize: 12, color: "var(--vn-text-3)" }}>/ {total} phòng</span>
+    <div style={{ minWidth: 130 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 5 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--vn-text)", fontVariantNumeric: "tabular-nums" }}>{occupied}</span>
+          <span style={{ fontSize: 12, color: "var(--vn-text-3)" }}>/ {total} phòng</span>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 600, color, fontVariantNumeric: "tabular-nums" }}>
+          {total > 0 ? Math.round(pct) : 0}%
+        </span>
       </div>
       <div style={{ height: 5, borderRadius: 99, background: "var(--slate-100)", overflow: "hidden" }}>
         <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: color, transition: "width .4s ease" }} />
@@ -279,8 +292,8 @@ export default function PropertiesPage() {
                 </th>
                 <th style={{ ...TH_STYLE }}>Tên nhà</th>
                 <th style={{ ...TH_STYLE }}>Phòng / Lấp đầy</th>
-                <th style={{ ...TH_STYLE }}>Cấu hình</th>
-                <th style={{ ...TH_STYLE, textAlign: "right" }}>Doanh thu tháng</th>
+                <th style={{ ...TH_STYLE }}>Dịch vụ</th>
+                <th style={{ ...TH_STYLE, textAlign: "right" }}>Doanh thu đã thu</th>
                 <th style={{ ...TH_STYLE }}>Trạng thái</th>
                 <th style={{ ...TH_STYLE, width: 48, borderTopRightRadius: 12 }} />
               </tr>
@@ -336,28 +349,32 @@ export default function PropertiesPage() {
                       )}
                     </td>
 
-                    {/* Config */}
+                    {/* Dịch vụ */}
                     <td style={TD()}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--vn-text-2)" }}>
-                          <Zap size={11} color="var(--amber-500)" />
-                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtRate(p.default_elec_rate)}₫/kWh</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--vn-text-2)" }}>
-                          <Droplets size={11} color="var(--blue-400)" />
-                          <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                            {fmtRate(p.default_water_rate)}₫
-                            {p.water_calc_type === "per_meter" ? "/m³" : p.water_calc_type === "per_person" ? "/người" : "/phòng"}
-                          </span>
-                        </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, maxWidth: 280 }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: "0 8px", borderRadius: 999, fontSize: 11.5, fontWeight: 500, background: "var(--amber-50)", color: "var(--amber-700)", border: "1px solid var(--amber-200)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" as const }}>
+                          <Zap size={10} />
+                          {fmtRate(p.default_elec_rate)}₫/kWh
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: "0 8px", borderRadius: 999, fontSize: 11.5, fontWeight: 500, background: "var(--blue-50)", color: "var(--blue-700)", border: "1px solid var(--blue-200)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" as const }}>
+                          <Droplets size={10} />
+                          {fmtRate(p.default_water_rate)}₫/{p.water_calc_type === "per_meter" ? "m³" : p.water_calc_type === "per_person" ? "người" : "phòng"}
+                        </span>
                       </div>
                     </td>
 
                     {/* Revenue */}
                     <td style={{ ...TD(), textAlign: "right" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: s?.monthly_revenue ? "var(--vn-text)" : "var(--vn-text-3)" }}>
-                        {s ? fmtMoney(s.monthly_revenue) : "—"}
-                      </span>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: s?.monthly_revenue ? "var(--vn-text)" : "var(--vn-text-3)" }}>
+                          {s ? fmtMoney(s.monthly_revenue) : "—"}
+                        </div>
+                        {s?.period && (
+                          <div style={{ fontSize: 11, color: "var(--vn-text-3)", marginTop: 2 }}>
+                            {fmtPeriod(s.period)}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Status */}
@@ -437,7 +454,24 @@ export default function PropertiesPage() {
       <Dialog open={showForm} onOpenChange={o => { if (!o) { setShowForm(false); setEditing(null); } }}>
         <DialogContent className="sm:max-w-3xl" style={{ maxHeight: "90vh", overflowY: "auto" }}>
           <DialogHeader>
-            <DialogTitle>{editing ? "Chỉnh sửa nhà trọ" : "Thêm nhà trọ mới"}</DialogTitle>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                background: "var(--blue-50)",
+                display: "grid", placeItems: "center",
+                boxShadow: "0 0 0 1px var(--blue-100)",
+              }}>
+                <Building2 size={22} color="var(--blue-600)" />
+              </div>
+              <div>
+                <DialogTitle style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--vn-text)", lineHeight: 1.2 }}>
+                  {editing ? "Chỉnh sửa nhà trọ" : "Thêm nhà trọ mới"}
+                </DialogTitle>
+                <p style={{ fontSize: 13, color: "var(--vn-text-3)", margin: "3px 0 0", lineHeight: 1.4 }}>
+                  {editing ? "Cập nhật thông tin nhà trọ" : "Thiết lập thông tin và tạo các phòng đầu tiên"}
+                </p>
+              </div>
+            </div>
           </DialogHeader>
           <PropertyForm property={editing ?? undefined} onSuccess={handleSaved} onCancel={() => { setShowForm(false); setEditing(null); }} />
         </DialogContent>

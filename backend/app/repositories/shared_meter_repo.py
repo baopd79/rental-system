@@ -41,7 +41,9 @@ class SharedMeterRepo:
         for j in junctions.all():
             await self.session.delete(j)
         readings = await self.session.exec(
-            select(SharedMeterReading).where(SharedMeterReading.shared_meter_id == meter.id)
+            select(SharedMeterReading).where(
+                SharedMeterReading.shared_meter_id == meter.id
+            )
         )
         for r in readings.all():
             await self.session.delete(r)
@@ -90,7 +92,9 @@ class SharedMeterRepo:
 
     # ── Readings ──────────────────────────────────────────────────
 
-    async def get_reading(self, meter_id: int, period: str) -> SharedMeterReading | None:
+    async def get_reading(
+        self, meter_id: int, period: str
+    ) -> SharedMeterReading | None:
         result = await self.session.exec(
             select(SharedMeterReading).where(
                 SharedMeterReading.shared_meter_id == meter_id,

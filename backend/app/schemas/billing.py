@@ -42,7 +42,7 @@ class BatchReadingItem(BaseModel):
 
 
 class BatchReadingRequest(BaseModel):
-    period: str   # "YYYY-MM"
+    period: str  # "YYYY-MM"
     readings: list[BatchReadingItem]
 
 
@@ -60,7 +60,7 @@ class InvoicePreviewRow(BaseModel):
     contract_end: date
     # Proration
     is_prorated: bool
-    prorate_label: str | None          # e.g. "17/31 ngày"
+    prorate_label: str | None  # e.g. "17/31 ngày"
     # Whether current period reading exists (electricity uses current period reading)
     has_reading: bool
     elec_prev: Decimal | None
@@ -82,8 +82,8 @@ class InvoicePreviewRow(BaseModel):
 
 
 class BatchInvoiceRequest(BaseModel):
-    period: str                        # "YYYY-MM"
-    contract_ids: list[int]            # which contracts to generate for
+    period: str  # "YYYY-MM"
+    contract_ids: list[int]  # which contracts to generate for
 
 
 class BatchInvoiceResult(BaseModel):

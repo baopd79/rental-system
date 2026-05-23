@@ -1,8 +1,9 @@
 import httpx
-from fastapi import HTTPException, Security
+from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from app.core.config import settings
+from app.core.exceptions import UnauthorizedException
 
 _bearer = HTTPBearer(auto_error=False)
 _jwks_cache: dict | None = None
@@ -22,7 +23,7 @@ async def verify_clerk_token(
     credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
 ) -> str:
     if credentials is None:
-        raise HTTPException(status_code=401, detail="Missing authorization header")
+        raise UnauthorizedException("Missing authorization header")
 
     token = credentials.credentials
 
@@ -37,10 +38,10 @@ async def verify_clerk_token(
             )
             user_id: str | None = payload.get("sub")
             if not user_id:
-                raise HTTPException(status_code=401, detail="Invalid token: missing sub")
+                raise UnauthorizedException("Invalid token: missing sub")
             return user_id
         except JWTError as e:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+            raise UnauthorizedException(f"Invalid token: {e}")
 
     try:
         jwks = await _get_jwks()
@@ -53,7 +54,7 @@ async def verify_clerk_token(
         )
         user_id = payload.get("sub")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token: missing sub")
+            raise UnauthorizedException("Invalid token: missing sub")
         return user_id
     except JWTError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+        raise UnauthorizedException(f"Invalid token: {e}")

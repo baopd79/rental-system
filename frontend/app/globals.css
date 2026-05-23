@@ -216,6 +216,9 @@
     @apply font-sans;
     -webkit-font-smoothing: antialiased;
   }
+  input, textarea, select, button {
+    font-family: inherit;
+  }
 }
 
 @layer components {
@@ -239,6 +242,34 @@
   }
   .btn-icon:hover  { background-color: var(--slate-100) !important; color: var(--slate-700) !important; }
   .btn-icon:active { transform: scale(0.88); }
+
+  /* ── Glassmorphism panel ──────────────────────────────────── */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.55) !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.10),
+      0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    outline: none !important;
+  }
+
+  /* ── Glassmorphism drawer ─────────────────────────────────── */
+  .vn-drawer {
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-left: 1px solid rgba(255, 255, 255, 0.55) !important;
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.10) !important;
+  }
+
+  /* ── Add room dashed button ───────────────────────────────── */
+  .add-room-btn:hover {
+    background-color: var(--slate-50) !important;
+    color: var(--vn-text) !important;
+    border-color: var(--slate-300) !important;
+  }
 
   /* ── Clickable table row ──────────────────────────────────── */
   .tr-row {
@@ -301,6 +332,12 @@
   .page-header-row .header-actions {
     flex-wrap: wrap;
   }
+
+  /* Room grid in property form: 3col → 1col */
+  .room-grid {
+    grid-template-columns: 1fr !important;
+  }
+
 
   /* Table: horizontal scroll */
   .table-scroll {

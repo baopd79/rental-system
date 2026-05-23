@@ -4,11 +4,11 @@ from decimal import Decimal
 
 class UtilityReadingCreate(BaseModel):
     room_id: int
-    period: str          # "YYYY-MM"
+    period: str  # "YYYY-MM"
     elec_curr: Decimal
-    elec_prev: Decimal | None = None     # required only for first reading
-    water_curr: Decimal | None = None    # ignored if water_calc_type != per_meter
-    water_prev: Decimal | None = None    # ignored if water_calc_type != per_meter
+    elec_prev: Decimal | None = None  # required only for first reading
+    water_curr: Decimal | None = None  # ignored if water_calc_type != per_meter
+    water_prev: Decimal | None = None  # ignored if water_calc_type != per_meter
 
 
 class UtilityReadingUpdate(BaseModel):

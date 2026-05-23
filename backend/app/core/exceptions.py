@@ -28,3 +28,8 @@ class ConflictException(AppException):
 class BadRequestException(AppException):
     status_code = HTTPStatus.BAD_REQUEST
     detail = "Invalid request"
+
+
+class UnauthorizedException(AppException):
+    status_code = HTTPStatus.UNAUTHORIZED
+    detail = "Unauthorized"

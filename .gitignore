@@ -25,3 +25,5 @@ node_modules/
 # OS
 .DS_Store
 .claude/
+
+backend-v2/

@@ -15,10 +15,17 @@ USER_B = "user_bbb"
 
 @pytest.mark.asyncio
 async def test_create_property():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         r = await client.post(
             "/api/v1/properties",
-            json={"name": "Nhà Quận 1", "address": "123 Lê Lợi, Q1", "default_elec_rate": "3500", "default_water_rate": "15000"},
+            json={
+                "name": "Nhà Quận 1",
+                "address": "123 Lê Lợi, Q1",
+                "default_elec_rate": "3500",
+                "default_water_rate": "15000",
+            },
             headers=auth_headers(USER_A),
         )
     assert r.status_code == 201
@@ -29,7 +36,9 @@ async def test_create_property():
 
 @pytest.mark.asyncio
 async def test_list_properties_owner_isolation():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         # User A tạo property
         await client.post(
             "/api/v1/properties",
@@ -55,7 +64,9 @@ async def test_list_properties_owner_isolation():
 
 @pytest.mark.asyncio
 async def test_update_property_forbidden_for_other_user():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         r = await client.post(
             "/api/v1/properties",
             json={"name": "Nhà A", "address": "Địa chỉ A"},
@@ -73,7 +84,9 @@ async def test_update_property_forbidden_for_other_user():
 
 @pytest.mark.asyncio
 async def test_delete_property_forbidden_for_other_user():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         r = await client.post(
             "/api/v1/properties",
             json={"name": "Nhà A", "address": "Địa chỉ A"},
@@ -81,13 +94,17 @@ async def test_delete_property_forbidden_for_other_user():
         )
         prop_id = r.json()["id"]
 
-        r_del = await client.delete(f"/api/v1/properties/{prop_id}", headers=auth_headers(USER_B))
+        r_del = await client.delete(
+            f"/api/v1/properties/{prop_id}", headers=auth_headers(USER_B)
+        )
     assert r_del.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_update_and_delete_own_property():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         r = await client.post(
             "/api/v1/properties",
             json={"name": "Nhà Gốc", "address": "Địa chỉ gốc"},
@@ -103,29 +120,39 @@ async def test_update_and_delete_own_property():
         assert r_upd.status_code == 200
         assert r_upd.json()["name"] == "Nhà Đã Sửa"
 
-        r_del = await client.delete(f"/api/v1/properties/{prop_id}", headers=auth_headers(USER_A))
+        r_del = await client.delete(
+            f"/api/v1/properties/{prop_id}", headers=auth_headers(USER_A)
+        )
         assert r_del.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_get_property_not_found():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         r = await client.get("/api/v1/properties/99999", headers=auth_headers(USER_A))
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_delete_property_with_rooms_returns_409():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        prop = (await client.post(
-            "/api/v1/properties",
-            json={"name": "Nhà có phòng", "address": "Địa chỉ"},
-            headers=auth_headers(USER_A),
-        )).json()
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        prop = (
+            await client.post(
+                "/api/v1/properties",
+                json={"name": "Nhà có phòng", "address": "Địa chỉ"},
+                headers=auth_headers(USER_A),
+            )
+        ).json()
         await client.post(
             f"/api/v1/properties/{prop['id']}/rooms",
             json={"room_number": "101", "rent_price": "2000000"},
             headers=auth_headers(USER_A),
         )
-        r = await client.delete(f"/api/v1/properties/{prop['id']}", headers=auth_headers(USER_A))
+        r = await client.delete(
+            f"/api/v1/properties/{prop['id']}", headers=auth_headers(USER_A)
+        )
     assert r.status_code == 409

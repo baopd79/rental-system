@@ -18,7 +18,9 @@ class TenantService:
             raise ForbiddenException()
         return tenant
 
-    async def list_tenants(self, clerk_user_id: str, property_id: int | None = None) -> list[TenantRead]:
+    async def list_tenants(
+        self, clerk_user_id: str, property_id: int | None = None
+    ) -> list[TenantRead]:
         if property_id:
             tenants = await self.tenant_repo.get_by_property(property_id, clerk_user_id)
         else:
@@ -36,7 +38,9 @@ class TenantService:
         await self.session.refresh(created)
         return TenantRead.model_validate(created)
 
-    async def update_tenant(self, tenant_id: int, data: TenantUpdate, clerk_user_id: str) -> TenantRead:
+    async def update_tenant(
+        self, tenant_id: int, data: TenantUpdate, clerk_user_id: str
+    ) -> TenantRead:
         tenant = await self._get_tenant_owned(tenant_id, clerk_user_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(tenant, field, value)

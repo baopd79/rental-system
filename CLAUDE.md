@@ -125,6 +125,17 @@ uv run alembic upgrade head
 
 For adding PostgreSQL enum values use `op.execute("ALTER TYPE enumname ADD VALUE IF NOT EXISTS 'value'")` — not supported by `downgrade`.
 
+**Before running any migration (local or production), classify the risk:**
+- Safe: add nullable column, add column with default, add index, Pydantic-only validators
+- Check data first: add UNIQUE constraint, add NOT NULL without default, add CHECK constraint
+- Dangerous: drop/rename column (old code still references it)
+
+For UNIQUE constraints, always verify no duplicates exist before upgrading:
+```sql
+SELECT <col1>, <col2>, COUNT(*) FROM <table>
+GROUP BY <col1>, <col2> HAVING COUNT(*) > 1;
+```
+
 ### Never do
 - Import `HTTPException` in services — use `AppException` subclasses.
 - Use `async with session.begin()` in services — conflicts with asyncpg.

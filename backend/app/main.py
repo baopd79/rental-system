@@ -4,7 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.routers import auth, properties, rooms, tenants, contracts, utilities, surcharges, invoices, billing, dashboard, shared_meters
+from app.routers import (
+    auth,
+    properties,
+    rooms,
+    tenants,
+    contracts,
+    utilities,
+    surcharges,
+    invoices,
+    billing,
+    dashboard,
+    shared_meters,
+)
 
 
 @asynccontextmanager
@@ -13,6 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Rental System API", version="0.1.0", lifespan=lifespan)
+
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:

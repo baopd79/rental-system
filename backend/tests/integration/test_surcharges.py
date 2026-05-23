@@ -15,23 +15,36 @@ def auth_headers(user_id: str) -> dict:
 async def create_property(client: AsyncClient, user_id: str) -> dict:
     r = await client.post(
         "/api/v1/properties",
-        json={"name": "Test House", "address": "123 Test", "default_elec_rate": "3500", "default_water_rate": "15000"},
+        json={
+            "name": "Test House",
+            "address": "123 Test",
+            "default_elec_rate": "3500",
+            "default_water_rate": "15000",
+        },
         headers=auth_headers(user_id),
     )
     assert r.status_code == 201
     return r.json()
 
 
-async def create_surcharge(client: AsyncClient, user_id: str, property_id: int, **kwargs) -> dict:
+async def create_surcharge(
+    client: AsyncClient, user_id: str, property_id: int, **kwargs
+) -> dict:
     body = {"name": "Phí wifi", "calc_type": "per_room", "amount": "100000", **kwargs}
-    r = await client.post(f"/api/v1/properties/{property_id}/surcharges", json=body, headers=auth_headers(user_id))
+    r = await client.post(
+        f"/api/v1/properties/{property_id}/surcharges",
+        json=body,
+        headers=auth_headers(user_id),
+    )
     assert r.status_code == 201
     return r.json()
 
 
 @pytest.mark.asyncio
 async def test_create_surcharge():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         r = await client.post(
             f"/api/v1/properties/{prop['id']}/surcharges",
@@ -48,7 +61,9 @@ async def test_create_surcharge():
 
 @pytest.mark.asyncio
 async def test_create_surcharge_per_person():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         r = await client.post(
             f"/api/v1/properties/{prop['id']}/surcharges",
@@ -61,7 +76,9 @@ async def test_create_surcharge_per_person():
 
 @pytest.mark.asyncio
 async def test_list_surcharges_only_returns_own_property():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop_a = await create_property(client, USER_A)
         prop_b = await create_property(client, USER_B)
 
@@ -69,7 +86,10 @@ async def test_list_surcharges_only_returns_own_property():
         await create_surcharge(client, USER_A, prop_a["id"], name="Rác A")
         await create_surcharge(client, USER_B, prop_b["id"], name="WiFi B")
 
-        r = await client.get(f"/api/v1/properties/{prop_a['id']}/surcharges", headers=auth_headers(USER_A))
+        r = await client.get(
+            f"/api/v1/properties/{prop_a['id']}/surcharges",
+            headers=auth_headers(USER_A),
+        )
     assert r.status_code == 200
     data = r.json()
     assert len(data) == 2
@@ -79,15 +99,21 @@ async def test_list_surcharges_only_returns_own_property():
 
 @pytest.mark.asyncio
 async def test_list_surcharges_other_user_property_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
-        r = await client.get(f"/api/v1/properties/{prop['id']}/surcharges", headers=auth_headers(USER_B))
+        r = await client.get(
+            f"/api/v1/properties/{prop['id']}/surcharges", headers=auth_headers(USER_B)
+        )
     assert r.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_update_surcharge():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
@@ -104,7 +130,9 @@ async def test_update_surcharge():
 
 @pytest.mark.asyncio
 async def test_update_surcharge_by_non_owner_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
@@ -118,30 +146,42 @@ async def test_update_surcharge_by_non_owner_returns_403():
 
 @pytest.mark.asyncio
 async def test_delete_surcharge():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
-        r = await client.delete(f"/api/v1/surcharges/{surcharge['id']}", headers=auth_headers(USER_A))
+        r = await client.delete(
+            f"/api/v1/surcharges/{surcharge['id']}", headers=auth_headers(USER_A)
+        )
         assert r.status_code == 204
 
-        list_r = await client.get(f"/api/v1/properties/{prop['id']}/surcharges", headers=auth_headers(USER_A))
+        list_r = await client.get(
+            f"/api/v1/properties/{prop['id']}/surcharges", headers=auth_headers(USER_A)
+        )
     assert list_r.json() == []
 
 
 @pytest.mark.asyncio
 async def test_delete_surcharge_by_non_owner_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
-        r = await client.delete(f"/api/v1/surcharges/{surcharge['id']}", headers=auth_headers(USER_B))
+        r = await client.delete(
+            f"/api/v1/surcharges/{surcharge['id']}", headers=auth_headers(USER_B)
+        )
     assert r.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_post_surcharge_to_other_user_property_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
 
         r = await client.post(
@@ -154,7 +194,9 @@ async def test_post_surcharge_to_other_user_property_returns_403():
 
 @pytest.mark.asyncio
 async def test_update_surcharge_by_non_owner_returns_403_put():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 

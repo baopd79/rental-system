@@ -5,13 +5,14 @@ Revises: 48d0bd101bc5
 Create Date: 2026-05-17
 
 """
+
 from typing import Union, Sequence
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 from alembic import op
 
-revision: str = 'a1b2c3d4e5f6'
-down_revision: Union[str, Sequence[str], None] = '48d0bd101bc5'
+revision: str = "a1b2c3d4e5f6"
+down_revision: Union[str, Sequence[str], None] = "48d0bd101bc5"
 branch_labels = None
 depends_on = None
 
@@ -38,11 +39,18 @@ def upgrade() -> None:
         "contract",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("room_id", sa.Integer(), sa.ForeignKey("room.id"), nullable=False),
-        sa.Column("tenant_id", sa.Integer(), sa.ForeignKey("tenant.id"), nullable=False),
+        sa.Column(
+            "tenant_id", sa.Integer(), sa.ForeignKey("tenant.id"), nullable=False
+        ),
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("end_date", sa.Date(), nullable=False),
         sa.Column("agreed_rent", sa.Numeric(precision=12, scale=0), nullable=False),
-        sa.Column("deposit", sa.Numeric(precision=12, scale=0), nullable=False, server_default="0"),
+        sa.Column(
+            "deposit",
+            sa.Numeric(precision=12, scale=0),
+            nullable=False,
+            server_default="0",
+        ),
         sa.Column("num_people", sa.Integer(), nullable=False, server_default="1"),
         sa.Column(
             "status",

@@ -219,10 +219,10 @@ export default function PropertyDetailPage() {
 
         {/* Surcharges */}
         {surcharges.map(sc => (
-          <span key={sc.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--violet-600)", background: "var(--violet-50)", border: "1px solid #ede9fe", padding: "3px 9px", borderRadius: 999 }}>
+          <span key={sc.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--vn-text-2)", background: "var(--vn-surface)", border: BD, padding: "3px 9px", borderRadius: 999 }}>
             <Tag size={10} />
             <span style={{ fontVariantNumeric: "tabular-nums" }}>{sc.name}: {fmtMoney(sc.amount)}</span>
-            <span style={{ fontSize: 11, color: "var(--violet-600)", opacity: 0.7 }}>
+            <span style={{ fontSize: 11, color: "var(--vn-text-3)" }}>
               /{sc.calc_type === "per_room" ? "phòng" : "người"}
             </span>
           </span>

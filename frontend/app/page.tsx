@@ -310,6 +310,49 @@ export default async function LandingPage() {
         .lp-footer-links { display: flex; gap: 20px; }
         .lp-footer-link { font-size: 12.5px; color: #a8a29e; text-decoration: none; transition: color .15s; }
         .lp-footer-link:hover { color: #0c0a09; }
+
+        /* ── Responsive ──────────────────────────────────────── */
+        @media (max-width: 767px) {
+          .lp-nav-inner { padding: 0 16px; }
+          .lp-btn-ghost { display: none; }
+
+          .lp-hero { padding: 56px 20px 48px; }
+          .lp-hero-h1 { font-size: 34px; }
+          .lp-hero-sub { font-size: 15px; }
+          .lp-hero-actions { gap: 10px; }
+          .lp-hero-cta, .lp-hero-cta-ghost { height: 40px; font-size: 13.5px; padding: 0 20px; }
+
+          .lp-preview-sidebar { display: none; }
+          .lp-preview-main { padding: 14px; }
+          .lp-preview-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+          .lp-preview-row-grid { grid-template-columns: 1fr; }
+          .lp-preview-list:last-child { display: none; }
+
+          .lp-features-inner { padding: 48px 20px; }
+          .lp-section-h2 { font-size: 26px; margin-bottom: 32px; }
+          .lp-feat-grid { grid-template-columns: 1fr; gap: 16px; }
+
+          .lp-stats { grid-template-columns: 1fr; margin: 32px auto; }
+          .lp-stat { padding: 24px 20px; }
+          .lp-stat-num { font-size: 32px; }
+
+          .lp-cta-section { padding: 20px 20px 64px; }
+          .lp-cta-card { padding: 40px 24px; }
+          .lp-cta-h2 { font-size: 26px; }
+          .lp-cta-sub { font-size: 14px; }
+          .lp-cta-actions { flex-direction: column; gap: 10px; }
+          .lp-cta-btn { width: 100%; justify-content: center; }
+
+          .lp-footer-inner { flex-direction: column; gap: 12px; text-align: center; padding: 20px 16px; }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .lp-hero { padding: 72px 32px 64px; }
+          .lp-hero-h1 { font-size: 44px; }
+          .lp-feat-grid { grid-template-columns: repeat(2, 1fr); }
+          .lp-stats { grid-template-columns: repeat(3, 1fr); }
+          .lp-preview-sidebar { width: 160px; }
+        }
       `}</style>
 
       <div className="lp">
