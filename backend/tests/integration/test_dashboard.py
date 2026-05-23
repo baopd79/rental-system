@@ -17,13 +17,14 @@ async def setup_property_room_contract_invoice(
     user_id: str,
     period: str = "2026-05",
     invoice_status: str = "draft",
+    property_name: str = "Test House",
 ) -> dict:
     """Create property → room → tenant → contract → reading → invoice. Returns invoice."""
     prop = (
         await client.post(
             "/api/v1/properties",
             json={
-                "name": "Test House",
+                "name": property_name,
                 "address": "123 Test",
                 "default_elec_rate": "3500",
                 "default_water_rate": "15000",
@@ -197,8 +198,8 @@ async def test_summary_isolates_by_user():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
-        await setup_property_room_contract_invoice(client, USER_A)
-        await setup_property_room_contract_invoice(client, USER_A)
+        await setup_property_room_contract_invoice(client, USER_A, property_name="Test House A1")
+        await setup_property_room_contract_invoice(client, USER_A, property_name="Test House A2")
 
         r_a = await client.get(
             "/api/v1/dashboard/summary", headers=auth_headers(USER_A)
