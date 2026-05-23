@@ -14,6 +14,12 @@ class PropertyRepo:
     async def get_by_id(self, property_id: int) -> Property | None:
         return await self.session.get(Property, property_id)
 
+    async def get_by_name(self, clerk_user_id: str, name: str) -> Property | None:
+        result = await self.session.exec(
+            select(Property).where(Property.clerk_user_id == clerk_user_id, Property.name == name)
+        )
+        return result.first()
+
     async def create(self, prop: Property) -> Property:
         self.session.add(prop)
         await self.session.flush()

@@ -61,6 +61,8 @@ class PropertyService:
         return prop
 
     async def create_property(self, data: PropertyCreate, clerk_user_id: str) -> Property:
+        if await self.property_repo.get_by_name(clerk_user_id, data.name):
+            raise ConflictException("Tên nhà trọ đã tồn tại")
         rooms_data = data.rooms
         prop = Property(**data.model_dump(exclude={"rooms"}), clerk_user_id=clerk_user_id)
         created = await self.property_repo.create(prop)
@@ -77,6 +79,9 @@ class PropertyService:
             raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
             raise ForbiddenException()
+        if data.name is not None and data.name != prop.name:
+            if await self.property_repo.get_by_name(clerk_user_id, data.name):
+                raise ConflictException("Tên nhà trọ đã tồn tại")
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(prop, field, value)
         updated = await self.property_repo.update(prop)
