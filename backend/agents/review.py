@@ -115,16 +115,16 @@ async def orchestrator(filepath: str) -> None:
 
     # Print each subagent's findings
     for result in results:
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"[{result['agent']} Agent]")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(result["findings"])
         print()
 
     # Orchestrator synthesizes
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print("[Orchestrator — Synthesis]")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     findings_text = "\n\n".join(
         f"## {r['agent']} Agent\n{r['findings']}" for r in results
@@ -151,8 +151,9 @@ async def orchestrator(filepath: str) -> None:
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: uv run agents/review.py <path-to-python-file>")
-        print("Example: uv run agents/review.py backend/app/services/billing_service.py")
+        print(
+            "Example: uv run agents/review.py backend/app/services/billing_service.py"
+        )
         sys.exit(1)
 
     asyncio.run(orchestrator(sys.argv[1]))
-

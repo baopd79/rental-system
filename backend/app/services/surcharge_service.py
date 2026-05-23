@@ -20,19 +20,25 @@ class SurchargeService:
             raise ForbiddenException()
         return prop
 
-    async def _get_surcharge_owned(self, surcharge_id: int, clerk_user_id: str) -> SurchargeTemplate:
+    async def _get_surcharge_owned(
+        self, surcharge_id: int, clerk_user_id: str
+    ) -> SurchargeTemplate:
         surcharge = await self.surcharge_repo.get_by_id(surcharge_id)
         if not surcharge:
             raise NotFoundException("Surcharge not found")
         await self._get_property_owned(surcharge.property_id, clerk_user_id)
         return surcharge
 
-    async def list_surcharges(self, property_id: int, clerk_user_id: str) -> list[SurchargeRead]:
+    async def list_surcharges(
+        self, property_id: int, clerk_user_id: str
+    ) -> list[SurchargeRead]:
         await self._get_property_owned(property_id, clerk_user_id)
         surcharges = await self.surcharge_repo.get_all_by_property(property_id)
         return [SurchargeRead.model_validate(s) for s in surcharges]
 
-    async def create_surcharge(self, property_id: int, data: SurchargeCreate, clerk_user_id: str) -> SurchargeRead:
+    async def create_surcharge(
+        self, property_id: int, data: SurchargeCreate, clerk_user_id: str
+    ) -> SurchargeRead:
         await self._get_property_owned(property_id, clerk_user_id)
         surcharge = SurchargeTemplate(**data.model_dump(), property_id=property_id)
         created = await self.surcharge_repo.create(surcharge)
@@ -40,7 +46,9 @@ class SurchargeService:
         await self.session.refresh(created)
         return SurchargeRead.model_validate(created)
 
-    async def update_surcharge(self, surcharge_id: int, data: SurchargeUpdate, clerk_user_id: str) -> SurchargeRead:
+    async def update_surcharge(
+        self, surcharge_id: int, data: SurchargeUpdate, clerk_user_id: str
+    ) -> SurchargeRead:
         surcharge = await self._get_surcharge_owned(surcharge_id, clerk_user_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(surcharge, field, value)

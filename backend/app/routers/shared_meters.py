@@ -1,14 +1,20 @@
 from fastapi import APIRouter
 from app.core.dependencies import CurrentUserDep, SharedMeterServiceDep
 from app.schemas.shared_meter import (
-    SharedMeterCreate, SharedMeterUpdate, SharedMeterRead,
-    SharedMeterRoomAdd, SharedMeterReadingCreate, SharedMeterReadingRead,
+    SharedMeterCreate,
+    SharedMeterUpdate,
+    SharedMeterRead,
+    SharedMeterRoomAdd,
+    SharedMeterReadingCreate,
+    SharedMeterReadingRead,
 )
 
 router = APIRouter(tags=["shared-meters"])
 
 
-@router.get("/properties/{property_id}/shared-meters", response_model=list[SharedMeterRead])
+@router.get(
+    "/properties/{property_id}/shared-meters", response_model=list[SharedMeterRead]
+)
 async def list_shared_meters(
     property_id: int,
     clerk_user_id: CurrentUserDep,
@@ -17,7 +23,11 @@ async def list_shared_meters(
     return await service.list_meters(property_id, clerk_user_id)
 
 
-@router.post("/properties/{property_id}/shared-meters", response_model=SharedMeterRead, status_code=201)
+@router.post(
+    "/properties/{property_id}/shared-meters",
+    response_model=SharedMeterRead,
+    status_code=201,
+)
 async def create_shared_meter(
     property_id: int,
     data: SharedMeterCreate,
@@ -56,7 +66,9 @@ async def add_room_to_meter(
     return await service.add_room(meter_id, data.room_id, clerk_user_id)
 
 
-@router.delete("/shared-meters/{meter_id}/rooms/{room_id}", response_model=SharedMeterRead)
+@router.delete(
+    "/shared-meters/{meter_id}/rooms/{room_id}", response_model=SharedMeterRead
+)
 async def remove_room_from_meter(
     meter_id: int,
     room_id: int,
@@ -66,7 +78,9 @@ async def remove_room_from_meter(
     return await service.remove_room(meter_id, room_id, clerk_user_id)
 
 
-@router.post("/shared-meter-readings", response_model=SharedMeterReadingRead, status_code=200)
+@router.post(
+    "/shared-meter-readings", response_model=SharedMeterReadingRead, status_code=200
+)
 async def upsert_shared_meter_reading(
     data: SharedMeterReadingCreate,
     clerk_user_id: CurrentUserDep,
@@ -75,7 +89,9 @@ async def upsert_shared_meter_reading(
     return await service.upsert_reading(data, clerk_user_id)
 
 
-@router.get("/shared-meters/{meter_id}/readings", response_model=list[SharedMeterReadingRead])
+@router.get(
+    "/shared-meters/{meter_id}/readings", response_model=list[SharedMeterReadingRead]
+)
 async def list_shared_meter_readings(
     meter_id: int,
     clerk_user_id: CurrentUserDep,

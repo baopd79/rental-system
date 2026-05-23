@@ -11,12 +11,16 @@ def auth_headers(user_id: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def create_property(client: AsyncClient, water_calc_type: str = "per_meter") -> dict:
+async def create_property(
+    client: AsyncClient, water_calc_type: str = "per_meter"
+) -> dict:
     r = await client.post(
         "/api/v1/properties",
         json={
-            "name": "Test House", "address": "123 Test",
-            "default_elec_rate": "3500", "default_water_rate": "15000",
+            "name": "Test House",
+            "address": "123 Test",
+            "default_elec_rate": "3500",
+            "default_water_rate": "15000",
             "water_calc_type": water_calc_type,
         },
         headers=auth_headers(USER_A),
@@ -35,19 +39,30 @@ async def create_room(client: AsyncClient, property_id: int) -> dict:
     return r.json()
 
 
-async def post_reading(client: AsyncClient, room_id: int, period: str, elec_curr: str, water_curr: str | None = None) -> dict:
+async def post_reading(
+    client: AsyncClient,
+    room_id: int,
+    period: str,
+    elec_curr: str,
+    water_curr: str | None = None,
+) -> dict:
     body: dict = {"room_id": room_id, "period": period, "elec_curr": elec_curr}
     if water_curr is not None:
         body["water_curr"] = water_curr
-    r = await client.post("/api/v1/utility-readings", json=body, headers=auth_headers(USER_A))
+    r = await client.post(
+        "/api/v1/utility-readings", json=body, headers=auth_headers(USER_A)
+    )
     return r
 
 
 # --- First reading ---
 
+
 @pytest.mark.asyncio
 async def test_first_reading_has_null_prev():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -61,9 +76,12 @@ async def test_first_reading_has_null_prev():
 
 # --- Auto-fill ---
 
+
 @pytest.mark.asyncio
 async def test_second_reading_auto_fills_prev():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -81,7 +99,9 @@ async def test_second_reading_auto_fills_prev():
 
 @pytest.mark.asyncio
 async def test_auto_fill_across_year_boundary():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -96,9 +116,12 @@ async def test_auto_fill_across_year_boundary():
 
 # --- Validation ---
 
+
 @pytest.mark.asyncio
 async def test_curr_less_than_prev_returns_400():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -110,7 +133,9 @@ async def test_curr_less_than_prev_returns_400():
 
 @pytest.mark.asyncio
 async def test_duplicate_period_returns_409():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -122,13 +147,18 @@ async def test_duplicate_period_returns_409():
 
 # --- Water ignored for non-per_meter ---
 
+
 @pytest.mark.asyncio
 async def test_water_fields_null_for_per_person_property():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, water_calc_type="per_person")
         room = await create_room(client, prop["id"])
 
-        r = await post_reading(client, room["id"], "2026-05", "1000.00", water_curr="50.00")
+        r = await post_reading(
+            client, room["id"], "2026-05", "1000.00", water_curr="50.00"
+        )
 
     assert r.status_code == 201
     data = r.json()
@@ -138,11 +168,15 @@ async def test_water_fields_null_for_per_person_property():
 
 @pytest.mark.asyncio
 async def test_water_fields_null_for_per_room_property():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client, water_calc_type="per_room")
         room = await create_room(client, prop["id"])
 
-        r = await post_reading(client, room["id"], "2026-05", "1000.00", water_curr="50.00")
+        r = await post_reading(
+            client, room["id"], "2026-05", "1000.00", water_curr="50.00"
+        )
 
     assert r.status_code == 201
     data = r.json()
@@ -151,9 +185,12 @@ async def test_water_fields_null_for_per_room_property():
 
 # --- Update/Delete: only latest ---
 
+
 @pytest.mark.asyncio
 async def test_update_latest_reading():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
         reading = (await post_reading(client, room["id"], "2026-05", "1000.00")).json()
@@ -169,7 +206,9 @@ async def test_update_latest_reading():
 
 @pytest.mark.asyncio
 async def test_update_non_latest_reading_returns_409():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -186,7 +225,9 @@ async def test_update_non_latest_reading_returns_409():
 
 @pytest.mark.asyncio
 async def test_delete_latest_reading():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
         reading = (await post_reading(client, room["id"], "2026-05", "1000.00")).json()
@@ -200,7 +241,9 @@ async def test_delete_latest_reading():
 
 @pytest.mark.asyncio
 async def test_delete_non_latest_reading_returns_409():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -221,7 +264,9 @@ USER_B = "user_utility_b"
 
 @pytest.mark.asyncio
 async def test_post_reading_to_other_user_room_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 
@@ -236,7 +281,9 @@ async def test_post_reading_to_other_user_room_returns_403():
 
 @pytest.mark.asyncio
 async def test_get_readings_for_other_user_room_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop = await create_property(client)
         room = await create_room(client, prop["id"])
 

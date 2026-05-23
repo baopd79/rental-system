@@ -24,7 +24,7 @@ class Invoice(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     contract_id: int = Field(foreign_key="contract.id", index=True)
-    period: str = Field(max_length=7)              # "YYYY-MM"
+    period: str = Field(max_length=7)  # "YYYY-MM"
     total: Decimal = Field(decimal_places=0, max_digits=14)
     status: InvoiceStatus = Field(default=InvoiceStatus.draft)
     public_token: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True)

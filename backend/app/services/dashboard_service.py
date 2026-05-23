@@ -2,8 +2,12 @@ from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import date, timedelta
 from app.schemas.dashboard import (
-    DashboardSummary, DashboardRevenue,
-    RoomStats, ExpiringContract, UnpaidInvoiceSummary, RevenueMonth,
+    DashboardSummary,
+    DashboardRevenue,
+    RoomStats,
+    ExpiringContract,
+    UnpaidInvoiceSummary,
+    RevenueMonth,
 )
 
 
@@ -20,33 +24,42 @@ class DashboardService:
         prop_count: int = r.scalar_one()
 
         # Rooms by status
-        r = await self.session.exec(text("""
+        r = await self.session.exec(
+            text("""
             SELECT r.status, COUNT(*) AS cnt
             FROM room r
             JOIN property p ON p.id = r.property_id
             WHERE p.clerk_user_id = :uid
             GROUP BY r.status
-        """), params={"uid": clerk_user_id})
+        """),
+            params={"uid": clerk_user_id},
+        )
         room_map = {row.status: row.cnt for row in r.fetchall()}
 
         # Active contracts
-        r = await self.session.exec(text("""
+        r = await self.session.exec(
+            text("""
             SELECT COUNT(*) FROM contract c
             JOIN room r ON r.id = c.room_id
             JOIN property p ON p.id = r.property_id
             WHERE p.clerk_user_id = :uid AND c.status = 'active'
-        """), params={"uid": clerk_user_id})
+        """),
+            params={"uid": clerk_user_id},
+        )
         active_contracts: int = r.scalar_one()
 
         # Unpaid invoices (draft + sent)
-        r = await self.session.exec(text("""
+        r = await self.session.exec(
+            text("""
             SELECT COUNT(*), COALESCE(SUM(i.total), 0)
             FROM invoice i
             JOIN contract c ON c.id = i.contract_id
             JOIN room r ON r.id = c.room_id
             JOIN property p ON p.id = r.property_id
             WHERE p.clerk_user_id = :uid AND i.status IN ('draft', 'sent')
-        """), params={"uid": clerk_user_id})
+        """),
+            params={"uid": clerk_user_id},
+        )
         unpaid_row = r.one()
         unpaid_count = unpaid_row[0]
         unpaid_total = float(unpaid_row[1])
@@ -54,7 +67,8 @@ class DashboardService:
         # Expiring contracts — top 10 within 30 days
         today = date.today()
         in_30 = today + timedelta(days=30)
-        r = await self.session.exec(text("""
+        r = await self.session.exec(
+            text("""
             SELECT c.id, r.room_number, p.name AS property_name,
                    t.full_name AS tenant_name, c.end_date
             FROM contract c
@@ -66,7 +80,9 @@ class DashboardService:
               AND c.end_date BETWEEN :today AND :in30
             ORDER BY c.end_date ASC
             LIMIT 10
-        """), params={"uid": clerk_user_id, "today": today, "in30": in_30})
+        """),
+            params={"uid": clerk_user_id, "today": today, "in30": in_30},
+        )
         expiring_rows = r.fetchall()
         expiring_contracts = [
             ExpiringContract(
@@ -81,7 +97,8 @@ class DashboardService:
         ]
 
         # Top 10 unpaid invoice details
-        r = await self.session.exec(text("""
+        r = await self.session.exec(
+            text("""
             SELECT i.id, r.room_number, p.name AS property_name,
                    t.full_name AS tenant_name, i.period, i.total, i.status
             FROM invoice i
@@ -92,7 +109,9 @@ class DashboardService:
             WHERE p.clerk_user_id = :uid AND i.status IN ('draft', 'sent')
             ORDER BY i.period DESC
             LIMIT 10
-        """), params={"uid": clerk_user_id})
+        """),
+            params={"uid": clerk_user_id},
+        )
         unpaid_list = [
             UnpaidInvoiceSummary(
                 invoice_id=row.id,
@@ -123,7 +142,8 @@ class DashboardService:
         )
 
     async def get_revenue(self, clerk_user_id: str, year: int) -> DashboardRevenue:
-        r = await self.session.exec(text("""
+        r = await self.session.exec(
+            text("""
             SELECT i.period, COALESCE(SUM(i.total), 0) AS total
             FROM invoice i
             JOIN contract c ON c.id = i.contract_id
@@ -134,7 +154,9 @@ class DashboardService:
               AND i.period LIKE :prefix
             GROUP BY i.period
             ORDER BY i.period
-        """), params={"uid": clerk_user_id, "prefix": f"{year}-%"})
+        """),
+            params={"uid": clerk_user_id, "prefix": f"{year}-%"},
+        )
 
         month_map = {row.period: float(row.total) for row in r.fetchall()}
         months = [

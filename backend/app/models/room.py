@@ -12,7 +12,11 @@ class RoomStatus(str, Enum):
 
 class Room(SQLModel, table=True):
     __tablename__ = "room"
-    __table_args__ = (UniqueConstraint("property_id", "room_number", name="uq_room_property_room_number"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "property_id", "room_number", name="uq_room_property_room_number"
+        ),
+    )
 
     id: int | None = Field(default=None, primary_key=True)
     property_id: int = Field(foreign_key="property.id", index=True)

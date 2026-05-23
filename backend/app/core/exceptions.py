@@ -33,4 +33,3 @@ class BadRequestException(AppException):
 class UnauthorizedException(AppException):
     status_code = HTTPStatus.UNAUTHORIZED
     detail = "Unauthorized"
-    

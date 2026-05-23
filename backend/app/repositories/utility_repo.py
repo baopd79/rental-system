@@ -7,10 +7,13 @@ class UtilityRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_by_room_period(self, room_id: int, period: str) -> UtilityReading | None:
+    async def get_by_room_period(
+        self, room_id: int, period: str
+    ) -> UtilityReading | None:
         result = await self.session.exec(
-            select(UtilityReading)
-            .where(UtilityReading.room_id == room_id, UtilityReading.period == period)
+            select(UtilityReading).where(
+                UtilityReading.room_id == room_id, UtilityReading.period == period
+            )
         )
         return result.first()
 

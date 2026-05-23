@@ -31,6 +31,7 @@ class InvoiceRead(BaseModel):
 
 class InvoiceListRead(InvoiceRead):
     """InvoiceRead enriched with context for list views."""
+
     room_id: int
     room_number: str
     property_name: str
@@ -40,6 +41,7 @@ class InvoiceListRead(InvoiceRead):
 
 class InvoiceDetailRead(InvoiceListRead):
     """Full detail view — adds tenant phone, meter readings, and shared meter context."""
+
     tenant_phone: str | None = None
     elec_prev: Decimal | None = None
     elec_curr: Decimal | None = None
@@ -53,6 +55,7 @@ class InvoicePublicRead(InvoiceRead):
     Excludes sensitive fields (CCCD, full phone). Includes bank transfer info.
     payment_reported_at is set when tenant clicks "I have paid" — landlord must confirm.
     """
+
     room_number: str
     property_name: str
     tenant_name: str
@@ -63,7 +66,7 @@ class InvoicePublicRead(InvoiceRead):
 
 class InvoiceGenerateRequest(BaseModel):
     contract_id: int
-    period: str      # "YYYY-MM"
+    period: str  # "YYYY-MM"
 
 
 class InvoiceStatusUpdate(BaseModel):

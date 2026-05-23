@@ -19,41 +19,69 @@ async def setup_property_room_contract(
     with_reading: bool = True,
     period: str = "2026-05",
 ) -> tuple[dict, dict, dict]:
-    prop = (await client.post(
-        "/api/v1/properties",
-        json={"name": "Test House", "address": "123 Test",
-              "default_elec_rate": "3500", "default_water_rate": "15000",
-              "water_calc_type": water_calc_type},
-        headers=auth_headers(user_id),
-    )).json()
-    room = (await client.post(
-        f"/api/v1/properties/{prop['id']}/rooms",
-        json={"room_number": "101", "rent_price": "3000000", "deposit": "3000000"},
-        headers=auth_headers(user_id),
-    )).json()
-    tenant = (await client.post(
-        "/api/v1/tenants",
-        json={"full_name": "Nguyễn Văn A"},
-        headers=auth_headers(user_id),
-    )).json()
-    contract = (await client.post(
-        "/api/v1/contracts",
-        json={"room_id": room["id"], "tenant_id": tenant["id"],
-              "start_date": "2026-01-01", "end_date": "2026-12-31",
-              "agreed_rent": "3000000", "deposit": "3000000", "num_people": 2},
-        headers=auth_headers(user_id),
-    )).json()
+    prop = (
+        await client.post(
+            "/api/v1/properties",
+            json={
+                "name": "Test House",
+                "address": "123 Test",
+                "default_elec_rate": "3500",
+                "default_water_rate": "15000",
+                "water_calc_type": water_calc_type,
+            },
+            headers=auth_headers(user_id),
+        )
+    ).json()
+    room = (
+        await client.post(
+            f"/api/v1/properties/{prop['id']}/rooms",
+            json={"room_number": "101", "rent_price": "3000000", "deposit": "3000000"},
+            headers=auth_headers(user_id),
+        )
+    ).json()
+    tenant = (
+        await client.post(
+            "/api/v1/tenants",
+            json={"full_name": "Nguyễn Văn A"},
+            headers=auth_headers(user_id),
+        )
+    ).json()
+    contract = (
+        await client.post(
+            "/api/v1/contracts",
+            json={
+                "room_id": room["id"],
+                "tenant_id": tenant["id"],
+                "start_date": "2026-01-01",
+                "end_date": "2026-12-31",
+                "agreed_rent": "3000000",
+                "deposit": "3000000",
+                "num_people": 2,
+            },
+            headers=auth_headers(user_id),
+        )
+    ).json()
     if with_reading:
         await post_reading(client, user_id, room["id"], period, "1000", "40")
     return prop, room, contract
 
 
-async def post_reading(client: AsyncClient, user_id: str, room_id: int, period: str,
-                       elec_curr: str, water_curr: str | None = None) -> dict:
+async def post_reading(
+    client: AsyncClient,
+    user_id: str,
+    room_id: int,
+    period: str,
+    elec_curr: str,
+    water_curr: str | None = None,
+) -> dict:
     body = {"room_id": room_id, "period": period, "elec_curr": elec_curr}
     if water_curr:
         body["water_curr"] = water_curr
-    return (await client.post("/api/v1/utility-readings", json=body, headers=auth_headers(user_id))).json()
+    return (
+        await client.post(
+            "/api/v1/utility-readings", json=body, headers=auth_headers(user_id)
+        )
+    ).json()
 
 
 async def generate(client: AsyncClient, user_id: str, contract_id: int, period: str):
@@ -66,10 +94,15 @@ async def generate(client: AsyncClient, user_id: str, contract_id: int, period: 
 
 # --- Generate ---
 
+
 @pytest.mark.asyncio
 async def test_generate_invoice_requires_reading_returns_400():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        _, _, contract = await setup_property_room_contract(client, USER_A, with_reading=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        _, _, contract = await setup_property_room_contract(
+            client, USER_A, with_reading=False
+        )
         r = await generate(client, USER_A, contract["id"], "2026-05")
 
     assert r.status_code == 400
@@ -77,8 +110,12 @@ async def test_generate_invoice_requires_reading_returns_400():
 
 @pytest.mark.asyncio
 async def test_generate_invoice_with_reading():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        _, room, contract = await setup_property_room_contract(client, USER_A, with_reading=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        _, room, contract = await setup_property_room_contract(
+            client, USER_A, with_reading=False
+        )
 
         # First reading (prev=NULL)
         await post_reading(client, USER_A, room["id"], "2026-04", "1000.00", "40.00")
@@ -99,7 +136,9 @@ async def test_generate_invoice_with_reading():
 
 @pytest.mark.asyncio
 async def test_generate_with_surcharge():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         prop, _, contract = await setup_property_room_contract(client, USER_A)
         await client.post(
             f"/api/v1/properties/{prop['id']}/surcharges",
@@ -117,7 +156,9 @@ async def test_generate_with_surcharge():
 
 @pytest.mark.asyncio
 async def test_generate_duplicate_period_returns_409():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         await generate(client, USER_A, contract["id"], "2026-05")
         r = await generate(client, USER_A, contract["id"], "2026-05")
@@ -127,7 +168,9 @@ async def test_generate_duplicate_period_returns_409():
 
 @pytest.mark.asyncio
 async def test_generate_other_user_contract_returns_403():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         r = await client.post(
             "/api/v1/invoices/generate",
@@ -140,9 +183,12 @@ async def test_generate_other_user_contract_returns_403():
 
 # --- Status transitions ---
 
+
 @pytest.mark.asyncio
 async def test_transition_draft_to_sent():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
 
@@ -157,7 +203,9 @@ async def test_transition_draft_to_sent():
 
 @pytest.mark.asyncio
 async def test_transition_draft_to_paid():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
 
@@ -172,46 +220,69 @@ async def test_transition_draft_to_paid():
 
 @pytest.mark.asyncio
 async def test_transition_paid_to_draft_invalid():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
-        await client.put(f"/api/v1/invoices/{invoice['id']}/status",
-                         json={"status": "paid"}, headers=auth_headers(USER_A))
+        await client.put(
+            f"/api/v1/invoices/{invoice['id']}/status",
+            json={"status": "paid"},
+            headers=auth_headers(USER_A),
+        )
 
-        r = await client.put(f"/api/v1/invoices/{invoice['id']}/status",
-                              json={"status": "draft"}, headers=auth_headers(USER_A))
+        r = await client.put(
+            f"/api/v1/invoices/{invoice['id']}/status",
+            json={"status": "draft"},
+            headers=auth_headers(USER_A),
+        )
     assert r.status_code == 400
 
 
 # --- Delete ---
 
+
 @pytest.mark.asyncio
 async def test_delete_draft_invoice():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
 
-        r = await client.delete(f"/api/v1/invoices/{invoice['id']}", headers=auth_headers(USER_A))
+        r = await client.delete(
+            f"/api/v1/invoices/{invoice['id']}", headers=auth_headers(USER_A)
+        )
     assert r.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_delete_sent_invoice_returns_400():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
-        await client.put(f"/api/v1/invoices/{invoice['id']}/status",
-                         json={"status": "sent"}, headers=auth_headers(USER_A))
+        await client.put(
+            f"/api/v1/invoices/{invoice['id']}/status",
+            json={"status": "sent"},
+            headers=auth_headers(USER_A),
+        )
 
-        r = await client.delete(f"/api/v1/invoices/{invoice['id']}", headers=auth_headers(USER_A))
+        r = await client.delete(
+            f"/api/v1/invoices/{invoice['id']}", headers=auth_headers(USER_A)
+        )
     assert r.status_code == 400
 
 
 # --- Public token ---
 
+
 @pytest.mark.asyncio
 async def test_public_token_accessible_without_auth():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
         token = invoice["public_token"]
@@ -223,48 +294,67 @@ async def test_public_token_accessible_without_auth():
 
 @pytest.mark.asyncio
 async def test_invalid_public_token_returns_404():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         r = await client.get("/api/v1/invoices/public/invalid-token-xyz")
     assert r.status_code == 404
 
 
 # --- Report payment ---
 
+
 @pytest.mark.asyncio
 async def test_report_payment_sets_timestamp_does_not_change_status():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
-        await client.put(f"/api/v1/invoices/{invoice['id']}/status",
-                         json={"status": "sent"}, headers=auth_headers(USER_A))
+        await client.put(
+            f"/api/v1/invoices/{invoice['id']}/status",
+            json={"status": "sent"},
+            headers=auth_headers(USER_A),
+        )
         token = invoice["public_token"]
 
         r = await client.post(f"/api/v1/invoices/public/{token}/report-payment")
 
     assert r.status_code == 200
     data = r.json()
-    assert data["status"] == "sent"                 # status NOT changed
+    assert data["status"] == "sent"  # status NOT changed
     assert data["payment_reported_at"] is not None  # timestamp set
 
 
 @pytest.mark.asyncio
 async def test_report_payment_is_idempotent():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
-        await client.put(f"/api/v1/invoices/{invoice['id']}/status",
-                         json={"status": "sent"}, headers=auth_headers(USER_A))
+        await client.put(
+            f"/api/v1/invoices/{invoice['id']}/status",
+            json={"status": "sent"},
+            headers=auth_headers(USER_A),
+        )
         token = invoice["public_token"]
 
-        first = (await client.post(f"/api/v1/invoices/public/{token}/report-payment")).json()
-        second = (await client.post(f"/api/v1/invoices/public/{token}/report-payment")).json()
+        first = (
+            await client.post(f"/api/v1/invoices/public/{token}/report-payment")
+        ).json()
+        second = (
+            await client.post(f"/api/v1/invoices/public/{token}/report-payment")
+        ).json()
 
     assert first["payment_reported_at"] == second["payment_reported_at"]
 
 
 @pytest.mark.asyncio
 async def test_report_payment_on_draft_returns_400():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
         token = invoice["public_token"]
@@ -276,7 +366,9 @@ async def test_report_payment_on_draft_returns_400():
 
 @pytest.mark.asyncio
 async def test_public_response_excludes_pii():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         _, _, contract = await setup_property_room_contract(client, USER_A)
         invoice = (await generate(client, USER_A, contract["id"], "2026-05")).json()
         token = invoice["public_token"]

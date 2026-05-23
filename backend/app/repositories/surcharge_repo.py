@@ -9,7 +9,9 @@ class SurchargeRepo:
 
     async def get_all_by_property(self, property_id: int) -> list[SurchargeTemplate]:
         result = await self.session.exec(
-            select(SurchargeTemplate).where(SurchargeTemplate.property_id == property_id)
+            select(SurchargeTemplate).where(
+                SurchargeTemplate.property_id == property_id
+            )
         )
         return list(result.all())
 

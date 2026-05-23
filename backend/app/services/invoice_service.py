@@ -7,7 +7,15 @@ from app.models.contract import Contract
 from app.models.property import Property, WaterCalcType
 from app.models.surcharge import SurchargeTemplate, SurchargeCalcType
 from app.models.utility import UtilityReading
-from app.schemas.invoice import InvoiceGenerateRequest, InvoiceRead, InvoiceItemRead, InvoiceStatusUpdate, InvoiceListRead, InvoiceDetailRead, InvoicePublicRead
+from app.schemas.invoice import (
+    InvoiceGenerateRequest,
+    InvoiceRead,
+    InvoiceItemRead,
+    InvoiceStatusUpdate,
+    InvoiceListRead,
+    InvoiceDetailRead,
+    InvoicePublicRead,
+)
 from app.schemas.shared_meter import SharedMeterInvoiceDetail
 from app.repositories.tenant_repo import TenantRepo
 from app.repositories.invoice_repo import InvoiceRepo
@@ -17,7 +25,12 @@ from app.repositories.property_repo import PropertyRepo
 from app.repositories.surcharge_repo import SurchargeRepo
 from app.repositories.utility_repo import UtilityRepo
 from app.repositories.shared_meter_repo import SharedMeterRepo
-from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
+from app.core.exceptions import (
+    NotFoundException,
+    ForbiddenException,
+    BadRequestException,
+    ConflictException,
+)
 
 
 def _prorate_factor(start_date: date, end_date: date, period: str) -> Decimal:
@@ -48,8 +61,8 @@ def _period_overlaps_contract(start_date: date, end_date: date, period: str) -> 
 
 VALID_TRANSITIONS = {
     InvoiceStatus.draft: {InvoiceStatus.sent, InvoiceStatus.paid},
-    InvoiceStatus.sent:  {InvoiceStatus.paid},
-    InvoiceStatus.paid:  set(),
+    InvoiceStatus.sent: {InvoiceStatus.paid},
+    InvoiceStatus.paid: set(),
 }
 
 
@@ -80,14 +93,16 @@ def _build_items(
         suffix = ""
 
     # Rent (prorated)
-    items.append(InvoiceItem(
-        invoice_id=0,
-        item_type=InvoiceItemType.rent,
-        name=f"Tiền thuê{suffix}",
-        unit_price=contract.agreed_rent,
-        quantity=Decimal("1"),
-        amount=_round(contract.agreed_rent * factor),
-    ))
+    items.append(
+        InvoiceItem(
+            invoice_id=0,
+            item_type=InvoiceItemType.rent,
+            name=f"Tiền thuê{suffix}",
+            unit_price=contract.agreed_rent,
+            quantity=Decimal("1"),
+            amount=_round(contract.agreed_rent * factor),
+        )
+    )
 
     # Electricity
     if reading is not None and reading.elec_prev is not None:
@@ -96,62 +111,80 @@ def _build_items(
     else:
         usage = Decimal("0")
         elec_amount = Decimal("0")
-    items.append(InvoiceItem(
-        invoice_id=0,
-        item_type=InvoiceItemType.electricity,
-        name="Tiền điện",
-        unit_price=effective_elec_rate,
-        quantity=usage,
-        amount=elec_amount,
-    ))
+    items.append(
+        InvoiceItem(
+            invoice_id=0,
+            item_type=InvoiceItemType.electricity,
+            name="Tiền điện",
+            unit_price=effective_elec_rate,
+            quantity=usage,
+            amount=elec_amount,
+        )
+    )
 
     # Water
     if prop.water_calc_type == WaterCalcType.per_meter:
-        if reading is not None and reading.water_prev is not None and reading.water_curr is not None:
+        if (
+            reading is not None
+            and reading.water_prev is not None
+            and reading.water_curr is not None
+        ):
             water_usage = reading.water_curr - reading.water_prev
             water_amount = _round(water_usage * prop.default_water_rate)
         else:
             water_usage = Decimal("0")
             water_amount = Decimal("0")
-        items.append(InvoiceItem(
-            invoice_id=0,
-            item_type=InvoiceItemType.water,
-            name="Tiền nước",
-            unit_price=prop.default_water_rate,
-            quantity=water_usage,
-            amount=water_amount,
-        ))
+        items.append(
+            InvoiceItem(
+                invoice_id=0,
+                item_type=InvoiceItemType.water,
+                name="Tiền nước",
+                unit_price=prop.default_water_rate,
+                quantity=water_usage,
+                amount=water_amount,
+            )
+        )
     elif prop.water_calc_type == WaterCalcType.per_person:
         qty = Decimal(str(contract.num_people))
-        items.append(InvoiceItem(
-            invoice_id=0,
-            item_type=InvoiceItemType.water,
-            name=f"Tiền nước{suffix}",
-            unit_price=prop.default_water_rate,
-            quantity=qty,
-            amount=_round(prop.default_water_rate * qty * factor),
-        ))
+        items.append(
+            InvoiceItem(
+                invoice_id=0,
+                item_type=InvoiceItemType.water,
+                name=f"Tiền nước{suffix}",
+                unit_price=prop.default_water_rate,
+                quantity=qty,
+                amount=_round(prop.default_water_rate * qty * factor),
+            )
+        )
     else:  # per_room
-        items.append(InvoiceItem(
-            invoice_id=0,
-            item_type=InvoiceItemType.water,
-            name=f"Tiền nước{suffix}",
-            unit_price=prop.default_water_rate,
-            quantity=Decimal("1"),
-            amount=_round(prop.default_water_rate * factor),
-        ))
+        items.append(
+            InvoiceItem(
+                invoice_id=0,
+                item_type=InvoiceItemType.water,
+                name=f"Tiền nước{suffix}",
+                unit_price=prop.default_water_rate,
+                quantity=Decimal("1"),
+                amount=_round(prop.default_water_rate * factor),
+            )
+        )
 
     # Surcharges (prorated for partial months)
     for s in surcharges:
-        qty = Decimal(str(contract.num_people)) if s.calc_type == SurchargeCalcType.per_person else Decimal("1")
-        items.append(InvoiceItem(
-            invoice_id=0,
-            item_type=InvoiceItemType.surcharge,
-            name=f"{s.name}{suffix}",
-            unit_price=s.amount,
-            quantity=qty,
-            amount=_round(s.amount * qty * factor),
-        ))
+        qty = (
+            Decimal(str(contract.num_people))
+            if s.calc_type == SurchargeCalcType.per_person
+            else Decimal("1")
+        )
+        items.append(
+            InvoiceItem(
+                invoice_id=0,
+                item_type=InvoiceItemType.surcharge,
+                name=f"{s.name}{suffix}",
+                unit_price=s.amount,
+                quantity=qty,
+                amount=_round(s.amount * qty * factor),
+            )
+        )
 
     return items
 
@@ -181,7 +214,9 @@ async def _build_shared_elec_items(
         people_map: dict[int, int] = {}
         for rid in meter_room_ids:
             active = await contract_repo.get_active_by_room(rid)
-            if active and _period_overlaps_contract(active.start_date, active.end_date, period):
+            if active and _period_overlaps_contract(
+                active.start_date, active.end_date, period
+            ):
                 people_map[rid] = active.num_people
 
         total_active_people = sum(people_map.values())
@@ -189,17 +224,25 @@ async def _build_shared_elec_items(
         if total_active_people <= 0 or this_room_people <= 0:
             continue
 
-        proportional_kwh = total_usage * Decimal(str(this_room_people)) / Decimal(str(total_active_people))
+        proportional_kwh = (
+            total_usage
+            * Decimal(str(this_room_people))
+            / Decimal(str(total_active_people))
+        )
         amount = _round(proportional_kwh * prop.default_elec_rate)
 
-        items.append(InvoiceItem(
-            invoice_id=0,
-            item_type=InvoiceItemType.shared_elec,
-            name=f"Điện chung: {meter.name}",
-            unit_price=prop.default_elec_rate,
-            quantity=proportional_kwh.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
-            amount=amount,
-        ))
+        items.append(
+            InvoiceItem(
+                invoice_id=0,
+                item_type=InvoiceItemType.shared_elec,
+                name=f"Điện chung: {meter.name}",
+                unit_price=prop.default_elec_rate,
+                quantity=proportional_kwh.quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                ),
+                amount=amount,
+            )
+        )
 
     return items
 
@@ -243,15 +286,32 @@ class InvoiceService:
         result = []
         for row in rows:
             items = await self.invoice_repo.get_items(row["id"])
-            result.append(InvoiceListRead(
-                **{k: row[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
-                                       "payment_reported_at",
-                                       "room_id", "room_number", "property_name", "tenant_name")},
-                items=[InvoiceItemRead.model_validate(i) for i in items],
-            ))
+            result.append(
+                InvoiceListRead(
+                    **{
+                        k: row[k]
+                        for k in (
+                            "id",
+                            "contract_id",
+                            "period",
+                            "total",
+                            "status",
+                            "public_token",
+                            "payment_reported_at",
+                            "room_id",
+                            "room_number",
+                            "property_name",
+                            "tenant_name",
+                        )
+                    },
+                    items=[InvoiceItemRead.model_validate(i) for i in items],
+                )
+            )
         return result
 
-    async def list_by_room(self, room_id: int, clerk_user_id: str) -> list[InvoiceListRead]:
+    async def list_by_room(
+        self, room_id: int, clerk_user_id: str
+    ) -> list[InvoiceListRead]:
         room = await self.room_repo.get_by_id(room_id)
         if not room:
             raise NotFoundException("Room not found")
@@ -262,15 +322,32 @@ class InvoiceService:
         result = []
         for row in rows:
             items = await self.invoice_repo.get_items(row["id"])
-            result.append(InvoiceListRead(
-                **{k: row[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
-                                       "payment_reported_at",
-                                       "room_id", "room_number", "property_name", "tenant_name")},
-                items=[InvoiceItemRead.model_validate(i) for i in items],
-            ))
+            result.append(
+                InvoiceListRead(
+                    **{
+                        k: row[k]
+                        for k in (
+                            "id",
+                            "contract_id",
+                            "period",
+                            "total",
+                            "status",
+                            "public_token",
+                            "payment_reported_at",
+                            "room_id",
+                            "room_number",
+                            "property_name",
+                            "tenant_name",
+                        )
+                    },
+                    items=[InvoiceItemRead.model_validate(i) for i in items],
+                )
+            )
         return result
 
-    async def list_by_contract(self, contract_id: int, clerk_user_id: str) -> list[InvoiceRead]:
+    async def list_by_contract(
+        self, contract_id: int, clerk_user_id: str
+    ) -> list[InvoiceRead]:
         contract = await self.contract_repo.get_by_id(contract_id)
         if not contract:
             raise NotFoundException("Contract not found")
@@ -284,7 +361,9 @@ class InvoiceService:
             result.append(await self._load_invoice_read(inv))
         return result
 
-    async def get_invoice(self, invoice_id: int, clerk_user_id: str) -> InvoiceDetailRead:
+    async def get_invoice(
+        self, invoice_id: int, clerk_user_id: str
+    ) -> InvoiceDetailRead:
         invoice, _ = await self._get_invoice_owned(invoice_id, clerk_user_id)
         items = await self.invoice_repo.get_items(invoice.id)
         contract = await self.contract_repo.get_by_id(invoice.contract_id)
@@ -297,17 +376,21 @@ class InvoiceService:
         shared_meter_details: list[SharedMeterInvoiceDetail] = []
         meters = await self.shared_meter_repo.get_meters_for_room(room.id)
         for meter in meters:
-            sm_reading = await self.shared_meter_repo.get_reading(meter.id, invoice.period)
+            sm_reading = await self.shared_meter_repo.get_reading(
+                meter.id, invoice.period
+            )
             if sm_reading is None or sm_reading.prev_reading is None:
                 continue
             total_usage = sm_reading.curr_reading - sm_reading.prev_reading
-            shared_meter_details.append(SharedMeterInvoiceDetail(
-                meter_id=meter.id,
-                meter_name=meter.name,
-                prev_reading=sm_reading.prev_reading,
-                curr_reading=sm_reading.curr_reading,
-                total_usage=total_usage,
-            ))
+            shared_meter_details.append(
+                SharedMeterInvoiceDetail(
+                    meter_id=meter.id,
+                    meter_name=meter.name,
+                    prev_reading=sm_reading.prev_reading,
+                    curr_reading=sm_reading.curr_reading,
+                    total_usage=total_usage,
+                )
+            )
 
         return InvoiceDetailRead(
             id=invoice.id,
@@ -330,12 +413,16 @@ class InvoiceService:
             shared_meter_readings=shared_meter_details,
         )
 
-    async def generate(self, data: InvoiceGenerateRequest, clerk_user_id: str) -> InvoiceRead:
+    async def generate(
+        self, data: InvoiceGenerateRequest, clerk_user_id: str
+    ) -> InvoiceRead:
         contract = await self.contract_repo.get_by_id(data.contract_id)
         if not contract:
             raise NotFoundException("Contract not found")
 
-        if not _period_overlaps_contract(contract.start_date, contract.end_date, data.period):
+        if not _period_overlaps_contract(
+            contract.start_date, contract.end_date, data.period
+        ):
             raise BadRequestException(
                 f"Period {data.period} is outside contract dates "
                 f"({contract.start_date} → {contract.end_date})"
@@ -346,7 +433,9 @@ class InvoiceService:
         if not prop or prop.clerk_user_id != clerk_user_id:
             raise ForbiddenException()
 
-        if await self.invoice_repo.get_by_contract_period(data.contract_id, data.period):
+        if await self.invoice_repo.get_by_contract_period(
+            data.contract_id, data.period
+        ):
             raise ConflictException(f"Invoice for period {data.period} already exists")
 
         reading = await self.utility_repo.get_by_room_period(room.id, data.period)
@@ -359,15 +448,23 @@ class InvoiceService:
         effective_elec_rate = prop.default_elec_rate
         surcharges = await self.surcharge_repo.get_all_by_property(prop.id)
 
-        items = _build_items(contract, reading, surcharges, prop, effective_elec_rate, data.period)
+        items = _build_items(
+            contract, reading, surcharges, prop, effective_elec_rate, data.period
+        )
         shared_items = await _build_shared_elec_items(
-            room.id, contract.num_people, prop, data.period,
-            self.shared_meter_repo, self.contract_repo,
+            room.id,
+            contract.num_people,
+            prop,
+            data.period,
+            self.shared_meter_repo,
+            self.contract_repo,
         )
         items.extend(shared_items)
         total = sum(i.amount for i in items)
 
-        invoice = Invoice(contract_id=data.contract_id, period=data.period, total=_round(total))
+        invoice = Invoice(
+            contract_id=data.contract_id, period=data.period, total=_round(total)
+        )
         created = await self.invoice_repo.create(invoice)
 
         for item in items:
@@ -378,11 +475,15 @@ class InvoiceService:
         await self.session.refresh(created)
         return await self._load_invoice_read(created)
 
-    async def update_status(self, invoice_id: int, data: InvoiceStatusUpdate, clerk_user_id: str) -> InvoiceRead:
+    async def update_status(
+        self, invoice_id: int, data: InvoiceStatusUpdate, clerk_user_id: str
+    ) -> InvoiceRead:
         invoice, _ = await self._get_invoice_owned(invoice_id, clerk_user_id)
         allowed = VALID_TRANSITIONS.get(invoice.status, set())
         if data.status not in allowed:
-            raise BadRequestException(f"Cannot transition from {invoice.status} to {data.status}")
+            raise BadRequestException(
+                f"Cannot transition from {invoice.status} to {data.status}"
+            )
         invoice.status = data.status
         await self.invoice_repo.update(invoice)
         await self.session.commit()
@@ -403,9 +504,23 @@ class InvoiceService:
         invoice = await self.invoice_repo.get_by_public_token(token)
         items = await self.invoice_repo.get_items(invoice.id)
         return InvoicePublicRead(
-            **{k: ctx[k] for k in ("id", "contract_id", "period", "total", "status", "public_token",
-                                   "room_number", "property_name", "tenant_name",
-                                   "bank_account_no", "bank_name", "bank_holder")},
+            **{
+                k: ctx[k]
+                for k in (
+                    "id",
+                    "contract_id",
+                    "period",
+                    "total",
+                    "status",
+                    "public_token",
+                    "room_number",
+                    "property_name",
+                    "tenant_name",
+                    "bank_account_no",
+                    "bank_name",
+                    "bank_holder",
+                )
+            },
             payment_reported_at=invoice.payment_reported_at,
             items=[InvoiceItemRead.model_validate(i) for i in items],
         )
@@ -415,6 +530,7 @@ class InvoiceService:
         Landlord must verify bank statement and manually confirm via authenticated endpoint.
         """
         from datetime import datetime, timezone
+
         invoice = await self.invoice_repo.get_by_public_token(token)
         if not invoice:
             raise NotFoundException("Invoice not found")

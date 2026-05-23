@@ -21,7 +21,8 @@ class PropertyService:
     async def get_stats(self, clerk_user_id: str) -> list[dict]:
         today = date.today()
         period = f"{today.year}-{str(today.month).zfill(2)}"
-        result = await self.session.exec(text("""
+        result = await self.session.exec(
+            text("""
             SELECT
                 p.id,
                 COUNT(r.id)                                          AS total_rooms,
@@ -40,7 +41,9 @@ class PropertyService:
             WHERE p.clerk_user_id = :uid
             GROUP BY p.id
             ORDER BY p.id
-        """), params={"uid": clerk_user_id, "period": period})
+        """),
+            params={"uid": clerk_user_id, "period": period},
+        )
         return [
             {
                 "id": row.id,
@@ -60,11 +63,15 @@ class PropertyService:
             raise ForbiddenException()
         return prop
 
-    async def create_property(self, data: PropertyCreate, clerk_user_id: str) -> Property:
+    async def create_property(
+        self, data: PropertyCreate, clerk_user_id: str
+    ) -> Property:
         if await self.property_repo.get_by_name(clerk_user_id, data.name):
             raise ConflictException("Tên nhà trọ đã tồn tại")
         rooms_data = data.rooms
-        prop = Property(**data.model_dump(exclude={"rooms"}), clerk_user_id=clerk_user_id)
+        prop = Property(
+            **data.model_dump(exclude={"rooms"}), clerk_user_id=clerk_user_id
+        )
         created = await self.property_repo.create(prop)
         for r in rooms_data:
             room = Room(**r.model_dump(), property_id=created.id)
@@ -73,7 +80,9 @@ class PropertyService:
         await self.session.refresh(created)
         return created
 
-    async def update_property(self, property_id: int, data: PropertyUpdate, clerk_user_id: str) -> Property:
+    async def update_property(
+        self, property_id: int, data: PropertyUpdate, clerk_user_id: str
+    ) -> Property:
         prop = await self.property_repo.get_by_id(property_id)
         if not prop:
             raise NotFoundException("Property not found")

@@ -46,7 +46,9 @@ class RoomService:
 
         current_period = date.today().strftime("%Y-%m")
         contract_ids = [c["id"] for c in active.values()]
-        invoice_status_map = await self.invoice_repo.get_status_by_contracts(contract_ids, current_period)
+        invoice_status_map = await self.invoice_repo.get_status_by_contracts(
+            contract_ids, current_period
+        )
         room_invoice: dict[int, str] = {
             room_id: invoice_status_map[c["id"]]
             for room_id, c in active.items()
@@ -74,7 +76,9 @@ class RoomService:
         room, prop = await self._get_room_owned(room_id, clerk_user_id)
         return _build_read(room)
 
-    async def create_room(self, property_id: int, data: RoomCreate, clerk_user_id: str) -> RoomRead:
+    async def create_room(
+        self, property_id: int, data: RoomCreate, clerk_user_id: str
+    ) -> RoomRead:
         await self._get_property_owned(property_id, clerk_user_id)
         room = Room(**data.model_dump(), property_id=property_id)
         try:
@@ -82,11 +86,15 @@ class RoomService:
             await self.session.commit()
         except IntegrityError:
             await self.session.rollback()
-            raise ConflictException(f"Room number '{data.room_number}' already exists in this property")
+            raise ConflictException(
+                f"Room number '{data.room_number}' already exists in this property"
+            )
         await self.session.refresh(created)
         return _build_read(created)
 
-    async def update_room(self, room_id: int, data: RoomUpdate, clerk_user_id: str) -> RoomRead:
+    async def update_room(
+        self, room_id: int, data: RoomUpdate, clerk_user_id: str
+    ) -> RoomRead:
         room, prop = await self._get_room_owned(room_id, clerk_user_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(room, field, value)
@@ -95,7 +103,9 @@ class RoomService:
             await self.session.commit()
         except IntegrityError:
             await self.session.rollback()
-            raise ConflictException(f"Room number '{data.room_number}' already exists in this property")
+            raise ConflictException(
+                f"Room number '{data.room_number}' already exists in this property"
+            )
         await self.session.refresh(updated)
         return _build_read(updated)
 

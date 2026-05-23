@@ -1,13 +1,22 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.utility import UtilityReading
 from app.models.property import WaterCalcType
-from app.schemas.utility import UtilityReadingCreate, UtilityReadingRead, UtilityReadingUpdate
+from app.schemas.utility import (
+    UtilityReadingCreate,
+    UtilityReadingRead,
+    UtilityReadingUpdate,
+)
 from app.repositories.utility_repo import UtilityRepo
 from app.repositories.room_repo import RoomRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.tenant_repo import TenantRepo
-from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException, ConflictException
+from app.core.exceptions import (
+    NotFoundException,
+    ForbiddenException,
+    BadRequestException,
+    ConflictException,
+)
 
 
 def _prev_period(period: str) -> str:
@@ -44,7 +53,9 @@ class UtilityService:
             raise ForbiddenException()
         return room, prop
 
-    async def list_readings(self, room_id: int, clerk_user_id: str) -> list[UtilityReadingRead]:
+    async def list_readings(
+        self, room_id: int, clerk_user_id: str
+    ) -> list[UtilityReadingRead]:
         await self._get_room_owned(room_id, clerk_user_id)
         readings = await self.utility_repo.get_all_by_room(room_id)
 
@@ -62,24 +73,30 @@ class UtilityService:
         for r in readings:
             read = UtilityReadingRead.model_validate(r)
             read.contract_id = r.contract_id
-            read.tenant_name = tenant_name_by_contract.get(r.contract_id) if r.contract_id else None
+            read.tenant_name = (
+                tenant_name_by_contract.get(r.contract_id) if r.contract_id else None
+            )
             result.append(read)
         return result
 
-    async def create_reading(self, data: UtilityReadingCreate, clerk_user_id: str) -> UtilityReadingRead:
+    async def create_reading(
+        self, data: UtilityReadingCreate, clerk_user_id: str
+    ) -> UtilityReadingRead:
         _, prop = await self._get_room_owned(data.room_id, clerk_user_id)
 
         if await self.utility_repo.get_by_room_period(data.room_id, data.period):
             raise ConflictException(f"Reading for period {data.period} already exists")
 
         # Auto-fill prev from previous month
-        prev_reading = await self.utility_repo.get_by_room_period(data.room_id, _prev_period(data.period))
+        prev_reading = await self.utility_repo.get_by_room_period(
+            data.room_id, _prev_period(data.period)
+        )
 
         if prev_reading is not None:
             elec_prev = prev_reading.elec_curr
             is_prev_auto = True
         else:
-            elec_prev = None   # first reading — prev unknown
+            elec_prev = None  # first reading — prev unknown
             is_prev_auto = False
 
         if elec_prev is not None and data.elec_curr < elec_prev:
@@ -92,7 +109,11 @@ class UtilityService:
             else:
                 water_prev = None
             water_curr = data.water_curr
-            if water_prev is not None and water_curr is not None and water_curr < water_prev:
+            if (
+                water_prev is not None
+                and water_curr is not None
+                and water_curr < water_prev
+            ):
                 raise BadRequestException("water_curr must be >= water_prev")
         else:
             water_prev = None
@@ -112,7 +133,9 @@ class UtilityService:
         await self.session.refresh(created)
         return UtilityReadingRead.model_validate(created)
 
-    async def update_reading(self, reading_id: int, data: UtilityReadingUpdate, clerk_user_id: str) -> UtilityReadingRead:
+    async def update_reading(
+        self, reading_id: int, data: UtilityReadingUpdate, clerk_user_id: str
+    ) -> UtilityReadingRead:
         reading = await self.utility_repo.get_by_id(reading_id)
         if not reading:
             raise NotFoundException("Reading not found")
@@ -130,7 +153,10 @@ class UtilityService:
                 raise BadRequestException("elec_curr must be >= elec_prev")
             reading.elec_curr = data.elec_curr
 
-        if prop.water_calc_type == WaterCalcType.per_meter and data.water_curr is not None:
+        if (
+            prop.water_calc_type == WaterCalcType.per_meter
+            and data.water_curr is not None
+        ):
             if reading.water_prev is not None and data.water_curr < reading.water_prev:
                 raise BadRequestException("water_curr must be >= water_prev")
             reading.water_curr = data.water_curr

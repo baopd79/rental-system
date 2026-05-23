@@ -1,15 +1,22 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.shared_meter import SharedMeter, SharedMeterReading
 from app.schemas.shared_meter import (
-    SharedMeterCreate, SharedMeterUpdate, SharedMeterRead,
-    SharedMeterReadingCreate, SharedMeterReadingRead,
+    SharedMeterCreate,
+    SharedMeterUpdate,
+    SharedMeterRead,
+    SharedMeterReadingCreate,
+    SharedMeterReadingRead,
 )
 from app.repositories.shared_meter_repo import SharedMeterRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.room_repo import RoomRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.invoice_repo import InvoiceRepo
-from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
+from app.core.exceptions import (
+    NotFoundException,
+    ForbiddenException,
+    BadRequestException,
+)
 
 
 def _prev_period(period: str) -> str:
@@ -57,12 +64,16 @@ class SharedMeterService:
 
     # ── Meters ────────────────────────────────────────────────────
 
-    async def list_meters(self, property_id: int, clerk_user_id: str) -> list[SharedMeterRead]:
+    async def list_meters(
+        self, property_id: int, clerk_user_id: str
+    ) -> list[SharedMeterRead]:
         await self._get_property_owned(property_id, clerk_user_id)
         meters = await self.repo.get_by_property(property_id)
         return [await self._to_read(m) for m in meters]
 
-    async def create_meter(self, property_id: int, data: SharedMeterCreate, clerk_user_id: str) -> SharedMeterRead:
+    async def create_meter(
+        self, property_id: int, data: SharedMeterCreate, clerk_user_id: str
+    ) -> SharedMeterRead:
         await self._get_property_owned(property_id, clerk_user_id)
         meter = SharedMeter(property_id=property_id, name=data.name)
         created = await self.repo.create(meter)
@@ -70,7 +81,9 @@ class SharedMeterService:
         await self.session.refresh(created)
         return await self._to_read(created)
 
-    async def update_meter(self, meter_id: int, data: SharedMeterUpdate, clerk_user_id: str) -> SharedMeterRead:
+    async def update_meter(
+        self, meter_id: int, data: SharedMeterUpdate, clerk_user_id: str
+    ) -> SharedMeterRead:
         meter = await self._get_meter_owned(meter_id, clerk_user_id)
         meter.name = data.name
         await self.repo.update(meter)
@@ -85,7 +98,9 @@ class SharedMeterService:
 
     # ── Room assignments ──────────────────────────────────────────
 
-    async def add_room(self, meter_id: int, room_id: int, clerk_user_id: str) -> SharedMeterRead:
+    async def add_room(
+        self, meter_id: int, room_id: int, clerk_user_id: str
+    ) -> SharedMeterRead:
         meter = await self._get_meter_owned(meter_id, clerk_user_id)
         room = await self.room_repo.get_by_id(room_id)
         if not room or room.property_id != meter.property_id:
@@ -94,7 +109,9 @@ class SharedMeterService:
         await self.session.commit()
         return await self._to_read(meter)
 
-    async def remove_room(self, meter_id: int, room_id: int, clerk_user_id: str) -> SharedMeterRead:
+    async def remove_room(
+        self, meter_id: int, room_id: int, clerk_user_id: str
+    ) -> SharedMeterRead:
         meter = await self._get_meter_owned(meter_id, clerk_user_id)
         await self.repo.remove_room(meter_id, room_id)
         await self.session.commit()
@@ -102,7 +119,9 @@ class SharedMeterService:
 
     # ── Readings ──────────────────────────────────────────────────
 
-    async def upsert_reading(self, data: SharedMeterReadingCreate, clerk_user_id: str) -> SharedMeterReadingRead:
+    async def upsert_reading(
+        self, data: SharedMeterReadingCreate, clerk_user_id: str
+    ) -> SharedMeterReadingRead:
         meter = await self._get_meter_owned(data.shared_meter_id, clerk_user_id)
 
         # Determine prev_reading: manual override takes priority, else auto-fill from previous period
@@ -121,7 +140,9 @@ class SharedMeterService:
         existing = await self.repo.get_reading(meter.id, data.period)
         if existing:
             # Block if N+1 already has a reading
-            next_reading = await self.repo.get_reading(meter.id, _next_period(data.period))
+            next_reading = await self.repo.get_reading(
+                meter.id, _next_period(data.period)
+            )
             if next_reading is not None:
                 raise BadRequestException(
                     f"Không thể sửa chỉ số kỳ {data.period} vì kỳ {_next_period(data.period)} đã có chỉ số lưu."
@@ -134,12 +155,19 @@ class SharedMeterService:
                     # check ended contracts that were active during this period
                     all_contracts = await self.contract_repo.get_all_by_room(rid)
                     contract = next(
-                        (c for c in all_contracts
-                         if c.start_date.strftime("%Y-%m") <= data.period <= c.end_date.strftime("%Y-%m")),
+                        (
+                            c
+                            for c in all_contracts
+                            if c.start_date.strftime("%Y-%m")
+                            <= data.period
+                            <= c.end_date.strftime("%Y-%m")
+                        ),
                         None,
                     )
                 if contract:
-                    invoice = await self.invoice_repo.get_by_contract_period(contract.id, data.period)
+                    invoice = await self.invoice_repo.get_by_contract_period(
+                        contract.id, data.period
+                    )
                     if invoice is not None:
                         raise BadRequestException(
                             f"Không thể sửa chỉ số kỳ {data.period} vì hoá đơn kỳ này đã được tạo."
@@ -164,7 +192,9 @@ class SharedMeterService:
         await self.session.refresh(created)
         return SharedMeterReadingRead.model_validate(created)
 
-    async def list_readings(self, meter_id: int, clerk_user_id: str) -> list[SharedMeterReadingRead]:
+    async def list_readings(
+        self, meter_id: int, clerk_user_id: str
+    ) -> list[SharedMeterReadingRead]:
         await self._get_meter_owned(meter_id, clerk_user_id)
         readings = await self.repo.get_readings_by_meter(meter_id)
         return [SharedMeterReadingRead.model_validate(r) for r in readings]

@@ -3,6 +3,7 @@ from app.services.utility_service import _prev_period
 
 # --- Pure function tests: _prev_period ---
 
+
 def test_prev_period_normal():
     assert _prev_period("2026-05") == "2026-04"
 

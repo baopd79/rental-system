@@ -5,9 +5,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.utility import UtilityReading
 from app.models.property import WaterCalcType
 from app.schemas.billing import (
-    RoomBillingStatus, BatchReadingRequest,
-    BatchInvoiceRequest, BatchInvoiceResult,
-    InvoicePreviewRow, InvoicePreviewSurcharge,
+    RoomBillingStatus,
+    BatchReadingRequest,
+    BatchInvoiceRequest,
+    BatchInvoiceResult,
+    InvoicePreviewRow,
+    InvoicePreviewSurcharge,
 )
 from app.schemas.invoice import InvoiceGenerateRequest
 from app.repositories.billing_repo import BillingRepo
@@ -18,9 +21,20 @@ from app.repositories.shared_meter_repo import SharedMeterRepo
 from app.repositories.contract_repo import ContractRepo
 from app.repositories.invoice_repo import InvoiceRepo
 from app.repositories.room_repo import RoomRepo
-from app.services.invoice_service import InvoiceService, _build_items, _build_shared_elec_items, _prorate_factor, _round
+from app.services.invoice_service import (
+    InvoiceService,
+    _build_items,
+    _build_shared_elec_items,
+    _prorate_factor,
+    _round,
+)
 from app.services.utility_service import _prev_period, _next_period
-from app.core.exceptions import ForbiddenException, NotFoundException, BadRequestException, ConflictException
+from app.core.exceptions import (
+    ForbiddenException,
+    NotFoundException,
+    BadRequestException,
+    ConflictException,
+)
 
 
 class BillingService:
@@ -44,7 +58,9 @@ class BillingService:
             raise ForbiddenException()
         return prop
 
-    async def get_status(self, property_id: int, period: str, clerk_user_id: str) -> list[RoomBillingStatus]:
+    async def get_status(
+        self, property_id: int, period: str, clerk_user_id: str
+    ) -> list[RoomBillingStatus]:
         await self._get_property_owned(property_id, clerk_user_id)
         rows = await self.billing_repo.get_room_billing_status(
             property_id, period, _prev_period(period), _next_period(period)
@@ -68,6 +84,7 @@ class BillingService:
 
             # Build mock contract and reading objects for _build_items
             from app.models.contract import Contract, ContractStatus
+
             contract = Contract(
                 id=row["contract_id"],
                 room_id=row["room_id"],
@@ -87,15 +104,15 @@ class BillingService:
                 # Use stored invoice amounts — do not re-calculate from current rates.
                 # Rates or surcharges may have changed since the invoice was created.
                 D = Decimal
-                rent_amount        = D(str(row["inv_rent"]        or 0))
-                elec_amount        = D(str(row["inv_elec"]        or 0))
-                water_amount       = D(str(row["inv_water"]       or 0))
+                rent_amount = D(str(row["inv_rent"] or 0))
+                elec_amount = D(str(row["inv_elec"] or 0))
+                water_amount = D(str(row["inv_water"] or 0))
                 shared_elec_amount = D(str(row["inv_shared_elec"] or 0))
-                surcharge_total    = D(str(row["inv_surcharge"]   or 0))
+                surcharge_total = D(str(row["inv_surcharge"] or 0))
                 surcharge_items: list[InvoicePreviewSurcharge] = []
-                total              = D(str(row["invoice_total"]   or 0))
-                is_prorated        = False
-                prorate_label      = None
+                total = D(str(row["invoice_total"] or 0))
+                is_prorated = False
+                prorate_label = None
             else:
                 if has_reading:
                     reading = UtilityReading(
@@ -111,24 +128,44 @@ class BillingService:
                 else:
                     reading = None
 
-                items = _build_items(contract, reading, surcharges, prop, prop.default_elec_rate, period)
+                items = _build_items(
+                    contract, reading, surcharges, prop, prop.default_elec_rate, period
+                )
                 shared_items = await _build_shared_elec_items(
-                    row["room_id"], row["num_people"], prop, period,
-                    self.shared_meter_repo, self.contract_repo,
+                    row["room_id"],
+                    row["num_people"],
+                    prop,
+                    period,
+                    self.shared_meter_repo,
+                    self.contract_repo,
                 )
                 items.extend(shared_items)
 
                 from app.models.invoice import InvoiceItemType
-                rent_amount        = sum(i.amount for i in items if i.item_type == InvoiceItemType.rent)
-                elec_amount        = sum(i.amount for i in items if i.item_type == InvoiceItemType.electricity)
-                water_amount       = sum(i.amount for i in items if i.item_type == InvoiceItemType.water)
-                shared_elec_amount = sum(i.amount for i in items if i.item_type == InvoiceItemType.shared_elec)
-                surcharge_items    = [
+
+                rent_amount = sum(
+                    i.amount for i in items if i.item_type == InvoiceItemType.rent
+                )
+                elec_amount = sum(
+                    i.amount
+                    for i in items
+                    if i.item_type == InvoiceItemType.electricity
+                )
+                water_amount = sum(
+                    i.amount for i in items if i.item_type == InvoiceItemType.water
+                )
+                shared_elec_amount = sum(
+                    i.amount
+                    for i in items
+                    if i.item_type == InvoiceItemType.shared_elec
+                )
+                surcharge_items = [
                     InvoicePreviewSurcharge(name=i.name, amount=i.amount)
-                    for i in items if i.item_type == InvoiceItemType.surcharge
+                    for i in items
+                    if i.item_type == InvoiceItemType.surcharge
                 ]
                 surcharge_total = sum(s.amount for s in surcharge_items)
-                total           = _round(sum(i.amount for i in items))
+                total = _round(sum(i.amount for i in items))
 
                 factor = _prorate_factor(contract_start, contract_end, period)
                 is_prorated = factor < Decimal("1")
@@ -140,31 +177,33 @@ class BillingService:
                 else:
                     prorate_label = None
 
-            result.append(InvoicePreviewRow(
-                room_id=row["room_id"],
-                room_number=row["room_number"],
-                contract_id=row["contract_id"],
-                tenant_name=row["tenant_name"],
-                contract_start=contract_start,
-                contract_end=contract_end,
-                is_prorated=is_prorated,
-                prorate_label=prorate_label,
-                has_reading=has_reading,
-                elec_prev=row["elec_prev"],
-                elec_curr=row["elec_curr"],
-                water_prev=row["water_prev"],
-                water_curr=row["water_curr"],
-                rent_amount=rent_amount,
-                elec_amount=elec_amount,
-                water_amount=water_amount,
-                shared_elec_amount=shared_elec_amount,
-                surcharges=surcharge_items,
-                surcharge_total=surcharge_total,
-                total=total,
-                invoice_id=row["invoice_id"],
-                invoice_status=row["invoice_status"],
-                invoice_public_token=row["invoice_public_token"],
-            ))
+            result.append(
+                InvoicePreviewRow(
+                    room_id=row["room_id"],
+                    room_number=row["room_number"],
+                    contract_id=row["contract_id"],
+                    tenant_name=row["tenant_name"],
+                    contract_start=contract_start,
+                    contract_end=contract_end,
+                    is_prorated=is_prorated,
+                    prorate_label=prorate_label,
+                    has_reading=has_reading,
+                    elec_prev=row["elec_prev"],
+                    elec_curr=row["elec_curr"],
+                    water_prev=row["water_prev"],
+                    water_curr=row["water_curr"],
+                    rent_amount=rent_amount,
+                    elec_amount=elec_amount,
+                    water_amount=water_amount,
+                    shared_elec_amount=shared_elec_amount,
+                    surcharges=surcharge_items,
+                    surcharge_total=surcharge_total,
+                    total=total,
+                    invoice_id=row["invoice_id"],
+                    invoice_status=row["invoice_status"],
+                    invoice_public_token=row["invoice_public_token"],
+                )
+            )
 
         return result
 
@@ -173,7 +212,9 @@ class BillingService:
     ) -> list[RoomBillingStatus]:
         prop = await self._get_property_owned(property_id, clerk_user_id)
 
-        valid_room_ids = {r.id for r in await self.room_repo.get_all_by_property(property_id)}
+        valid_room_ids = {
+            r.id for r in await self.room_repo.get_all_by_property(property_id)
+        }
         for item in data.readings:
             if item.room_id not in valid_room_ids:
                 raise ForbiddenException()
@@ -183,15 +224,21 @@ class BillingService:
             # Block editing period N if period N+1 already has a reading.
             # N+1.elec_prev was auto-filled from N.elec_curr; changing N would silently
             # corrupt N+1's prev and any invoice already generated from it.
-            next_reading = await self.utility_repo.get_by_room_period(item.room_id, next_period)
-            existing = await self.utility_repo.get_by_room_period(item.room_id, data.period)
+            next_reading = await self.utility_repo.get_by_room_period(
+                item.room_id, next_period
+            )
+            existing = await self.utility_repo.get_by_room_period(
+                item.room_id, data.period
+            )
             if existing and next_reading is not None:
                 raise BadRequestException(
                     f"Phòng {item.room_id}: không thể sửa chỉ số kỳ {data.period} "
                     f"vì kỳ {next_period} đã có chỉ số lưu."
                 )
             if existing and existing.contract_id:
-                invoice = await self.invoice_repo.get_by_contract_period(existing.contract_id, data.period)
+                invoice = await self.invoice_repo.get_by_contract_period(
+                    existing.contract_id, data.period
+                )
                 if invoice is not None:
                     raise BadRequestException(
                         f"Phòng {item.room_id}: không thể sửa chỉ số kỳ {data.period} "
@@ -213,26 +260,37 @@ class BillingService:
                             f"Phòng {item.room_id}: chỉ số điện cuối kỳ nhỏ hơn đầu kỳ"
                         )
                     existing.elec_curr = item.elec_curr
-                if prop.water_calc_type == WaterCalcType.per_meter and item.water_curr is not None:
+                if (
+                    prop.water_calc_type == WaterCalcType.per_meter
+                    and item.water_curr is not None
+                ):
                     if existing.water_prev is None and existing.water_curr is not None:
                         existing.water_prev = existing.water_curr
-                    if existing.water_prev is not None and item.water_curr < existing.water_prev:
+                    if (
+                        existing.water_prev is not None
+                        and item.water_curr < existing.water_prev
+                    ):
                         raise BadRequestException(
                             f"Phòng {item.room_id}: chỉ số nước cuối kỳ nhỏ hơn đầu kỳ"
                         )
                     existing.water_curr = item.water_curr
                 await self.utility_repo.update(existing)
             else:
-                active_contract = await self.contract_repo.get_active_by_room(item.room_id)
+                active_contract = await self.contract_repo.get_active_by_room(
+                    item.room_id
+                )
                 contract_id = active_contract.id if active_contract else None
 
-                prev_reading = await self.utility_repo.get_by_room_period(item.room_id, _prev_period(data.period))
+                prev_reading = await self.utility_repo.get_by_room_period(
+                    item.room_id, _prev_period(data.period)
+                )
 
                 # Only carry over prev reading if it belongs to the same contract.
                 # A prev reading from an old tenant must never contaminate the new tenant's billing.
                 same_contract_prev = (
                     prev_reading
-                    if prev_reading is not None and prev_reading.contract_id == contract_id
+                    if prev_reading is not None
+                    and prev_reading.contract_id == contract_id
                     else None
                 )
                 elec_prev = same_contract_prev.elec_curr if same_contract_prev else None
@@ -254,9 +312,15 @@ class BillingService:
                     )
 
                 if prop.water_calc_type == WaterCalcType.per_meter:
-                    water_prev = same_contract_prev.water_curr if same_contract_prev else None
+                    water_prev = (
+                        same_contract_prev.water_curr if same_contract_prev else None
+                    )
                     water_curr = item.water_curr
-                    if water_prev is not None and water_curr is not None and water_curr < water_prev:
+                    if (
+                        water_prev is not None
+                        and water_curr is not None
+                        and water_curr < water_prev
+                    ):
                         raise BadRequestException(
                             f"Phòng {item.room_id}: chỉ số nước cuối kỳ nhỏ hơn đầu kỳ"
                         )
