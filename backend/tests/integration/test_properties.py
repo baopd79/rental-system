@@ -31,7 +31,7 @@ async def test_create_property():
     assert r.status_code == 201
     data = r.json()
     assert data["name"] == "Nhà Quận 1"
-    assert data["clerk_user_id"] == USER_A
+    assert "clerk_user_id" not in data
 
 
 @pytest.mark.asyncio
@@ -57,9 +57,8 @@ async def test_list_properties_owner_isolation():
 
     names_a = [p["name"] for p in r_a.json()]
     names_b = [p["name"] for p in r_b.json()]
-    assert all(p["clerk_user_id"] == USER_A for p in r_a.json())
-    assert all(p["clerk_user_id"] == USER_B for p in r_b.json())
-    assert not any(n in names_b for n in names_a)
+    assert "Nhà A" in names_a and "Nhà B" not in names_a
+    assert "Nhà B" in names_b and "Nhà A" not in names_b
 
 
 @pytest.mark.asyncio
