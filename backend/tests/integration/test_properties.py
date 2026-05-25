@@ -73,7 +73,7 @@ async def test_update_property_forbidden_for_other_user():
         )
         prop_id = r.json()["id"]
 
-        r_update = await client.put(
+        r_update = await client.patch(
             f"/api/v1/properties/{prop_id}",
             json={"name": "Hacked"},
             headers=auth_headers(USER_B),
@@ -111,7 +111,7 @@ async def test_update_and_delete_own_property():
         )
         prop_id = r.json()["id"]
 
-        r_upd = await client.put(
+        r_upd = await client.patch(
             f"/api/v1/properties/{prop_id}",
             json={"name": "Nhà Đã Sửa"},
             headers=auth_headers(USER_A),

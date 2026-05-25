@@ -112,6 +112,14 @@ class PropertyUpdate(BaseModel):
         return v
 
 
+class PropertyStatsRead(BaseModel):
+    id: int
+    total_rooms: int
+    occupied_rooms: int
+    monthly_revenue: float
+    period: str
+
+
 class PropertyRead(BaseModel):
     id: int
     name: str
