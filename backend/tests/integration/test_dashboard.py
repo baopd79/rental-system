@@ -198,8 +198,12 @@ async def test_summary_isolates_by_user():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
-        await setup_property_room_contract_invoice(client, USER_A, property_name="Test House A1")
-        await setup_property_room_contract_invoice(client, USER_A, property_name="Test House A2")
+        await setup_property_room_contract_invoice(
+            client, USER_A, property_name="Test House A1"
+        )
+        await setup_property_room_contract_invoice(
+            client, USER_A, property_name="Test House A2"
+        )
 
         r_a = await client.get(
             "/api/v1/dashboard/summary", headers=auth_headers(USER_A)

@@ -31,7 +31,7 @@ async def test_create_property():
     assert r.status_code == 201
     data = r.json()
     assert data["name"] == "Nhà Quận 1"
-    assert data["clerk_user_id"] == USER_A
+    assert "clerk_user_id" not in data
 
 
 @pytest.mark.asyncio
@@ -57,9 +57,8 @@ async def test_list_properties_owner_isolation():
 
     names_a = [p["name"] for p in r_a.json()]
     names_b = [p["name"] for p in r_b.json()]
-    assert all(p["clerk_user_id"] == USER_A for p in r_a.json())
-    assert all(p["clerk_user_id"] == USER_B for p in r_b.json())
-    assert not any(n in names_b for n in names_a)
+    assert "Nhà A" in names_a and "Nhà B" not in names_a
+    assert "Nhà B" in names_b and "Nhà A" not in names_b
 
 
 @pytest.mark.asyncio
@@ -74,7 +73,7 @@ async def test_update_property_forbidden_for_other_user():
         )
         prop_id = r.json()["id"]
 
-        r_update = await client.put(
+        r_update = await client.patch(
             f"/api/v1/properties/{prop_id}",
             json={"name": "Hacked"},
             headers=auth_headers(USER_B),
@@ -112,7 +111,7 @@ async def test_update_and_delete_own_property():
         )
         prop_id = r.json()["id"]
 
-        r_upd = await client.put(
+        r_upd = await client.patch(
             f"/api/v1/properties/{prop_id}",
             json={"name": "Nhà Đã Sửa"},
             headers=auth_headers(USER_A),

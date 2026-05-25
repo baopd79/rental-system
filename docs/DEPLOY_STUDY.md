@@ -196,6 +196,49 @@ DATABASE_URL="postgresql+asyncpg://...neon.tech/db?ssl=require" \
 
 Mỗi lần có **migration mới** (thêm bảng, thêm cột) → phải chạy `upgrade head` trên production DB trước khi deploy code mới.
 
+### Tự động chạy migration khi deploy (Render free tier)
+
+Render free tier không có **Pre-Deploy Command** (tính năng trả phí). Thay vào đó, thêm migration vào `CMD` trong Dockerfile:
+
+```dockerfile
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+```
+
+- Migration chạy trước, xong mới khởi động server
+- `alembic upgrade head` là **idempotent** — không có migration mới thì exit ngay, không tốn thời gian
+- Nếu migration fail → container không start → Render giữ nguyên version cũ đang chạy
+
+### Zero downtime khi deploy
+
+Render giữ version cũ đang chạy cho đến khi version mới deploy thành công mới switch traffic. Nếu deploy fail → version cũ vẫn phục vụ user bình thường, không có downtime.
+
+### Kiểm tra data trước khi chạy migration có constraint mới
+
+**Không phải migration nào cũng an toàn.** Phân loại theo mức độ rủi ro:
+
+| Thay đổi | Rủi ro | Lý do |
+|---------|--------|-------|
+| Thêm column nullable | An toàn | Row cũ tự get NULL |
+| Thêm column NOT NULL có default | An toàn | DB tự fill default |
+| Thêm index | An toàn | Không ảnh hưởng data |
+| Pydantic validator | An toàn | Chỉ ở tầng app |
+| Thêm UNIQUE constraint | **Cần kiểm tra** | Fail nếu data cũ có duplicate |
+| Thêm NOT NULL không có default | **Fail ngay** | Row cũ vi phạm |
+| Xóa / rename column | **Nguy hiểm** | Code cũ còn reference |
+
+**Với UNIQUE constraint, luôn kiểm tra trước:**
+
+```sql
+SELECT <col1>, <col2>, COUNT(*)
+FROM <table>
+GROUP BY <col1>, <col2>
+HAVING COUNT(*) > 1;
+```
+
+Nếu có kết quả → xử lý data trùng trước, rồi mới deploy.
+
+**Sửa data trên Neon**: vào Neon dashboard → **SQL Editor** → chạy query xóa/sửa trực tiếp. Nhanh hơn dùng `psql`.
+
 ### Direct vs Pooled connection
 
 | Loại | Dùng cho | Ghi chú |
@@ -274,6 +317,7 @@ Render free tier tắt container sau 15 phút idle → request đầu tiên mấ
 | `unexpected keyword argument 'channel_binding'` | Neon pooled connection có param lạ | Tắt connection pooling, dùng direct connection |
 | API trả `404 Not Found` khi tạo nhà | `NEXT_PUBLIC_API_URL` thiếu `/api/v1` | Thêm `/api/v1` vào cuối URL |
 | Clerk production lỗi domain | `*.vercel.app` không được chấp nhận | Cần custom domain thật |
+| `could not create unique index` khi deploy | Production có data vi phạm constraint mới | Xóa/sửa data trùng trên Neon SQL Editor trước, rồi redeploy |
 
 ---
 
@@ -475,6 +519,13 @@ Nếu quên update `CORS_ORIGINS` trên backend Render sau khi đổi domain Ver
 18. Giải thích tại sao Dockerfile viết cho Render có thể dùng lại trên VPS mà không cần sửa.
 19. App đang dùng Clerk test keys. Để chuyển sang production keys cần làm những bước nào?
 20. Cold start là gì? Nó ảnh hưởng như thế nào đến trải nghiệm người dùng trên Render free tier?
+
+### Migration & Production data
+34. Tại sao thêm UNIQUE constraint có thể làm fail deploy trên production?
+35. Trước khi thêm UNIQUE constraint, cần kiểm tra gì trên DB?
+36. Tại sao dùng Dockerfile CMD để chạy migration thay vì Pre-Deploy Command trên Render free tier?
+37. `alembic upgrade head` là idempotent nghĩa là gì? Tại sao điều đó quan trọng khi đặt trong CMD?
+38. Nếu migration fail trong CMD, điều gì xảy ra với version đang chạy trên Render?
 
 ### CI/CD
 21. CI chạy trước hay sau khi push code lên GitHub? Tại sao?

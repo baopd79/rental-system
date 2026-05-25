@@ -17,7 +17,7 @@ Deploy rental-system lên production sử dụng managed PaaS miễn phí:
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Frontend | Next.js | 16.x |
+| Frontend | Next.js | 15.x |
 | Backend | FastAPI + SQLModel | Python 3.12 |
 | Database | PostgreSQL | 16 |
 | Auth | Clerk | — |
@@ -88,13 +88,17 @@ rental-system/
 ### Phase 2: Database — Neon
 
 - [ ] **T3** Tạo Neon project + database
-  - Accept: Connection string dạng `postgresql+asyncpg://...` copy được
-  - Verify: `psql <connection_string>` connect được
+  - Accept: Connection string copy được từ Neon dashboard
+  - Note: Neon cấp 2 loại link — dùng **Direct connection**, không dùng Pooled (pgbouncer)
+  - Note: Để kết nối bằng `psql` dùng link gốc (`sslmode=require&channel_binding=require`); để set vào Render đổi thành `postgresql+asyncpg://...?ssl=require`
+  - Verify: `psql "<neon_original_url>"` connect được
 
-- [ ] **T4** Chạy migrations trên Neon
-  - Accept: 13 tables tồn tại trong Neon DB
-  - Command: `DATABASE_URL=<neon_url> uv run alembic upgrade head`
-  - Verify: `psql <url> -c "\dt"` liệt kê đủ tables
+- [ ] **T4** Chạy migrations lần đầu trên Neon
+  - Accept: 12 tables tồn tại trong Neon DB
+  - Command: `DATABASE_URL="postgresql+asyncpg://...?ssl=require" uv run alembic upgrade head`
+  - Verify: `psql "<neon_original_url>" -c "\dt"` liệt kê đủ tables
+  - Note: Từ lần deploy thứ hai trở đi, Dockerfile CMD tự chạy migration — không cần làm thủ công
+  - **Quan trọng:** Nếu migration có UNIQUE constraint mới, kiểm tra data trùng trước khi chạy: `SELECT col, COUNT(*) FROM table GROUP BY col HAVING COUNT(*) > 1`
 
 ---
 
@@ -103,6 +107,7 @@ rental-system/
 - [ ] **T5** Tạo Render Web Service từ GitHub repo
   - Accept: Service tạo thành công, config trỏ đúng `backend/` folder
   - Setting: Root Directory = `backend`, Docker runtime
+  - Note: Không cần Pre-Deploy Command (tính năng trả phí) — migration tự chạy qua Dockerfile CMD
 
 - [ ] **T6** Thêm environment variables trên Render
   - Accept: Tất cả biến trong bảng Backend ở trên được set
@@ -166,7 +171,7 @@ rental-system/
 | **Dockerfile** | File mô tả cách đóng gói app vào container. Render dùng file này để build và chạy backend. |
 | **Environment variables** | Cấu hình nhạy cảm (password, API keys) không được commit vào code — truyền qua env vars. |
 | **CORS** | Cơ chế browser bảo vệ: backend phải khai báo domain nào được phép gọi API. |
-| **Migration on deploy** | Khi schema thay đổi, phải chạy `alembic upgrade head` để cập nhật database production. |
+| **Migration on deploy** | Dockerfile CMD tự chạy `alembic upgrade head` trước khi server khởi động. Nếu migration fail → container không start → Render giữ version cũ, không có downtime. |
 | **Free tier cold start** | Render free tier "ngủ" sau 15 phút không dùng → request đầu tiên chậm ~30s. Bình thường. |
 
 ---

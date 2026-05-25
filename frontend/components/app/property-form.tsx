@@ -295,7 +295,7 @@ export function PropertyForm({ property, onSuccess, onCancel }: Props) {
       const result = await apiJson<Property>(
         isEdit ? `/properties/${property.id}` : "/properties",
         getToken,
-        { method: isEdit ? "PUT" : "POST", body }
+        { method: isEdit ? "PATCH" : "POST", body }
       );
       onSuccess(result, isEdit ? undefined : validRooms.length);
     } catch (err) {
