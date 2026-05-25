@@ -99,7 +99,9 @@ class PropertyUpdate(BaseModel):
     def strip_optional_str(cls, v: object) -> object:
         return _strip_optional(v) if isinstance(v, str) else v
 
-    @field_validator("description", "bank_account_no", "bank_name", "bank_holder", mode="before")
+    @field_validator(
+        "description", "bank_account_no", "bank_name", "bank_holder", mode="before"
+    )
     @classmethod
     def strip_to_none_str(cls, v: object) -> object:
         return _strip_to_none(v) if isinstance(v, str) else v

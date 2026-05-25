@@ -1,6 +1,11 @@
 from fastapi import APIRouter, status
 from app.core.dependencies import CurrentUserDep, PropertyServiceDep
-from app.schemas.property import PropertyCreate, PropertyRead, PropertyStatsRead, PropertyUpdate
+from app.schemas.property import (
+    PropertyCreate,
+    PropertyRead,
+    PropertyStatsRead,
+    PropertyUpdate,
+)
 
 router = APIRouter(prefix="/properties", tags=["properties"])
 
