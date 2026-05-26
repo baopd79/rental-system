@@ -13,7 +13,9 @@ async def list_rooms(
 
 
 @router.post(
-    "/properties/{property_id}/rooms", response_model=RoomRead, status_code=status.HTTP_201_CREATED
+    "/properties/{property_id}/rooms",
+    response_model=RoomRead,
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_room(
     property_id: int,

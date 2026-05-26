@@ -15,7 +15,9 @@ class RoomRepo:
 
     async def get_all_by_property(self, property_id: int) -> list[Room]:
         result = await self.session.exec(
-            select(Room).where(Room.property_id == property_id).order_by(Room.room_number)
+            select(Room)
+            .where(Room.property_id == property_id)
+            .order_by(Room.room_number)
         )
         return list(result.all())
 

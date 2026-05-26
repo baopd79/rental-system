@@ -52,8 +52,14 @@ be-migration:
 be-test:
 	cd backend && uv run pytest -v
 
-be-lint:
-	cd backend && uv run ruff check .
+be-lint-check:
+	cd backend && uv run ruff check . && uv run ruff format --check .
+
+be-lint-fix:
+	cd backend && uv run ruff check . --fix
+
+be-format-fix:
+	cd backend && uv run ruff format .
 
 # ── frontend ──────────────────────────────────────────────────────────
 fe:
