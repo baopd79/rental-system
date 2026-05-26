@@ -56,7 +56,7 @@ export function RoomForm({ propertyId, room, onSuccess, onCancel }: Props) {
       const result = await apiJson<Room>(
         room ? `/rooms/${room.id}` : `/properties/${propertyId}/rooms`,
         getToken,
-        { method: room ? "PUT" : "POST", body: payload }
+        { method: room ? "PATCH" : "POST", body: payload }
       );
       onSuccess(result);
     } catch (err) {

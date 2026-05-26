@@ -2,31 +2,13 @@ from pydantic import BaseModel, field_validator
 from decimal import Decimal
 from datetime import datetime
 from app.models.property import WaterCalcType
-
-
-def _strip_required(v: str) -> str:
-    v = v.strip()
-    if not v:
-        raise ValueError("must not be blank")
-    return v
-
-
-def _strip_optional(v: str | None) -> str | None:
-    """Strip; raise if blank — field is required when present."""
-    if v is None:
-        return v
-    v = v.strip()
-    if not v:
-        raise ValueError("must not be blank")
-    return v
-
-
-def _strip_to_none(v: str | None) -> str | None:
-    """Strip; convert blank/empty to None — truly optional field."""
-    if v is None:
-        return None
-    v = v.strip()
-    return v if v else None
+from app.schemas._validators import (
+    strip_required,
+    strip_optional,
+    strip_to_none,
+    non_negative,
+    positive,
+)
 
 
 class RoomInPropertyCreate(BaseModel):
@@ -39,21 +21,17 @@ class RoomInPropertyCreate(BaseModel):
     @field_validator("room_number", mode="before")
     @classmethod
     def strip_room_number(cls, v: object) -> object:
-        return _strip_required(v) if isinstance(v, str) else v
+        return strip_required(v) if isinstance(v, str) else v
 
     @field_validator("rent_price", "deposit", mode="before")
     @classmethod
-    def non_negative(cls, v: object) -> object:
-        if Decimal(str(v)) < 0:
-            raise ValueError("must be >= 0")
-        return v
+    def validate_non_negative(cls, v: object) -> object:
+        return non_negative(v)
 
     @field_validator("area_m2", mode="before")
     @classmethod
-    def positive_area(cls, v: object) -> object:
-        if v is not None and Decimal(str(v)) <= 0:
-            raise ValueError("must be > 0")
-        return v
+    def validate_area(cls, v: object) -> object:
+        return positive(v)
 
 
 class PropertyCreate(BaseModel):
@@ -68,19 +46,17 @@ class PropertyCreate(BaseModel):
     @field_validator("name", "address", mode="before")
     @classmethod
     def strip_required_str(cls, v: object) -> object:
-        return _strip_required(v) if isinstance(v, str) else v
+        return strip_required(v) if isinstance(v, str) else v
 
     @field_validator("description", mode="before")
     @classmethod
     def strip_description(cls, v: object) -> object:
-        return _strip_to_none(v) if isinstance(v, str) else v
+        return strip_to_none(v) if isinstance(v, str) else v
 
     @field_validator("default_elec_rate", "default_water_rate", mode="before")
     @classmethod
-    def non_negative_rate(cls, v: object) -> object:
-        if Decimal(str(v)) < 0:
-            raise ValueError("must be >= 0")
-        return v
+    def validate_non_negative_rate(cls, v: object) -> object:
+        return non_negative(v)
 
 
 class PropertyUpdate(BaseModel):
@@ -97,21 +73,19 @@ class PropertyUpdate(BaseModel):
     @field_validator("name", "address", mode="before")
     @classmethod
     def strip_optional_str(cls, v: object) -> object:
-        return _strip_optional(v) if isinstance(v, str) else v
+        return strip_optional(v) if isinstance(v, str) else v
 
     @field_validator(
         "description", "bank_account_no", "bank_name", "bank_holder", mode="before"
     )
     @classmethod
     def strip_to_none_str(cls, v: object) -> object:
-        return _strip_to_none(v) if isinstance(v, str) else v
+        return strip_to_none(v) if isinstance(v, str) else v
 
     @field_validator("default_elec_rate", "default_water_rate", mode="before")
     @classmethod
-    def non_negative_rate(cls, v: object) -> object:
-        if v is not None and Decimal(str(v)) < 0:
-            raise ValueError("must be >= 0")
-        return v
+    def validate_non_negative_rate(cls, v: object) -> object:
+        return non_negative(v)
 
 
 class PropertyStatsRead(BaseModel):

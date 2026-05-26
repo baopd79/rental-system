@@ -113,7 +113,7 @@ async def test_update_room_status():
             )
         ).json()
 
-        r = await client.put(
+        r = await client.patch(
             f"/api/v1/rooms/{room['id']}",
             json={"status": "maintenance"},
             headers=auth_headers(USER_A),
