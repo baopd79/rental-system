@@ -10,10 +10,6 @@ from app.repositories.invoice_repo import InvoiceRepo
 from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 
-def _build_read(room: Room) -> RoomRead:
-    return RoomRead.model_validate(room)
-
-
 class RoomService:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -23,6 +19,7 @@ class RoomService:
         self.invoice_repo = InvoiceRepo(session)
 
     async def _get_property_owned(self, property_id: int, clerk_user_id: str):
+        """Lấy property, raise 404/403 nếu không tồn tại hoặc không thuộc user."""
         prop = await self.property_repo.get_by_id(property_id)
         if not prop:
             raise NotFoundException("Property not found")
@@ -31,6 +28,7 @@ class RoomService:
         return prop
 
     async def _get_room_owned(self, room_id: int, clerk_user_id: str):
+        """Lấy room + property, raise 404/403 nếu không tồn tại hoặc property không thuộc user."""
         room = await self.room_repo.get_by_id(room_id)
         if not room:
             raise NotFoundException("Room not found")
@@ -40,6 +38,7 @@ class RoomService:
         return room, prop
 
     async def list_rooms(self, property_id: int, clerk_user_id: str) -> list[RoomRead]:
+        """Trả danh sách phòng kèm active contract và trạng thái hóa đơn tháng hiện tại."""
         await self._get_property_owned(property_id, clerk_user_id)
         rooms = await self.room_repo.get_all_by_property(property_id)
         active = await self.contract_repo.get_active_by_property(property_id)
@@ -57,7 +56,7 @@ class RoomService:
 
         result = []
         for r in rooms:
-            read = _build_read(r)
+            read = RoomRead.model_validate(r)
             if r.id in active:
                 c = active[r.id]
                 read.active_contract = ActiveContractInfo(
@@ -73,12 +72,14 @@ class RoomService:
         return result
 
     async def get_room(self, room_id: int, clerk_user_id: str) -> RoomRead:
-        room, prop = await self._get_room_owned(room_id, clerk_user_id)
-        return _build_read(room)
+        """Lấy thông tin một phòng, không kèm contract hay invoice."""
+        room, _ = await self._get_room_owned(room_id, clerk_user_id)
+        return RoomRead.model_validate(room)
 
     async def create_room(
         self, property_id: int, data: RoomCreate, clerk_user_id: str
     ) -> RoomRead:
+        """Tạo phòng mới, dùng IntegrityError để chặn trùng room_number thay vì pre-check."""
         await self._get_property_owned(property_id, clerk_user_id)
         room = Room(**data.model_dump(), property_id=property_id)
         try:
@@ -90,12 +91,13 @@ class RoomService:
                 f"Room number '{data.room_number}' already exists in this property"
             )
         await self.session.refresh(created)
-        return _build_read(created)
+        return RoomRead.model_validate(created)
 
     async def update_room(
         self, room_id: int, data: RoomUpdate, clerk_user_id: str
     ) -> RoomRead:
-        room, prop = await self._get_room_owned(room_id, clerk_user_id)
+        """Cập nhật partial các field của phòng, chặn trùng room_number qua IntegrityError."""
+        room, _ = await self._get_room_owned(room_id, clerk_user_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(room, field, value)
         try:
@@ -103,13 +105,15 @@ class RoomService:
             await self.session.commit()
         except IntegrityError:
             await self.session.rollback()
+            room_num = data.room_number or room.room_number
             raise ConflictException(
-                f"Room number '{data.room_number}' already exists in this property"
+                f"Room number '{room_num}' already exists in this property"
             )
         await self.session.refresh(updated)
-        return _build_read(updated)
+        return RoomRead.model_validate(updated)
 
     async def delete_room(self, room_id: int, clerk_user_id: str) -> None:
+        """Xóa phòng, chặn nếu còn hợp đồng liên quan."""
         room, _ = await self._get_room_owned(room_id, clerk_user_id)
         if await self.contract_repo.count_by_room(room_id):
             raise ConflictException("Cannot delete room with existing contracts")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from app.core.dependencies import CurrentUserDep, RoomServiceDep
 from app.schemas.room import RoomCreate, RoomRead, RoomUpdate
 
@@ -13,7 +13,7 @@ async def list_rooms(
 
 
 @router.post(
-    "/properties/{property_id}/rooms", response_model=RoomRead, status_code=201
+    "/properties/{property_id}/rooms", response_model=RoomRead, status_code=status.HTTP_201_CREATED
 )
 async def create_room(
     property_id: int,
@@ -31,7 +31,7 @@ async def get_room(
     return await service.get_room(room_id, clerk_user_id)
 
 
-@router.put("/rooms/{room_id}", response_model=RoomRead)
+@router.patch("/rooms/{room_id}", response_model=RoomRead)
 async def update_room(
     room_id: int,
     body: RoomUpdate,
@@ -41,7 +41,7 @@ async def update_room(
     return await service.update_room(room_id, body, clerk_user_id)
 
 
-@router.delete("/rooms/{room_id}", status_code=204)
+@router.delete("/rooms/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_room(
     room_id: int, clerk_user_id: CurrentUserDep, service: RoomServiceDep
 ):

@@ -177,7 +177,7 @@ async def test_create_contract_on_maintenance_room_returns_400():
         room = await create_room(client, USER_A, prop["id"])
         tenant = await create_tenant(client, USER_A)
 
-        await client.put(
+        await client.patch(
             f"/api/v1/rooms/{room['id']}",
             json={"status": "maintenance"},
             headers=auth_headers(USER_A),
