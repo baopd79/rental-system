@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 from app.core.dependencies import CurrentUserDep, TenantServiceDep
 from app.schemas.tenant import TenantCreate, TenantRead, TenantUpdate
 
@@ -14,7 +14,7 @@ async def list_tenants(
     return await service.list_tenants(clerk_user_id, property_id=property_id)
 
 
-@router.post("/tenants", response_model=TenantRead, status_code=201)
+@router.post("/tenants", response_model=TenantRead, status_code=status.HTTP_201_CREATED)
 async def create_tenant(
     body: TenantCreate, clerk_user_id: CurrentUserDep, service: TenantServiceDep
 ):
@@ -28,7 +28,7 @@ async def get_tenant(
     return await service.get_tenant(tenant_id, clerk_user_id)
 
 
-@router.put("/tenants/{tenant_id}", response_model=TenantRead)
+@router.patch("/tenants/{tenant_id}", response_model=TenantRead)
 async def update_tenant(
     tenant_id: int,
     body: TenantUpdate,
