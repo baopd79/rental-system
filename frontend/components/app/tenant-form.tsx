@@ -52,7 +52,7 @@ export function TenantForm({ tenant, onSuccess, onCancel }: Props) {
         date_of_birth: form.date_of_birth || null,
       };
       const result = tenant
-        ? await apiJson<Tenant>(`/tenants/${tenant.id}`, getToken, { method: "PUT", body })
+        ? await apiJson<Tenant>(`/tenants/${tenant.id}`, getToken, { method: "PATCH", body })
         : await apiJson<Tenant>("/tenants", getToken, { method: "POST", body });
       onSuccess(result);
     } catch (err) {

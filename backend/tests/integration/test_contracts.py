@@ -115,7 +115,7 @@ async def test_update_tenant():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         tenant = await create_tenant(client, USER_A)
-        r = await client.put(
+        r = await client.patch(
             f"/api/v1/tenants/{tenant['id']}",
             json={"phone": "0999999999"},
             headers=auth_headers(USER_A),

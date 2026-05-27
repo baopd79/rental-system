@@ -27,7 +27,9 @@ class TenantRepo:
 
     async def get_all_by_user(self, clerk_user_id: str) -> list[Tenant]:
         result = await self.session.exec(
-            select(Tenant).where(Tenant.clerk_user_id == clerk_user_id)
+            select(Tenant)
+            .where(Tenant.clerk_user_id == clerk_user_id)
+            .order_by(Tenant.full_name)
         )
         return list(result.all())
 
@@ -40,6 +42,5 @@ class TenantRepo:
         return tenant
 
     async def update(self, tenant: Tenant) -> Tenant:
-        self.session.add(tenant)
         await self.session.flush()
         return tenant
