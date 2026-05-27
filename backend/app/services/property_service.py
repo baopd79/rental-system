@@ -45,6 +45,8 @@ class PropertyService:
     ) -> Property:
         if await self.property_repo.get_by_name(clerk_user_id, data.name):
             raise ConflictException("Tên nhà trọ đã tồn tại")
+
+        # Rooms are created after the property because they need the new property id.
         rooms_data = data.rooms
         prop = Property(
             **data.model_dump(exclude={"rooms"}), clerk_user_id=clerk_user_id
@@ -65,9 +67,13 @@ class PropertyService:
             raise NotFoundException("Property not found")
         if prop.clerk_user_id != clerk_user_id:
             raise ForbiddenException()
+
+        # Only check duplicate name when the request actually changes the name.
         if data.name is not None and data.name != prop.name:
             if await self.property_repo.get_by_name(clerk_user_id, data.name):
                 raise ConflictException("Tên nhà trọ đã tồn tại")
+
+        # Apply only fields sent by the client, so missing fields stay unchanged.
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(prop, field, value)
         updated = await self.property_repo.update(prop)
