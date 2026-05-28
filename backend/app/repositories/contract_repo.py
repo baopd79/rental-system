@@ -31,15 +31,32 @@ class ContractRepo:
         )
         return result.first()
 
+    async def get_all_by_room_with_tenant(self, room_id: int) -> list[dict]:
+        result = await self.session.exec(
+            text("""
+            SELECT c.id, c.room_id, c.tenant_id, c.start_date, c.end_date,
+                   c.agreed_rent, c.deposit, c.num_people, c.status,
+                   t.id AS t_id, t.full_name, t.cccd, t.phone, t.email, t.date_of_birth
+            FROM contract c
+            JOIN tenant t ON t.id = c.tenant_id
+            WHERE c.room_id = :room_id
+            ORDER BY c.start_date DESC
+        """),
+            params={"room_id": room_id},
+        )
+        return [dict(row) for row in result.mappings().all()]
+
     async def get_all_by_room(self, room_id: int) -> list[Contract]:
         result = await self.session.exec(
-            select(Contract).where(Contract.room_id == room_id)
+            select(Contract)
+            .where(Contract.room_id == room_id)
+            .order_by(Contract.start_date.desc())  # type: ignore[attr-defined]
         )
         return list(result.all())
 
     async def count_by_room(self, room_id: int) -> int:
         result = await self.session.exec(
-            select(func.count()).where(Contract.room_id == room_id)
+            select(func.count(Contract.id)).where(Contract.room_id == room_id)
         )
         return result.one()
 
@@ -86,6 +103,5 @@ class ContractRepo:
         return [dict(row) for row in result.mappings().all()]
 
     async def update(self, contract: Contract) -> Contract:
-        self.session.add(contract)
         await self.session.flush()
         return contract

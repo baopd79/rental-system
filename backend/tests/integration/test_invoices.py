@@ -57,6 +57,8 @@ async def setup_property_room_contract(
                 "agreed_rent": "3000000",
                 "deposit": "3000000",
                 "num_people": 2,
+                "initial_elec_curr": "1000",
+                "initial_water_curr": "50",
             },
             headers=auth_headers(user_id),
         )
