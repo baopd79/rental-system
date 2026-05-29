@@ -9,14 +9,26 @@ class SurchargeRepo:
 
     async def get_all_by_property(self, property_id: int) -> list[SurchargeTemplate]:
         result = await self.session.exec(
-            select(SurchargeTemplate).where(
-                SurchargeTemplate.property_id == property_id
-            )
+            select(SurchargeTemplate)
+            .where(SurchargeTemplate.property_id == property_id)
+            .order_by(SurchargeTemplate.name)
         )
         return list(result.all())
 
     async def get_by_id(self, surcharge_id: int) -> SurchargeTemplate | None:
         return await self.session.get(SurchargeTemplate, surcharge_id)
+
+    async def get_by_name(
+        self, property_id: int, name: str
+    ) -> SurchargeTemplate | None:
+        """Tìm surcharge theo tên trong property — dùng để check trùng tên trước khi tạo."""
+        result = await self.session.exec(
+            select(SurchargeTemplate).where(
+                SurchargeTemplate.property_id == property_id,
+                SurchargeTemplate.name == name,
+            )
+        )
+        return result.first()
 
     async def create(self, surcharge: SurchargeTemplate) -> SurchargeTemplate:
         self.session.add(surcharge)
@@ -24,7 +36,6 @@ class SurchargeRepo:
         return surcharge
 
     async def update(self, surcharge: SurchargeTemplate) -> SurchargeTemplate:
-        self.session.add(surcharge)
         await self.session.flush()
         return surcharge
 

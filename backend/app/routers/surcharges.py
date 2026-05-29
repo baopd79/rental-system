@@ -26,7 +26,7 @@ async def create_surcharge(
     return await service.create_surcharge(property_id, body, clerk_user_id)
 
 
-@router.put("/surcharges/{surcharge_id}", response_model=SurchargeRead)
+@router.patch("/surcharges/{surcharge_id}", response_model=SurchargeRead)
 async def update_surcharge(
     surcharge_id: int,
     body: SurchargeUpdate,

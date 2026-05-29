@@ -3,7 +3,11 @@ from app.models.surcharge import SurchargeTemplate
 from app.schemas.surcharge import SurchargeCreate, SurchargeRead, SurchargeUpdate
 from app.repositories.surcharge_repo import SurchargeRepo
 from app.repositories.property_repo import PropertyRepo
-from app.core.exceptions import NotFoundException, ForbiddenException
+from app.core.exceptions import (
+    NotFoundException,
+    ForbiddenException,
+    ConflictException,
+)
 
 
 class SurchargeService:
@@ -40,6 +44,10 @@ class SurchargeService:
         self, property_id: int, data: SurchargeCreate, clerk_user_id: str
     ) -> SurchargeRead:
         await self._get_property_owned(property_id, clerk_user_id)
+
+        if await self.surcharge_repo.get_by_name(property_id, data.name):
+            raise ConflictException("Tên phụ phí đã tồn tại")
+
         surcharge = SurchargeTemplate(**data.model_dump(), property_id=property_id)
         created = await self.surcharge_repo.create(surcharge)
         await self.session.commit()
@@ -50,6 +58,12 @@ class SurchargeService:
         self, surcharge_id: int, data: SurchargeUpdate, clerk_user_id: str
     ) -> SurchargeRead:
         surcharge = await self._get_surcharge_owned(surcharge_id, clerk_user_id)
+
+        # Only check duplicate name when the request actually changes the name.
+        if data.name is not None and data.name != surcharge.name:
+            if await self.surcharge_repo.get_by_name(surcharge.property_id, data.name):
+                raise ConflictException("Tên phụ phí đã tồn tại")
+
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(surcharge, field, value)
         updated = await self.surcharge_repo.update(surcharge)

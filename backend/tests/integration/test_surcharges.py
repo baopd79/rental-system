@@ -117,7 +117,7 @@ async def test_update_surcharge():
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
-        r = await client.put(
+        r = await client.patch(
             f"/api/v1/surcharges/{surcharge['id']}",
             json={"name": "Phí wifi mới", "amount": "150000"},
             headers=auth_headers(USER_A),
@@ -136,7 +136,7 @@ async def test_update_surcharge_by_non_owner_returns_403():
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
-        r = await client.put(
+        r = await client.patch(
             f"/api/v1/surcharges/{surcharge['id']}",
             json={"amount": "999"},
             headers=auth_headers(USER_B),
@@ -193,14 +193,14 @@ async def test_post_surcharge_to_other_user_property_returns_403():
 
 
 @pytest.mark.asyncio
-async def test_update_surcharge_by_non_owner_returns_403_put():
+async def test_update_surcharge_by_non_owner_returns_403_patch():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         prop = await create_property(client, USER_A)
         surcharge = await create_surcharge(client, USER_A, prop["id"])
 
-        r = await client.put(
+        r = await client.patch(
             f"/api/v1/surcharges/{surcharge['id']}",
             json={"name": "Hacked"},
             headers=auth_headers(USER_B),
