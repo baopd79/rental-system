@@ -27,3 +27,6 @@ node_modules/
 .claude/
 
 backend-v2/
+
+# Knowledge graph analysis
+.understand-anything/

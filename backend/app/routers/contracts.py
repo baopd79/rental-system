@@ -47,7 +47,7 @@ async def create_contract(
     return await service.create_contract(body, clerk_user_id)
 
 
-@router.put("/contracts/{contract_id}", response_model=ContractRead)
+@router.patch("/contracts/{contract_id}", response_model=ContractRead)
 async def update_contract(
     contract_id: int,
     body: ContractUpdate,

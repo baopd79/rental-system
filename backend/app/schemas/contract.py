@@ -1,8 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from decimal import Decimal
 from datetime import date, datetime
 from app.models.contract import ContractStatus
+from app.models.contract_event import ContractEventType
 from app.schemas.tenant import TenantRead
+from app.schemas._validators import non_negative, positive
 
 
 class ContractCreate(BaseModel):
@@ -13,8 +15,31 @@ class ContractCreate(BaseModel):
     agreed_rent: Decimal
     deposit: Decimal = Decimal("0")
     num_people: int = 1
-    initial_elec_curr: Decimal | None = None
+    initial_elec_curr: Decimal
     initial_water_curr: Decimal | None = None
+
+    @field_validator("agreed_rent", mode="before")
+    @classmethod
+    def validate_agreed_rent(cls, v: object) -> object:
+        return positive(v)
+
+    @field_validator("deposit", "initial_elec_curr", "initial_water_curr", mode="before")
+    @classmethod
+    def validate_non_negative(cls, v: object) -> object:
+        return non_negative(v)
+
+    @field_validator("num_people", mode="before")
+    @classmethod
+    def validate_num_people(cls, v: object) -> object:
+        if v is not None and int(v) < 1:
+            raise ValueError("must be >= 1")
+        return v
+
+    @model_validator(mode="after")
+    def validate_dates(self) -> "ContractCreate":
+        if self.end_date <= self.start_date:
+            raise ValueError("end_date must be after start_date")
+        return self
 
 
 class ContractUpdate(BaseModel):
@@ -22,6 +47,23 @@ class ContractUpdate(BaseModel):
     agreed_rent: Decimal | None = None
     deposit: Decimal | None = None
     num_people: int | None = None
+
+    @field_validator("agreed_rent", mode="before")
+    @classmethod
+    def validate_agreed_rent(cls, v: object) -> object:
+        return positive(v)
+
+    @field_validator("deposit", mode="before")
+    @classmethod
+    def validate_deposit(cls, v: object) -> object:
+        return non_negative(v)
+
+    @field_validator("num_people", mode="before")
+    @classmethod
+    def validate_num_people(cls, v: object) -> object:
+        if v is not None and int(v) < 1:
+            raise ValueError("must be >= 1")
+        return v
 
 
 class ContractRead(BaseModel):
@@ -65,7 +107,7 @@ class ContractListItem(BaseModel):
 class ContractEventRead(BaseModel):
     id: int
     contract_id: int
-    event_type: str
+    event_type: ContractEventType
     old_value: str | None
     new_value: str | None
     occurred_at: datetime

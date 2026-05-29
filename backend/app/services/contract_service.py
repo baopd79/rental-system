@@ -1,6 +1,6 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.contract import Contract, ContractStatus
-from app.models.contract_event import ContractEvent
+from app.models.contract_event import ContractEvent, ContractEventType
 from app.models.room import RoomStatus
 from datetime import date
 from app.schemas.contract import (
@@ -70,11 +70,29 @@ class ContractService:
         self, room_id: int, clerk_user_id: str
     ) -> list[ContractRead]:
         await self._get_room_owned(room_id, clerk_user_id)
-        contracts = await self.contract_repo.get_all_by_room(room_id)
+        rows = await self.contract_repo.get_all_by_room_with_tenant(room_id)
         result = []
-        for c in contracts:
-            tenant = await self.tenant_repo.get_by_id(c.tenant_id)
-            result.append(_build_read(c, TenantRead.model_validate(tenant)))
+        for row in rows:
+            tenant_read = TenantRead(
+                id=row["t_id"],
+                full_name=row["full_name"],
+                cccd=row["cccd"],
+                phone=row["phone"],
+                email=row["email"],
+                date_of_birth=row["date_of_birth"],
+            )
+            contract = Contract(
+                id=row["id"],
+                room_id=row["room_id"],
+                tenant_id=row["tenant_id"],
+                start_date=row["start_date"],
+                end_date=row["end_date"],
+                agreed_rent=row["agreed_rent"],
+                deposit=row["deposit"],
+                num_people=row["num_people"],
+                status=ContractStatus(row["status"]),
+            )
+            result.append(_build_read(contract, tenant_read))
         return result
 
     async def list_contracts_by_tenant(
@@ -84,28 +102,31 @@ class ContractService:
         if not tenant or tenant.clerk_user_id != clerk_user_id:
             raise NotFoundException("Tenant not found")
         rows = await self.contract_repo.get_all_by_tenant(tenant_id)
-        result = []
-        for row in rows:
-            contract = await self.contract_repo.get_by_id(row["id"])
-            read = ContractReadWithRoom(
-                **contract.model_dump(),
-                tenant=TenantRead.model_validate(tenant),
+        tenant_read = TenantRead.model_validate(tenant)
+        return [
+            ContractReadWithRoom(
+                id=row["id"],
+                room_id=row["room_id"],
+                tenant_id=row["tenant_id"],
+                start_date=row["start_date"],
+                end_date=row["end_date"],
+                agreed_rent=row["agreed_rent"],
+                deposit=row["deposit"],
+                num_people=row["num_people"],
+                status=row["status"],
+                tenant=tenant_read,
                 room_number=row["room_number"],
                 property_name=row["property_name"],
                 property_id=row["property_id"],
             )
-            result.append(read)
-        return result
+            for row in rows
+        ]
 
     async def create_contract(
         self, data: ContractCreate, clerk_user_id: str
     ) -> ContractRead:
         room = await self._get_room_owned(data.room_id, clerk_user_id)
 
-        if data.num_people < 1:
-            raise BadRequestException("num_people must be at least 1")
-        if data.end_date <= data.start_date:
-            raise BadRequestException("end_date must be after start_date")
         if room.status != RoomStatus.vacant:
             raise BadRequestException("Room is not vacant")
 
@@ -119,6 +140,13 @@ class ContractService:
 
         prop = await self.property_repo.get_by_id(room.property_id)
 
+        if (
+            prop
+            and prop.water_calc_type == WaterCalcType.per_meter
+            and data.initial_water_curr is None
+        ):
+            raise BadRequestException("initial_water_curr is required for per-meter water billing")
+
         contract_data = data.model_dump(
             exclude={"initial_elec_curr", "initial_water_curr"}
         )
@@ -128,7 +156,7 @@ class ContractService:
         await self.event_repo.create(
             ContractEvent(
                 contract_id=created.id,
-                event_type="created",
+                event_type=ContractEventType.created,
                 new_value=str(data.agreed_rent),
             )
         )
@@ -182,7 +210,7 @@ class ContractService:
             await self.event_repo.create(
                 ContractEvent(
                     contract_id=contract_id,
-                    event_type="rent_changed",
+                    event_type=ContractEventType.rent_changed,
                     old_value=str(contract.agreed_rent),
                     new_value=str(data.agreed_rent),
                 )
@@ -194,11 +222,14 @@ class ContractService:
             await self.event_repo.create(
                 ContractEvent(
                     contract_id=contract_id,
-                    event_type="people_changed",
+                    event_type=ContractEventType.people_changed,
                     old_value=str(contract.num_people),
                     new_value=str(data.num_people),
                 )
             )
+
+        if data.end_date and data.end_date <= contract.start_date:
+            raise BadRequestException("end_date must be after start_date")
 
         if data.deposit is not None and data.deposit != contract.deposit:
             room.deposit = data.deposit
@@ -206,9 +237,6 @@ class ContractService:
 
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(contract, field, value)
-
-        if data.end_date and data.end_date <= contract.start_date:
-            raise BadRequestException("end_date must be after start_date")
 
         await self.contract_repo.update(contract)
         await self.session.commit()
@@ -237,7 +265,7 @@ class ContractService:
         await self.event_repo.create(
             ContractEvent(
                 contract_id=contract_id,
-                event_type="ended",
+                event_type=ContractEventType.ended,
                 new_value=str(contract.end_date),
             )
         )
@@ -253,12 +281,6 @@ class ContractService:
     async def get_contract_events(
         self, contract_id: int, clerk_user_id: str
     ) -> list[ContractEventRead]:
-        contract = await self.contract_repo.get_by_id(contract_id)
-        if not contract:
-            raise NotFoundException("Contract not found")
-        room = await self.room_repo.get_by_id(contract.room_id)
-        prop = await self.property_repo.get_by_id(room.property_id)
-        if not prop or prop.clerk_user_id != clerk_user_id:
-            raise ForbiddenException()
+        await self._get_contract_owned(contract_id, clerk_user_id)
         events = await self.event_repo.get_by_contract(contract_id)
         return [ContractEventRead.model_validate(e) for e in events]

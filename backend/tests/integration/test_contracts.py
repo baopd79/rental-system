@@ -68,6 +68,8 @@ async def create_contract(
             "agreed_rent": "3000000",
             "deposit": "3000000",
             "num_people": 2,
+            "initial_elec_curr": "1000",
+            "initial_water_curr": "50",
         },
         headers=auth_headers(user_id),
     )
@@ -188,7 +190,7 @@ async def test_create_contract_on_maintenance_room_returns_400():
 
 
 @pytest.mark.asyncio
-async def test_create_contract_invalid_dates_returns_400():
+async def test_create_contract_invalid_dates_returns_422():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -208,11 +210,11 @@ async def test_create_contract_invalid_dates_returns_400():
             },
             headers=auth_headers(USER_A),
         )
-    assert r.status_code == 400
+    assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_create_contract_zero_people_returns_400():
+async def test_create_contract_zero_people_returns_422():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -232,7 +234,7 @@ async def test_create_contract_zero_people_returns_400():
             },
             headers=auth_headers(USER_A),
         )
-    assert r.status_code == 400
+    assert r.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -253,6 +255,8 @@ async def test_create_contract_on_other_user_room_returns_403():
                 "end_date": "2026-12-31",
                 "agreed_rent": "3000000",
                 "num_people": 1,
+                "initial_elec_curr": "1000",
+                "initial_water_curr": "50",
             },
             headers=auth_headers(USER_B),
         )
