@@ -49,7 +49,7 @@ export function UtilityReadingForm({ roomId, isPerMeter, defaultPeriod, editing,
       let result: UtilityReading;
       if (editing) {
         result = await apiJson<UtilityReading>(`/utility-readings/${editing.id}`, getToken, {
-          method: "PUT",
+          method: "PATCH",
           body: {
             elec_curr: Number(form.elec_curr),
             ...(isPerMeter && form.water_curr ? { water_curr: Number(form.water_curr) } : {}),

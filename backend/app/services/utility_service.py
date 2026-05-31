@@ -10,7 +10,6 @@ from app.repositories.utility_repo import UtilityRepo
 from app.repositories.room_repo import RoomRepo
 from app.repositories.property_repo import PropertyRepo
 from app.repositories.contract_repo import ContractRepo
-from app.repositories.tenant_repo import TenantRepo
 from app.core.exceptions import (
     NotFoundException,
     ForbiddenException,
@@ -42,7 +41,6 @@ class UtilityService:
         self.room_repo = RoomRepo(session)
         self.property_repo = PropertyRepo(session)
         self.contract_repo = ContractRepo(session)
-        self.tenant_repo = TenantRepo(session)
 
     async def _get_room_owned(self, room_id: int, clerk_user_id: str):
         room = await self.room_repo.get_by_id(room_id)
@@ -57,27 +55,8 @@ class UtilityService:
         self, room_id: int, clerk_user_id: str
     ) -> list[UtilityReadingRead]:
         await self._get_room_owned(room_id, clerk_user_id)
-        readings = await self.utility_repo.get_all_by_room(room_id)
-
-        # Build contract_id → tenant_name map to avoid N+1
-        contract_ids = {r.contract_id for r in readings if r.contract_id is not None}
-        tenant_name_by_contract: dict[int, str] = {}
-        for cid in contract_ids:
-            contract = await self.contract_repo.get_by_id(cid)
-            if contract:
-                tenant = await self.tenant_repo.get_by_id(contract.tenant_id)
-                if tenant:
-                    tenant_name_by_contract[cid] = tenant.full_name
-
-        result = []
-        for r in readings:
-            read = UtilityReadingRead.model_validate(r)
-            read.contract_id = r.contract_id
-            read.tenant_name = (
-                tenant_name_by_contract.get(r.contract_id) if r.contract_id else None
-            )
-            result.append(read)
-        return result
+        rows = await self.utility_repo.get_all_by_room_with_tenant(room_id)
+        return [UtilityReadingRead.model_validate(row) for row in rows]
 
     async def create_reading(
         self, data: UtilityReadingCreate, clerk_user_id: str
@@ -87,27 +66,40 @@ class UtilityService:
         if await self.utility_repo.get_by_room_period(data.room_id, data.period):
             raise ConflictException(f"Reading for period {data.period} already exists")
 
-        # Auto-fill prev from previous month
+        # Reading must belong to the active contract of the room.
+        # Reject if room is vacant — billing logic depends on contract_id linkage.
+        active_contract = await self.contract_repo.get_active_by_room(data.room_id)
+        if active_contract is None:
+            raise BadRequestException(
+                "Phòng chưa có hợp đồng đang hoạt động, không thể ghi chỉ số"
+            )
+        contract_id = active_contract.id
+
+        # Only carry over prev reading if it belongs to the same contract —
+        # a previous tenant's reading must never become the new tenant's elec_prev.
         prev_reading = await self.utility_repo.get_by_room_period(
             data.room_id, _prev_period(data.period)
         )
+        same_contract_prev = (
+            prev_reading
+            if prev_reading is not None and prev_reading.contract_id == contract_id
+            else None
+        )
 
-        if prev_reading is not None:
-            elec_prev = prev_reading.elec_curr
+        if same_contract_prev is not None:
+            elec_prev = same_contract_prev.elec_curr
             is_prev_auto = True
         else:
-            elec_prev = None  # first reading — prev unknown
+            elec_prev = None
             is_prev_auto = False
 
         if elec_prev is not None and data.elec_curr < elec_prev:
             raise BadRequestException("elec_curr must be >= elec_prev")
 
-        # Water: only meaningful for per_meter
         if prop.water_calc_type == WaterCalcType.per_meter:
-            if prev_reading is not None:
-                water_prev = prev_reading.water_curr
-            else:
-                water_prev = None
+            water_prev = (
+                same_contract_prev.water_curr if same_contract_prev else None
+            )
             water_curr = data.water_curr
             if (
                 water_prev is not None
@@ -121,6 +113,7 @@ class UtilityService:
 
         reading = UtilityReading(
             room_id=data.room_id,
+            contract_id=contract_id,
             period=data.period,
             elec_prev=elec_prev,
             elec_curr=data.elec_curr,
@@ -145,8 +138,6 @@ class UtilityService:
         latest = await self.utility_repo.get_latest_by_room(reading.room_id)
         if not latest or latest.id != reading_id:
             raise ConflictException("Only the most recent reading can be updated")
-
-        # NOTE: invoice check to be added in Phase 6
 
         if data.elec_curr is not None:
             if reading.elec_prev is not None and data.elec_curr < reading.elec_prev:
@@ -176,8 +167,6 @@ class UtilityService:
         latest = await self.utility_repo.get_latest_by_room(reading.room_id)
         if not latest or latest.id != reading_id:
             raise ConflictException("Only the most recent reading can be deleted")
-
-        # NOTE: invoice check to be added in Phase 6
 
         await self.utility_repo.delete(reading)
         await self.session.commit()
