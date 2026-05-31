@@ -27,7 +27,7 @@ async def create_reading(
     return await service.create_reading(body, clerk_user_id)
 
 
-@router.put("/utility-readings/{reading_id}", response_model=UtilityReadingRead)
+@router.patch("/utility-readings/{reading_id}", response_model=UtilityReadingRead)
 async def update_reading(
     reading_id: int,
     body: UtilityReadingUpdate,

@@ -144,3 +144,19 @@ GROUP BY <col1>, <col2> HAVING COUNT(*) > 1;
 - Expose CCCD/SĐT on public invoice endpoint (`/invoices/public/*`).
 - Allow unauthenticated access outside `/invoices/public/*`.
 - Use previous tenant's `utility_reading` as `elec_prev` for a new tenant — always check `contract_id` matches.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`github.com/baopd79/rental-system`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
