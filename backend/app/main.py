@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import AppException
 
-logger = logging.getLogger(__name__)
+
 from app.routers import (
     auth,
     properties,
@@ -20,6 +20,8 @@ from app.routers import (
     dashboard,
     shared_meters,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

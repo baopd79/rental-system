@@ -97,9 +97,7 @@ class UtilityService:
             raise BadRequestException("elec_curr must be >= elec_prev")
 
         if prop.water_calc_type == WaterCalcType.per_meter:
-            water_prev = (
-                same_contract_prev.water_curr if same_contract_prev else None
-            )
+            water_prev = same_contract_prev.water_curr if same_contract_prev else None
             water_curr = data.water_curr
             if (
                 water_prev is not None

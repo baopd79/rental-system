@@ -145,7 +145,9 @@ class ContractService:
             and prop.water_calc_type == WaterCalcType.per_meter
             and data.initial_water_curr is None
         ):
-            raise BadRequestException("initial_water_curr is required for per-meter water billing")
+            raise BadRequestException(
+                "initial_water_curr is required for per-meter water billing"
+            )
 
         contract_data = data.model_dump(
             exclude={"initial_elec_curr", "initial_water_curr"}
