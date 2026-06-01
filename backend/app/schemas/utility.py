@@ -29,7 +29,9 @@ class UtilityReadingCreate(BaseModel):
     def validate_period(cls, v: object) -> object:
         return _validate_period(v)
 
-    @field_validator("elec_curr", "elec_prev", "water_curr", "water_prev", mode="before")
+    @field_validator(
+        "elec_curr", "elec_prev", "water_curr", "water_prev", mode="before"
+    )
     @classmethod
     def validate_amount(cls, v: object) -> object:
         return non_negative(v)

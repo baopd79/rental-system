@@ -23,7 +23,9 @@ class ContractCreate(BaseModel):
     def validate_agreed_rent(cls, v: object) -> object:
         return positive(v)
 
-    @field_validator("deposit", "initial_elec_curr", "initial_water_curr", mode="before")
+    @field_validator(
+        "deposit", "initial_elec_curr", "initial_water_curr", mode="before"
+    )
     @classmethod
     def validate_non_negative(cls, v: object) -> object:
         return non_negative(v)
