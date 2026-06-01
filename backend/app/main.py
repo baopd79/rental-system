@@ -1,9 +1,12 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import AppException
+
+logger = logging.getLogger(__name__)
 from app.routers import (
     auth,
     properties,
@@ -21,6 +24,16 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.AUTH_DEV_MODE:
+        logger.warning(
+            "AUTH_DEV_MODE is enabled — JWT signatures are NOT verified. "
+            "Never set this flag in production."
+        )
+    elif not settings.CLERK_JWKS_URL:
+        logger.error(
+            "CLERK_JWKS_URL is not set and AUTH_DEV_MODE is false; "
+            "all authenticated requests will be rejected."
+        )
     yield
 
 

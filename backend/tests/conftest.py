@@ -36,15 +36,25 @@ async def truncate_db():
 
 
 @pytest.fixture(autouse=True)
-def reset_jwks_cache():
-    original = settings.CLERK_JWKS_URL
+def reset_auth_state():
+    original_dev_mode = settings.AUTH_DEV_MODE
+    original_jwks_url = settings.CLERK_JWKS_URL
+    original_issuer = settings.CLERK_ISSUER
+    original_audience = settings.CLERK_AUDIENCE
+
+    settings.AUTH_DEV_MODE = True
     settings.CLERK_JWKS_URL = ""
-    clerk_module._jwks_cache = None
+    settings.CLERK_ISSUER = ""
+    settings.CLERK_AUDIENCE = ""
+    clerk_module._reset_jwks_cache_for_tests()
 
     yield
 
-    settings.CLERK_JWKS_URL = original
-    clerk_module._jwks_cache = None
+    settings.AUTH_DEV_MODE = original_dev_mode
+    settings.CLERK_JWKS_URL = original_jwks_url
+    settings.CLERK_ISSUER = original_issuer
+    settings.CLERK_AUDIENCE = original_audience
+    clerk_module._reset_jwks_cache_for_tests()
 
 
 @pytest_asyncio.fixture(autouse=True)
