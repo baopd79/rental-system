@@ -108,13 +108,13 @@ This separation makes each layer trivially testable in isolation and keeps the c
 
 ## Technical highlights
 
-A few decisions worth calling out — the parts that make the system production-shaped rather than a tutorial clone.
-
-- **JWKS verification with rotation handling.** Clerk's JWKS is cached with a 1-hour TTL and a force-refresh path triggered when a token's `kid` isn't in the cached set. `AUTH_DEV_MODE` is an explicit opt-in; missing config in production is fail-closed (401 `"Auth not configured"`), never a silent bypass. JWT decode errors return a generic `"Invalid token"` to clients while the detailed reason is logged server-side.
-- **Tenant isolation at the data layer.** Every `utility_reading` carries a `contract_id`. The "previous month" lookup that auto-fills `elec_prev` only matches readings from the **same contract**, so a new tenant's first invoice can never pick up the previous tenant's final meter reading. The month-skip continuity guard is scoped the same way.
-- **Targeted raw SQL for list endpoints.** Dashboard and billing list views need data joined across 4–5 tables. Instead of fighting the ORM, those specific endpoints use `sqlalchemy.text()` returning `list[dict]`; mutating paths and CRUD endpoints stay in SQLModel. The exception is documented as a layering rule rather than a free-for-all.
+- **JWKS verification with rotation handling.** Clerk's JWKS is cached with a 1-hour TTL and a force-refresh path triggered when a token's `kid` isn't in the cached set. `AUTH_DEV_MODE` is an explicit opt-in; missing config in production is fail-closed (401 `"Auth not configured"`), never a silent bypass. JWT decode errors return a generic `"Invalid token"` to clients while the detailed reason is logged server-side. **Verified by 6 production-path integration tests** covering valid tokens, wrong issuer, expired tokens, missing `sub`, `kid` rotation triggering a refresh, and fail-closed misconfiguration.
+- **Tenant isolation at the data layer.** Every `utility_reading` carries a `contract_id`. The "previous month" lookup that auto-fills `elec_prev` only matches readings from the **same contract**, so a new tenant's first invoice can never pick up the previous tenant's final meter reading. The month-skip continuity guard is scoped the same way. Covered by integration tests in `test_billing.py` and `test_utilities.py` that simulate a room turning over mid-period.
+- **Targeted raw SQL for list endpoints.** Dashboard and billing list views need data joined across 4–5 tables. Those specific endpoints use `sqlalchemy.text()` returning `list[dict]`, replacing per-row ORM lookups (N+1) with a single aggregation query; mutating paths and CRUD endpoints stay in SQLModel. The exception is scoped to **8 read-only files** (`dashboard_service.py`, `billing_repo.py`, `utility_repo.py`, etc.) and documented as a layering rule rather than a free-for-all.
 - **Transaction discipline.** Services own commits; repositories only `flush()` to surface generated IDs. No `async with session.begin()` (it conflicts with asyncpg's autobegin) and no commits in repositories.
-- **Migration risk classification.** Every migration is classified before running — safe (add nullable column), check-data-first (add UNIQUE, add NOT NULL without default), or dangerous (drop/rename column). UNIQUE-constraint migrations always run a duplicate check on the existing data first.
+- **Migration risk classification.** Every migration is classified before running — safe (add nullable column), check-data-first (add UNIQUE, add NOT NULL without default), or dangerous (drop/rename column). UNIQUE-constraint migrations always run a duplicate-check query against the production data first.
+
+The full backend test suite is **125 tests** (unit + integration) running against a real PostgreSQL database (no mocks) on every change.
 
 ---
 
@@ -133,31 +133,9 @@ make install
 make dev
 ```
 
-Useful targets (see `make help`):
+Run `make help` for the full target list (migrations, tests, lint, db-reset). Environment variables are documented in `backend/.env.example` (backend) and `frontend/.env.local.example` (frontend) — the key one is `AUTH_DEV_MODE=true` for local, which skips JWT signature verification.
 
-```bash
-make be              # backend dev server only
-make fe              # frontend dev server only
-make be-migrate      # apply migrations
-make be-migration MSG="describe change"   # create + apply new migration
-make be-test         # run pytest
-make db-reset        # truncate all tables (keep schema)
-```
-
-**Environment variables** (backend `.env`):
-
-```
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/rental_db
-AUTH_DEV_MODE=true                # skip JWT signature verification (local only)
-CLERK_JWKS_URL=                   # set in production
-CLERK_ISSUER=                     # optional; when set, iss claim is pinned
-CLERK_AUDIENCE=                   # optional; when set, aud claim is pinned
-CORS_ORIGINS=["http://localhost:3000"]
-```
-
-Frontend (`.env.local`) needs the standard Clerk publishable/secret keys plus `NEXT_PUBLIC_API_URL`.
-
-**Tests** hit a real PostgreSQL database (no mocks); set up the test DB once:
+Tests hit a real PostgreSQL database (no mocks). One-time setup:
 
 ```bash
 docker exec rental-system-postgres-1 psql -U postgres -c "CREATE DATABASE rental_test_db;"
@@ -229,4 +207,4 @@ DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/rental_test_
 
 ## Author
 
-Built by [baopd](https://github.com/baopd79). Open to feedback and questions — issues welcome.
+[baopd](https://github.com/baopd79)
