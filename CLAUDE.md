@@ -17,6 +17,10 @@ uv run alembic revision --autogenerate -m "description" && uv run alembic upgrad
 uv run pytest -v                               # Run all tests
 uv run pytest tests/unit/test_foo.py::test_bar # Run single test
 
+# Test DB setup (one-time)
+docker exec rental-system-postgres-1 psql -U postgres -c "CREATE DATABASE rental_test_db;"
+DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/rental_test_db" uv run alembic upgrade head
+
 # Frontend (run from /frontend)
 pnpm dev        # Start Next.js on :3000
 pnpm build      # Type-check + build
@@ -27,6 +31,8 @@ TRUNCATE TABLE contract_event, shared_meter_reading, shared_meter_room, shared_m
   invoice_item, invoice, surcharge_template, utility_reading, contract, tenant, room,
   property RESTART IDENTITY CASCADE;"
 ```
+
+`tests/conftest.py` has autouse fixtures that truncate the DB and reset auth state (JWKS cache, `AUTH_DEV_MODE`) between tests — no manual cleanup needed inside tests.
 
 ---
 
@@ -42,11 +48,11 @@ TRUNCATE TABLE contract_event, shared_meter_reading, shared_meter_room, shared_m
 Router → Service → Repository → Model
 ```
 
-- **Router** (`routers/`): parse request, call one service method, return schema. No business logic, no direct DB access.
+- **Router** (`routers/`): parse request, call one service method, return schema. No business logic, no direct DB access. Use `PATCH` for partial updates (all-optional `XxxUpdate` schemas); reserve `PUT` for replacement-style updates. New endpoints default to `PATCH`.
 - **Service** (`services/`): all business logic + transaction owner. Calls `await self.session.commit()` after writes. Never `async with session.begin()` — conflicts with asyncpg autobegin. Raises `AppException` subclasses from `core/exceptions.py` (never `HTTPException`).
-- **Repository** (`repositories/`): DB ops only, no business rules. No commits — service controls transactions. Each method is a single DB operation; calls `await self.session.flush()` after writes to make IDs available.
+- **Repository** (`repositories/`): DB ops only, no business rules. No commits — service controls transactions. Each method is a single DB operation; calls `await self.session.flush()` after writes to make IDs available. Avoid N+1: when a list endpoint needs joined data (tenant name, contract status, etc.), prefer raw `sqlalchemy.text()` returning `list[dict]` over per-row lookups. Examples: `utility_repo.get_all_by_room_with_tenant`, `billing_repo`, `dashboard_service`.
 - **Model** (`models/`): SQLModel `table=True` only, no logic.
-- **Schema** (`schemas/`): Pydantic request/response types separate from models. Named `XxxCreate`, `XxxRead`, `XxxUpdate`.
+- **Schema** (`schemas/`): Pydantic request/response types separate from models. Named `XxxCreate`, `XxxRead`, `XxxUpdate`. Shared validators live in `schemas/_validators.py` (`strip_required`, `non_negative`) — use via `@field_validator(..., mode="before")` for input normalization.
 
 **Dependency injection**: services are plain Python classes (no FastAPI `Depends` in constructors). DI wiring lives exclusively in `app/core/dependencies.py`:
 ```python
@@ -56,6 +62,14 @@ BillingServiceDep = Annotated[BillingService, Depends(_billing_service)]
 ```
 
 **Auth**: All endpoints require `CurrentUserDep`. `clerk_user_id` is passed explicitly to every service method for row-level isolation — never read from global state.
+
+**Auth env vars** (see `app/core/clerk.py`):
+- `AUTH_DEV_MODE=true` — skip JWT signature verification (dev/local only; logs WARNING at startup).
+- `CLERK_JWKS_URL` — required when `AUTH_DEV_MODE` is false. Empty + dev-mode off = fail-closed (401 `"Auth not configured"`).
+- `CLERK_ISSUER` — optional; when set, `iss` claim is pinned.
+- `CLERK_AUDIENCE` — optional; when set, `aud` claim is pinned.
+
+JWKS is cached for 1h with auto-refresh on `kid` miss (handles Clerk key rotation). All JWT decode errors return generic `"Invalid token"`; details are logged server-side at WARNING level.
 
 **Exception handling**: `app.exception_handler(AppException)` in `main.py` converts to JSON response. Use `NotFoundException`, `ForbiddenException`, `ConflictException`, `BadRequestException`.
 
@@ -144,6 +158,8 @@ GROUP BY <col1>, <col2> HAVING COUNT(*) > 1;
 - Expose CCCD/SĐT on public invoice endpoint (`/invoices/public/*`).
 - Allow unauthenticated access outside `/invoices/public/*`.
 - Use previous tenant's `utility_reading` as `elec_prev` for a new tenant — always check `contract_id` matches.
+- Silently bypass JWT verification — `AUTH_DEV_MODE` must be explicit, never derive dev-mode from missing config.
+- Leak JWT decode error details in responses — log server-side, return generic `"Invalid token"`.
 
 ---
 

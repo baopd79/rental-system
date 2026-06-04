@@ -221,10 +221,15 @@ Render giữ version cũ đang chạy cho đến khi version mới deploy thành
 | Thêm column nullable | An toàn | Row cũ tự get NULL |
 | Thêm column NOT NULL có default | An toàn | DB tự fill default |
 | Thêm index | An toàn | Không ảnh hưởng data |
-| Pydantic validator | An toàn | Chỉ ở tầng app |
-| Thêm UNIQUE constraint | **Cần kiểm tra** | Fail nếu data cũ có duplicate |
-| Thêm NOT NULL không có default | **Fail ngay** | Row cũ vi phạm |
+| Pydantic validator **looser** (bỏ check, nới min/max) | An toàn | Data cũ vẫn pass |
+| Thêm UNIQUE constraint | **Cần kiểm tra data** | Migration fail nếu data cũ có duplicate → container không start, Render giữ version cũ |
+| Pydantic validator **stricter** (min_length, regex, normalize, transform) | **Cần kiểm tra data** | Migration không fail, server start OK, nhưng từng user lẻ sẽ bị 400 khi update data cũ — bug im lặng |
+| Đổi field từ optional → required | **Cần kiểm tra data** | Row cũ thiếu field → mọi update fail validation |
+| Thêm NOT NULL không có default | **Fail ngay** | Migration fail vì row cũ vi phạm |
 | Xóa / rename column | **Nguy hiểm** | Code cũ còn reference |
+
+> **Lưu ý conceptual — Deploy safety ≠ Data safety.**
+> Pydantic validator dễ bị nhầm là "an toàn" vì nó không touch DB nên không thể làm migration fail. Nhưng "deploy thành công" không bằng "không có bug". Validator strict hơn data cũ vẫn deploy được, vẫn pass health check, nhưng sẽ làm user không sửa được record của chính họ — kiểu bug chỉ phát hiện khi user complain. Cùng class rủi ro với UNIQUE constraint về **data**, chỉ khác về **thời điểm và cách fail**.
 
 **Với UNIQUE constraint, luôn kiểm tra trước:**
 
@@ -235,7 +240,18 @@ GROUP BY <col1>, <col2>
 HAVING COUNT(*) > 1;
 ```
 
-Nếu có kết quả → xử lý data trùng trước, rồi mới deploy.
+**Với validator stricter, audit data cũ trước khi merge:**
+
+```sql
+-- Vd: tìm rows mà validator whitespace-normalize mới sẽ reject
+SELECT id, name FROM property
+WHERE name != trim(regexp_replace(name, '\s+', ' ', 'g'));
+
+-- Vd: rows có name ngắn hơn min_length mới
+SELECT id, name FROM property WHERE char_length(name) < 3;
+```
+
+Nếu có kết quả → backfill/clean data trước, validator hoặc constraint sau (pattern expand-contract).
 
 **Sửa data trên Neon**: vào Neon dashboard → **SQL Editor** → chạy query xóa/sửa trực tiếp. Nhanh hơn dùng `psql`.
 
