@@ -2,7 +2,7 @@
 
 > A multi-tenant SaaS for Vietnamese rental-house owners — manage properties, rooms, tenants, contracts, and generate monthly electricity/water invoices with public share links sent over Zalo/SMS.
 
-**Live demo:** https://rental-system-nine-umber.vercel.app
+**Live demo:** https://vnrental.vercel.app
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
@@ -17,12 +17,12 @@
 
 ## Screenshots
 
-| Properties list & detail drawer | Bulk invoice generation |
-| --- | --- |
+| Properties list & detail drawer                                           | Bulk invoice generation                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | ![Properties list](image/Properties%20_%20List%20_%20Detail%20Drawer.png) | ![Generate invoice](image/Generate%20Invoice%20_%20Bulk%20Modal.png) |
 
-| Utility readings (per-room, per-month) | Public invoice (no login required) |
-| --- | --- |
+| Utility readings (per-room, per-month)                                  | Public invoice (no login required)                                                        |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | ![Utility readings](image/Utility%20Readings%20_%20nhap%20chi%20so.png) | ![Public invoice](image/Public%20Invoice%20_%20Trang%20kh_ch%20thu_%20m_%20t_%20link.png) |
 
 ---
@@ -40,15 +40,18 @@ VnRental digitises the full workflow: create a property → add rooms → sign a
 ## Features
 
 **Multi-tenant auth**
+
 - Sign-in/sign-up handled by Clerk; backend verifies JWTs against Clerk's JWKS (RS256).
 - Every row in the data model is isolated by `clerk_user_id` on the `property` table; downstream tables (room, contract, invoice…) inherit isolation through FK chains.
 
 **Properties, rooms, tenants, contracts**
+
 - Per-property defaults for electricity rate, water billing mode (`per_meter` / `per_person` / `per_room`), bank details, and surcharge templates.
 - Per-room overrides for electricity rate; rooms track `vacant` / `occupied` / `maintenance` state.
 - Contract lifecycle with an event timeline (`created`, `rent_changed`, `people_changed`, `ended`).
 
 **Monthly invoicing**
+
 - Meter readings keyed by `(room_id, period)`; previous-month value auto-filled and scoped to the **same contract** to prevent cross-tenant contamination.
 - **Bulk meter entry** — record electricity and water readings for every room in a property on one screen, one period at a time.
 - **Bulk invoice generation with rules** — pick a property and period, then generate invoices for all eligible rooms in a single transaction. Rooms with missing readings, no active contract, or already-issued invoices for the period are skipped and reported back so the landlord knows exactly what was created vs. why something was excluded.
@@ -57,10 +60,12 @@ VnRental digitises the full workflow: create a property → add rooms → sign a
 - Invoice status flow `draft → sent → paid`; ending a contract is blocked while unpaid invoices exist.
 
 **Public invoice link**
+
 - Tenants open a tokenised URL with no auth and view the invoice in a print-friendly layout.
 - Sensitive fields (CCCD, phone) are stripped from the public endpoint.
 
 **Dashboard**
+
 - Monthly revenue, vacancy rate, contracts expiring soon — computed with a single raw-SQL aggregation per metric.
 
 ---
@@ -201,7 +206,7 @@ DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/rental_test_
 
 **Raw SQL as a deliberate exception, not a slippery slope.** Dashboard and billing list endpoints needed to join 4–5 tables per row; through the ORM, latency grew linearly with the number of rooms. I carved out a narrow exception — list endpoints that need joined read-only data use `sqlalchemy.text()` returning `list[dict]`, while every mutating path stays in SQLModel. Writing that down as a layering rule kept the rest of the codebase consistent and stopped raw SQL from leaking everywhere as a "this is faster" reflex.
 
-**Application validators do not retroactively clean historical data.** A late migration added a UNIQUE constraint on property name — normalised for whitespace so `"Nhà A "` and `"Nhà A"` would collide. The Pydantic validator that enforced this on writes had been live for weeks, but it never touched rows already in the database; the migration failed first on local Postgres, then on Neon, with a duplicate-key error. The deploy pipeline contained the blast radius on its own: because `alembic upgrade head` runs inside the container's `CMD` and is idempotent, the failed migration meant the new container never started and Render kept serving the previous revision — no downtime, no half-migrated state. "Delete the duplicates" was an acceptable short-term fix for an MVP whose duplicates were all my own seed data, but it would have been the wrong reflex with real user data; the answer there is an **expand-contract migration** — add a normalised column, backfill it, dedupe by *merging* rows and reassigning FK references rather than dropping data, then enforce the constraint — so destructive cleanup never reaches the user. I formalised the takeaway as a per-migration risk classification (`safe` / `check-data-first` / `dangerous`) and a mandatory pre-flight `GROUP BY … HAVING COUNT(*) > 1` for any UNIQUE addition, documented in `CLAUDE.md` so the rule survives across sessions.
+**Application validators do not retroactively clean historical data.** A late migration added a UNIQUE constraint on property name — normalised for whitespace so `"Nhà A "` and `"Nhà A"` would collide. The Pydantic validator that enforced this on writes had been live for weeks, but it never touched rows already in the database; the migration failed first on local Postgres, then on Neon, with a duplicate-key error. The deploy pipeline contained the blast radius on its own: because `alembic upgrade head` runs inside the container's `CMD` and is idempotent, the failed migration meant the new container never started and Render kept serving the previous revision — no downtime, no half-migrated state. "Delete the duplicates" was an acceptable short-term fix for an MVP whose duplicates were all my own seed data, but it would have been the wrong reflex with real user data; the answer there is an **expand-contract migration** — add a normalised column, backfill it, dedupe by _merging_ rows and reassigning FK references rather than dropping data, then enforce the constraint — so destructive cleanup never reaches the user. I formalised the takeaway as a per-migration risk classification (`safe` / `check-data-first` / `dangerous`) and a mandatory pre-flight `GROUP BY … HAVING COUNT(*) > 1` for any UNIQUE addition, documented in `CLAUDE.md` so the rule survives across sessions.
 
 ---
 
